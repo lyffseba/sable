@@ -6,54 +6,22 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  proto:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Syntax-check proto/game.js
-        run: |
-          if [ ! -d proto ]; then
-            echo "proto/ not in this tree; skip"
-            exit 0
-          fi
-          node --check proto/game.js
+      - name: Toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends cmake g++
 
-  contracts:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Protocol
-        run: python3 tools/check_protocol.py
-
-      - name: License scan
-        run: python3 tools/license_scan.py
-
-      - name: HID fire contract
-        run: python3 tools/test_hid_fire.py
-
-  cv:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install toolchain
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ libopencv-dev
-
-      - name: Build and run cv tests
-        run: |
-          set -euo pipefail
-          cmake -S native/cv_input -B native/cv_input/build -DCMAKE_CXX_COMPILER=g++
-          cmake --build native/cv_input/build
-          ./native/cv_input/build/sable_cv_tests
-
-  godot:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Skip
-        run: echo "Godot headless skipped — no cached 4.3+ binary; do not download the editor on every PR."
+      - name: Checks
+        run: ./tools/ci.sh
