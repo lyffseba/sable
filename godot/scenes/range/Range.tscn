@@ -1,0 +1,110 @@
+[gd_scene load_steps=6 format=3 uid="uid://sablerange0001"]
+
+[ext_resource type="Script" path="res://src/app/range_controller.gd" id="1_range"]
+
+[sub_resource type="Environment" id="Environment_dark"]
+background_mode = 1
+background_color = Color(0.03, 0.035, 0.04, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.12, 0.14, 0.16, 1)
+ambient_light_energy = 0.35
+glow_enabled = false
+ssr_enabled = false
+ssao_enabled = false
+ssil_enabled = false
+sdfgi_enabled = false
+volumetric_fog_enabled = false
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(24, 24)
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+shading_mode = 0
+albedo_color = Color(0.07, 0.08, 0.09, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_orb"]
+radius = 0.35
+height = 0.7
+
+[sub_resource type="StandardMaterial3D" id="Mat_orb"]
+shading_mode = 0
+albedo_color = Color(0.25, 0.95, 0.78, 1)
+
+[node name="Range" type="Node3D"]
+script = ExtResource("1_range")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_dark")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 5.2)
+current = true
+fov = 70.0
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+material_override = SubResource("Mat_floor")
+mesh = SubResource("PlaneMesh_floor")
+
+[node name="DummyOrb" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, -2)
+material_override = SubResource("Mat_orb")
+mesh = SubResource("SphereMesh_orb")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Score" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 280.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.9, 0.94, 0.96, 1)
+theme_override_font_sizes/font_size = 22
+text = "SCORE  0"
+
+[node name="ModeChip" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 20.0
+offset_right = -24.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(0.35, 0.95, 0.78, 1)
+theme_override_font_sizes/font_size = 22
+text = "DESKTOP"
+horizontal_alignment = 2
+
+[node name="Confidence" type="Label" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 52.0
+offset_right = -24.0
+offset_bottom = 84.0
+theme_override_colors/font_color = Color(0.7, 0.76, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "CONF  1.00"
+horizontal_alignment = 2
+
+[node name="Hint" type="Label" parent="HUD"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -48.0
+offset_right = 280.0
+offset_bottom = -16.0
+theme_override_colors/font_color = Color(0.55, 0.6, 0.64, 1)
+theme_override_font_sizes/font_size = 14
+text = "click fires latest AimSample   T desktop   Space force gun"
+horizontal_alignment = 1
+
+[node name="Crosshair" type="ColorRect" parent="HUD"]
+offset_left = -5.0
+offset_top = -5.0
+offset_right = 5.0
+offset_bottom = 5.0
+color = Color(0.95, 0.98, 1, 0.95)

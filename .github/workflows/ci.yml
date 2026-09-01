@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Protocol
+        run: python3 tools/check_protocol.py
+
+      - name: License scan
+        run: python3 tools/license_scan.py
+
+      - name: HID fire contract
+        run: python3 tools/test_hid_fire.py
+
+      - name: Aim pipeline tests
+        run: |
+          cmake -S native/cv_input -B native/cv_input/build -DCMAKE_CXX_COMPILER=g++
+          cmake --build native/cv_input/build
+          ./native/cv_input/build/sable_cv_tests
+
+      - name: Headless Godot boot (skip if missing)
+        env:
+          GODOT_BIN: ${{ env.GODOT_BIN }}
+        run: |
+          set -e
+          BIN="${GODOT_BIN:-}"
+          if [ -z "$BIN" ]; then
+            for c in godot godot4; do
+              if command -v "$c" >/dev/null 2>&1; then
+                BIN="$c"
+                break
+              fi
+            done
+          fi
+          if [ -z "$BIN" ]; then
+            echo "Godot not on runner. Set GODOT_BIN to enable headless boot. Skipping."
+            exit 0
+          fi
+          "$BIN" --version || true
+          "$BIN" --headless --path godot --quit-after 3

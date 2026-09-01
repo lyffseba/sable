@@ -1,0 +1,71 @@
+[gd_scene load_steps=2 format=3 uid="uid://sableboot0001"]
+
+[ext_resource type="Script" path="res://src/app/boot.gd" id="1_boot"]
+
+[node name="Boot" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_boot")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.045, 0.055, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Column" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Center/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.93, 0.95, 1)
+theme_override_font_sizes/font_size = 72
+text = "SABLE"
+horizontal_alignment = 1
+
+[node name="Tag" type="Label" parent="Center/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.95, 0.78, 1)
+theme_override_font_sizes/font_size = 22
+text = "Lift. Point. Click."
+horizontal_alignment = 1
+
+[node name="Pad" type="Control" parent="Center/Column"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="EnableCamera" type="Button" parent="Center/Column"]
+custom_minimum_size = Vector2(280, 40)
+layout_mode = 2
+text = "Enable camera"
+
+[node name="EnterRange" type="Button" parent="Center/Column"]
+custom_minimum_size = Vector2(280, 40)
+layout_mode = 2
+text = "Enter Range"
+
+[node name="Status" type="Label" parent="Center/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.7, 0.74, 1)
+theme_override_font_sizes/font_size = 14
+text = "T = desktop aim   Space = force gun"
+horizontal_alignment = 1
+
+[connection signal="pressed" from="Center/Column/EnableCamera" to="." method="_on_enable_camera"]
+[connection signal="pressed" from="Center/Column/EnterRange" to="." method="_on_enter_range"]
