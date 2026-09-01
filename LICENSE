@@ -1,0 +1,9 @@
+Copyright (c) 2026 SABLE project contributors. All rights reserved.
+
+This software and associated game content are proprietary. No license is
+granted to copy, modify, distribute, or create derivative works except as
+expressly agreed in writing by the rights holder, or as required by the
+inbound contributor terms in CLA.md.
+
+Third-party components (Godot Engine, and OpenCV when linked) remain under
+their own licenses. See docs/THIRD_PARTY_NOTICES.md.

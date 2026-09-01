@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LIFTSHOT</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Hidden forever. getUserMedia sink only — never drawn, never PIP. -->
+  <video id="cam" playsinline muted autoplay aria-hidden="true"></video>
+  <canvas id="proc" aria-hidden="true"></canvas>
+  <canvas id="game"></canvas>
+
+  <div id="ui">
+    <div id="screen-boot" class="screen">
+      <div class="boot-inner">
+        <div class="kicker">PHYSICAL AIM</div>
+        <h1 class="title">LIFTSHOT</h1>
+        <p class="tag">Lift the mouse. Point. Click.</p>
+        <button type="button" id="btn-play" class="btn btn-primary">PLAY</button>
+        <p class="safety">Tilt the webcam down at your hands.</p>
+      </div>
+    </div>
+
+    <div id="screen-lock" class="screen screen-pass" hidden>
+      <p id="lock-status" class="lock-status">SEEKING</p>
+      <p class="lock-copy">Hold the mouse up to the webcam. We lock the plastic like the sensor locks the mat.</p>
+      <p class="safety">Tilt the webcam down at your hands.</p>
+    </div>
+
+    <div id="screen-calib" class="screen screen-pass" hidden>
+      <div class="calib-top">
+        <p id="calib-msg" class="instruction">Aim at the glow. Click to capture.</p>
+        <button type="button" id="btn-redo" class="btn btn-ghost" hidden>REDO LAST</button>
+      </div>
+    </div>
+
+    <div id="screen-range" class="screen screen-pass" hidden></div>
+
+    <div id="screen-results" class="screen" hidden>
+      <div class="results-inner">
+        <div class="kicker">RANGE COMPLETE</div>
+        <h1 class="title title-sm">LIFTSHOT</h1>
+        <div id="stats" class="stats"></div>
+        <div class="results-actions">
+          <button type="button" id="btn-again" class="btn btn-primary">PLAY AGAIN</button>
+          <button type="button" id="btn-recal" class="btn btn-ghost">RECALIBRATE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

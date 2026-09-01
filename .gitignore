@@ -1,3 +1,6 @@
+# Godot 4.2+ specific ignores
+~*.dll
+
 # Godot 4+ specific ignores
 .godot/
 .nomedia
@@ -15,3 +18,28 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Native build products (do not ignore source)
+native/cv_input/build/
+native/cv_input/bin/
+*.so
+*.dylib
+*.a
+
+# Local export output
+build/
+dist/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

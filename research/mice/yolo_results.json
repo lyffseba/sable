@@ -1,0 +1,1282 @@
+{
+  "weights": "yolo11n.pt",
+  "n_images": 26,
+  "cpu_infer_ms_mean": 30.1,
+  "cpu_infer_ms_median": 25.1,
+  "cpu_infer_ms_p90": 42.6,
+  "mouse_detected": 13,
+  "phone_confused": 2,
+  "both_mouse_and_phone": 1,
+  "miss": 13,
+  "rows": [
+    {
+      "file": "01b_superlight_unsplash.jpg",
+      "wh": [
+        1600,
+        1067
+      ],
+      "infer_ms_cpu": 39.5,
+      "n_dets": 2,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.969,
+          "xyxy": [
+            561.8,
+            473.7,
+            1134.7,
+            782.3
+          ],
+          "box_wh": [
+            572.9,
+            308.6
+          ],
+          "area_frac": 0.1036
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.969,
+          "xyxy": [
+            561.8,
+            473.7,
+            1134.7,
+            782.3
+          ],
+          "box_wh": [
+            572.9,
+            308.6
+          ],
+          "area_frac": 0.1036
+        },
+        {
+          "cls": 58,
+          "name": "potted plant",
+          "conf": 0.321,
+          "xyxy": [
+            387.9,
+            0.4,
+            794.0,
+            366.8
+          ],
+          "box_wh": [
+            406.1,
+            366.5
+          ],
+          "area_frac": 0.0872
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.479,
+        "nose_xy_downscaled": [
+          0,
+          173
+        ],
+        "dark_blob_candidates": 3,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_01b_superlight_unsplash.jpg"
+      }
+    },
+    {
+      "file": "02_superlight_white_product_bh.jpg",
+      "wh": [
+        2000,
+        2000
+      ],
+      "infer_ms_cpu": 26.8,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.232,
+          "xyxy": [
+            120.6,
+            459.8,
+            1992.9,
+            1537.6
+          ],
+          "box_wh": [
+            1872.3,
+            1077.8
+          ],
+          "area_frac": 0.5045
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.232,
+          "xyxy": [
+            120.6,
+            459.8,
+            1992.9,
+            1537.6
+          ],
+          "box_wh": [
+            1872.3,
+            1077.8
+          ],
+          "area_frac": 0.5045
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.1461,
+        "nose_xy_downscaled": [
+          636,
+          376
+        ],
+        "dark_blob_candidates": 6,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_02_superlight_white_product_bh.jpg"
+      }
+    },
+    {
+      "file": "03_superlight_black_product_bh.jpg",
+      "wh": [
+        2000,
+        2000
+      ],
+      "infer_ms_cpu": 26.0,
+      "n_dets": 1,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 4,
+          "name": "airplane",
+          "conf": 0.447,
+          "xyxy": [
+            127.9,
+            470.5,
+            1987.4,
+            1541.7
+          ],
+          "box_wh": [
+            1859.5,
+            1071.3
+          ],
+          "area_frac": 0.498
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.3377,
+        "nose_xy_downscaled": [
+          637,
+          373
+        ],
+        "dark_blob_candidates": 3,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_03_superlight_black_product_bh.jpg"
+      }
+    },
+    {
+      "file": "04_razer_deathadder_elite_front_oblique.jpg",
+      "wh": [
+        3517,
+        2199
+      ],
+      "infer_ms_cpu": 36.9,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.537,
+          "xyxy": [
+            11.7,
+            295.9,
+            2974.1,
+            2147.7
+          ],
+          "box_wh": [
+            2962.4,
+            1851.8
+          ],
+          "area_frac": 0.7093
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.537,
+          "xyxy": [
+            11.7,
+            295.9,
+            2974.1,
+            2147.7
+          ],
+          "box_wh": [
+            2962.4,
+            1851.8
+          ],
+          "area_frac": 0.7093
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.3296,
+        "nose_xy_downscaled": [
+          0,
+          399
+        ],
+        "dark_blob_candidates": 9,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_04_razer_deathadder_elite_front_oblique.jpg"
+      }
+    },
+    {
+      "file": "05_razer_deathadder_2013_front_oblique.jpg",
+      "wh": [
+        3411,
+        2132
+      ],
+      "infer_ms_cpu": 22.2,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.776,
+          "xyxy": [
+            263.7,
+            276.3,
+            2938.1,
+            2078.2
+          ],
+          "box_wh": [
+            2674.4,
+            1802.0
+          ],
+          "area_frac": 0.6627
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.776,
+          "xyxy": [
+            263.7,
+            276.3,
+            2938.1,
+            2078.2
+          ],
+          "box_wh": [
+            2674.4,
+            1802.0
+          ],
+          "area_frac": 0.6627
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.3424,
+        "nose_xy_downscaled": [
+          56,
+          399
+        ],
+        "dark_blob_candidates": 8,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_05_razer_deathadder_2013_front_oblique.jpg"
+      }
+    },
+    {
+      "file": "06_razer_deathadder_wheel_closeup.jpg",
+      "wh": [
+        3888,
+        2592
+      ],
+      "infer_ms_cpu": 24.5,
+      "n_dets": 1,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 76,
+          "name": "scissors",
+          "conf": 0.263,
+          "xyxy": [
+            38.6,
+            65.9,
+            2730.2,
+            2542.2
+          ],
+          "box_wh": [
+            2691.6,
+            2476.2
+          ],
+          "area_frac": 0.6614
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.9536,
+        "nose_xy_downscaled": [
+          0,
+          425
+        ],
+        "dark_blob_candidates": 9,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_06_razer_deathadder_wheel_closeup.jpg"
+      }
+    },
+    {
+      "file": "07_razer_deathadder_belly_sensor.jpg",
+      "wh": [
+        2107,
+        3354
+      ],
+      "infer_ms_cpu": 43.1,
+      "n_dets": 0,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.5408,
+        "nose_xy_downscaled": [
+          186,
+          0
+        ],
+        "dark_blob_candidates": 6,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_07_razer_deathadder_belly_sensor.jpg"
+      }
+    },
+    {
+      "file": "08_hp_office_optical_mu0031.jpg",
+      "wh": [
+        3178,
+        3178
+      ],
+      "infer_ms_cpu": 27.8,
+      "n_dets": 0,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.3611,
+        "nose_xy_downscaled": [
+          490,
+          0
+        ],
+        "dark_blob_candidates": 2,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_08_hp_office_optical_mu0031.jpg"
+      }
+    },
+    {
+      "file": "09_hp_wired_office_whitebg.jpg",
+      "wh": [
+        4032,
+        3024
+      ],
+      "infer_ms_cpu": 41.3,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.553,
+          "xyxy": [
+            720.1,
+            941.1,
+            3302.2,
+            2660.9
+          ],
+          "box_wh": [
+            2582.2,
+            1719.8
+          ],
+          "area_frac": 0.3642
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.553,
+          "xyxy": [
+            720.1,
+            941.1,
+            3302.2,
+            2660.9
+          ],
+          "box_wh": [
+            2582.2,
+            1719.8
+          ],
+          "area_frac": 0.3642
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.2437,
+        "nose_xy_downscaled": [
+          639,
+          182
+        ],
+        "dark_blob_candidates": 2,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_09_hp_wired_office_whitebg.jpg"
+      }
+    },
+    {
+      "file": "10_logitech_m100_office.jpg",
+      "wh": [
+        4160,
+        2340
+      ],
+      "infer_ms_cpu": 61.0,
+      "n_dets": 3,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.569,
+          "xyxy": [
+            1270.1,
+            444.6,
+            2179.3,
+            1241.6
+          ],
+          "box_wh": [
+            909.2,
+            797.0
+          ],
+          "area_frac": 0.0744
+        },
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.222,
+          "xyxy": [
+            1274.9,
+            408.2,
+            3053.4,
+            1477.1
+          ],
+          "box_wh": [
+            1778.5,
+            1068.9
+          ],
+          "area_frac": 0.1953
+        }
+      ],
+      "cell_phone": [
+        {
+          "cls": 67,
+          "name": "cell phone",
+          "conf": 0.539,
+          "xyxy": [
+            3468.0,
+            11.6,
+            4153.7,
+            254.6
+          ],
+          "box_wh": [
+            685.7,
+            243.0
+          ],
+          "area_frac": 0.0171
+        }
+      ],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.569,
+          "xyxy": [
+            1270.1,
+            444.6,
+            2179.3,
+            1241.6
+          ],
+          "box_wh": [
+            909.2,
+            797.0
+          ],
+          "area_frac": 0.0744
+        },
+        {
+          "cls": 67,
+          "name": "cell phone",
+          "conf": 0.539,
+          "xyxy": [
+            3468.0,
+            11.6,
+            4153.7,
+            254.6
+          ],
+          "box_wh": [
+            685.7,
+            243.0
+          ],
+          "area_frac": 0.0171
+        },
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.222,
+          "xyxy": [
+            1274.9,
+            408.2,
+            3053.4,
+            1477.1
+          ],
+          "box_wh": [
+            1778.5,
+            1068.9
+          ],
+          "area_frac": 0.1953
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.2609,
+        "nose_xy_downscaled": [
+          569,
+          297
+        ],
+        "dark_blob_candidates": 5,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_10_logitech_m100_office.jpg"
+      }
+    },
+    {
+      "file": "11_logitech_b100_office.jpg",
+      "wh": [
+        4160,
+        2340
+      ],
+      "infer_ms_cpu": 19.0,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.987,
+          "xyxy": [
+            1865.9,
+            1085.0,
+            3190.0,
+            1799.4
+          ],
+          "box_wh": [
+            1324.1,
+            714.4
+          ],
+          "area_frac": 0.0972
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.987,
+          "xyxy": [
+            1865.9,
+            1085.0,
+            3190.0,
+            1799.4
+          ],
+          "box_wh": [
+            1324.1,
+            714.4
+          ],
+          "area_frac": 0.0972
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.2977,
+        "nose_xy_downscaled": [
+          497,
+          273
+        ],
+        "dark_blob_candidates": 2,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_11_logitech_b100_office.jpg"
+      }
+    },
+    {
+      "file": "12_logitech_optical_3q.jpg",
+      "wh": [
+        3456,
+        3654
+      ],
+      "infer_ms_cpu": 45.3,
+      "n_dets": 1,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 75,
+          "name": "vase",
+          "conf": 0.562,
+          "xyxy": [
+            350.7,
+            561.5,
+            1920.9,
+            3413.0
+          ],
+          "box_wh": [
+            1570.2,
+            2851.5
+          ],
+          "area_frac": 0.3546
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.1647,
+        "nose_xy_downscaled": [
+          245,
+          75
+        ],
+        "dark_blob_candidates": 4,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_12_logitech_optical_3q.jpg"
+      }
+    },
+    {
+      "file": "13_logitech_g502_3q.jpg",
+      "wh": [
+        700,
+        465
+      ],
+      "infer_ms_cpu": 20.8,
+      "n_dets": 0,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.2012,
+        "nose_xy_downscaled": [
+          639,
+          298
+        ],
+        "dark_blob_candidates": 12,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_13_logitech_g502_3q.jpg"
+      }
+    },
+    {
+      "file": "14_logitech_g502_phone.jpg",
+      "wh": [
+        3024,
+        4032
+      ],
+      "infer_ms_cpu": 40.4,
+      "n_dets": 0,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.9623,
+        "nose_xy_downscaled": [
+          0,
+          0
+        ],
+        "dark_blob_candidates": 5,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_14_logitech_g502_phone.jpg"
+      }
+    },
+    {
+      "file": "15_logitech_g403_rgb.jpg",
+      "wh": [
+        3024,
+        4032
+      ],
+      "infer_ms_cpu": 21.6,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.887,
+          "xyxy": [
+            999.6,
+            549.3,
+            1987.7,
+            2371.7
+          ],
+          "box_wh": [
+            988.1,
+            1822.4
+          ],
+          "area_frac": 0.1477
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.887,
+          "xyxy": [
+            999.6,
+            549.3,
+            1987.7,
+            2371.7
+          ],
+          "box_wh": [
+            988.1,
+            1822.4
+          ],
+          "area_frac": 0.1477
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.2982,
+        "nose_xy_downscaled": [
+          0,
+          639
+        ],
+        "dark_blob_candidates": 7,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_15_logitech_g403_rgb.jpg"
+      }
+    },
+    {
+      "file": "16_logitech_g900.jpg",
+      "wh": [
+        3024,
+        4032
+      ],
+      "infer_ms_cpu": 24.1,
+      "n_dets": 0,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.1485,
+        "nose_xy_downscaled": [
+          251,
+          20
+        ],
+        "dark_blob_candidates": 1,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_16_logitech_g900.jpg"
+      }
+    },
+    {
+      "file": "17_logitech_g7_3q.jpg",
+      "wh": [
+        3008,
+        2000
+      ],
+      "infer_ms_cpu": 22.5,
+      "n_dets": 3,
+      "mouse": [],
+      "cell_phone": [
+        {
+          "cls": 67,
+          "name": "cell phone",
+          "conf": 0.202,
+          "xyxy": [
+            401.8,
+            203.4,
+            2345.1,
+            1865.4
+          ],
+          "box_wh": [
+            1943.3,
+            1662.0
+          ],
+          "area_frac": 0.5368
+        }
+      ],
+      "all": [
+        {
+          "cls": 67,
+          "name": "cell phone",
+          "conf": 0.202,
+          "xyxy": [
+            401.8,
+            203.4,
+            2345.1,
+            1865.4
+          ],
+          "box_wh": [
+            1943.3,
+            1662.0
+          ],
+          "area_frac": 0.5368
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.8234,
+        "nose_xy_downscaled": [
+          639,
+          424
+        ],
+        "dark_blob_candidates": 1,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_17_logitech_g7_3q.jpg"
+      }
+    },
+    {
+      "file": "18_razer_naga_2014.jpg",
+      "wh": [
+        1500,
+        1250
+      ],
+      "infer_ms_cpu": 41.6,
+      "n_dets": 1,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.4621,
+        "nose_xy_downscaled": [
+          43,
+          40
+        ],
+        "dark_blob_candidates": 7,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_18_razer_naga_2014.jpg"
+      }
+    },
+    {
+      "file": "19_razer_abyssus.jpg",
+      "wh": [
+        4032,
+        3024
+      ],
+      "infer_ms_cpu": 21.4,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.589,
+          "xyxy": [
+            1285.0,
+            405.7,
+            2545.8,
+            2241.9
+          ],
+          "box_wh": [
+            1260.8,
+            1836.2
+          ],
+          "area_frac": 0.1899
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.589,
+          "xyxy": [
+            1285.0,
+            405.7,
+            2545.8,
+            2241.9
+          ],
+          "box_wh": [
+            1260.8,
+            1836.2
+          ],
+          "area_frac": 0.1899
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.4279,
+        "nose_xy_downscaled": [
+          639,
+          479
+        ],
+        "dark_blob_candidates": 8,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_19_razer_abyssus.jpg"
+      }
+    },
+    {
+      "file": "20_razer_mamba.jpg",
+      "wh": [
+        3024,
+        4032
+      ],
+      "infer_ms_cpu": 23.3,
+      "n_dets": 1,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 28,
+          "name": "suitcase",
+          "conf": 0.514,
+          "xyxy": [
+            802.0,
+            1046.3,
+            2199.5,
+            3317.7
+          ],
+          "box_wh": [
+            1397.5,
+            2271.4
+          ],
+          "area_frac": 0.2603
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.6329,
+        "nose_xy_downscaled": [
+          479,
+          0
+        ],
+        "dark_blob_candidates": 2,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_20_razer_mamba.jpg"
+      }
+    },
+    {
+      "file": "21_steelseries_rival300_fade.png",
+      "wh": [
+        692,
+        400
+      ],
+      "infer_ms_cpu": 21.3,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.848,
+          "xyxy": [
+            17.7,
+            36.5,
+            627.2,
+            385.7
+          ],
+          "box_wh": [
+            609.4,
+            349.2
+          ],
+          "area_frac": 0.7688
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.848,
+          "xyxy": [
+            17.7,
+            36.5,
+            627.2,
+            385.7
+          ],
+          "box_wh": [
+            609.4,
+            349.2
+          ],
+          "area_frac": 0.7688
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.9957,
+        "nose_xy_downscaled": [
+          0,
+          0
+        ],
+        "dark_blob_candidates": 1,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_21_steelseries_rival300_fade.png"
+      }
+    },
+    {
+      "file": "22_ibm_ps2_beige_office.jpg",
+      "wh": [
+        2048,
+        1536
+      ],
+      "infer_ms_cpu": 25.6,
+      "n_dets": 3,
+      "mouse": [],
+      "cell_phone": [
+        {
+          "cls": 67,
+          "name": "cell phone",
+          "conf": 0.151,
+          "xyxy": [
+            1503.8,
+            185.8,
+            2015.0,
+            483.9
+          ],
+          "box_wh": [
+            511.2,
+            298.1
+          ],
+          "area_frac": 0.0484
+        }
+      ],
+      "all": [
+        {
+          "cls": 28,
+          "name": "suitcase",
+          "conf": 0.275,
+          "xyxy": [
+            251.3,
+            424.9,
+            1746.9,
+            1487.8
+          ],
+          "box_wh": [
+            1495.5,
+            1062.8
+          ],
+          "area_frac": 0.5053
+        },
+        {
+          "cls": 76,
+          "name": "scissors",
+          "conf": 0.181,
+          "xyxy": [
+            143.9,
+            52.2,
+            1402.2,
+            597.0
+          ],
+          "box_wh": [
+            1258.3,
+            544.8
+          ],
+          "area_frac": 0.2179
+        },
+        {
+          "cls": 67,
+          "name": "cell phone",
+          "conf": 0.151,
+          "xyxy": [
+            1503.8,
+            185.8,
+            2015.0,
+            483.9
+          ],
+          "box_wh": [
+            511.2,
+            298.1
+          ],
+          "area_frac": 0.0484
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.6254,
+        "nose_xy_downscaled": [
+          0,
+          0
+        ],
+        "dark_blob_candidates": 55,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_22_ibm_ps2_beige_office.jpg"
+      }
+    },
+    {
+      "file": "23_logitech_blue_optical.jpg",
+      "wh": [
+        1500,
+        936
+      ],
+      "infer_ms_cpu": 20.6,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.769,
+          "xyxy": [
+            95.0,
+            170.5,
+            1206.1,
+            636.2
+          ],
+          "box_wh": [
+            1111.1,
+            465.7
+          ],
+          "area_frac": 0.3686
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.769,
+          "xyxy": [
+            95.0,
+            170.5,
+            1206.1,
+            636.2
+          ],
+          "box_wh": [
+            1111.1,
+            465.7
+          ],
+          "area_frac": 0.3686
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.273,
+        "nose_xy_downscaled": [
+          0,
+          237
+        ],
+        "dark_blob_candidates": 0,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_23_logitech_blue_optical.jpg"
+      }
+    },
+    {
+      "file": "24_generic_optical.jpg",
+      "wh": [
+        2067,
+        2445
+      ],
+      "infer_ms_cpu": 42.1,
+      "n_dets": 3,
+      "mouse": [],
+      "cell_phone": [],
+      "all": [],
+      "opencv": {
+        "contour_area_frac": 0.9966,
+        "nose_xy_downscaled": [
+          0,
+          0
+        ],
+        "dark_blob_candidates": 5,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_24_generic_optical.jpg"
+      }
+    },
+    {
+      "file": "25_razer_lancehead_deathadder.jpg",
+      "wh": [
+        3024,
+        4032
+      ],
+      "infer_ms_cpu": 22.5,
+      "n_dets": 1,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.663,
+          "xyxy": [
+            1278.9,
+            1885.6,
+            2034.1,
+            3282.6
+          ],
+          "box_wh": [
+            755.1,
+            1396.9
+          ],
+          "area_frac": 0.0865
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.663,
+          "xyxy": [
+            1278.9,
+            1885.6,
+            2034.1,
+            3282.6
+          ],
+          "box_wh": [
+            755.1,
+            1396.9
+          ],
+          "area_frac": 0.0865
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.3679,
+        "nose_xy_downscaled": [
+          479,
+          0
+        ],
+        "dark_blob_candidates": 7,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_25_razer_lancehead_deathadder.jpg"
+      }
+    },
+    {
+      "file": "27_pexels_rgb_honeycomb_mouse.jpg",
+      "wh": [
+        1600,
+        1067
+      ],
+      "infer_ms_cpu": 21.2,
+      "n_dets": 3,
+      "mouse": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.663,
+          "xyxy": [
+            450.9,
+            499.5,
+            1068.0,
+            840.2
+          ],
+          "box_wh": [
+            617.1,
+            340.7
+          ],
+          "area_frac": 0.1232
+        }
+      ],
+      "cell_phone": [],
+      "all": [
+        {
+          "cls": 64,
+          "name": "mouse",
+          "conf": 0.663,
+          "xyxy": [
+            450.9,
+            499.5,
+            1068.0,
+            840.2
+          ],
+          "box_wh": [
+            617.1,
+            340.7
+          ],
+          "area_frac": 0.1232
+        },
+        {
+          "cls": 66,
+          "name": "keyboard",
+          "conf": 0.489,
+          "xyxy": [
+            1.1,
+            200.2,
+            766.5,
+            634.3
+          ],
+          "box_wh": [
+            765.4,
+            434.1
+          ],
+          "area_frac": 0.1946
+        },
+        {
+          "cls": 63,
+          "name": "laptop",
+          "conf": 0.196,
+          "xyxy": [
+            0.2,
+            199.7,
+            766.7,
+            633.9
+          ],
+          "box_wh": [
+            766.5,
+            434.2
+          ],
+          "area_frac": 0.1949
+        }
+      ],
+      "opencv": {
+        "contour_area_frac": 0.9787,
+        "nose_xy_downscaled": [
+          639,
+          0
+        ],
+        "dark_blob_candidates": 10,
+        "ocv_path": "/workspace/sable/research/mice/opencv/ocv_27_pexels_rgb_honeycomb_mouse.jpg"
+      }
+    }
+  ]
+}
