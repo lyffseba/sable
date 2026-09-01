@@ -62,6 +62,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("fire"):
 		_fire(HidFire.shot_from_bus(AimBus))
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("cycle_style"):
+		Locker.cycle_style()
+		_apply_locker(AimBus.peek().lifted)
+		get_viewport().set_input_as_handled()
 
 
 func _physics_process(delta: float) -> void:
@@ -84,7 +88,7 @@ func _process(_delta: float) -> void:
 	var sample: AimSample = AimBus.peek()
 	var size: Vector2 = get_viewport().get_visible_rect().size
 	_cross.position = Vector2(sample.uv.x * size.x, sample.uv.y * size.y) - _cross.size * 0.5
-	_gun_arm.visible = sample.lifted and not _match_over
+	_gun_arm.visible = not _match_over
 	if not _skin_ready or sample.lifted != _skin_lifted:
 		_apply_locker(sample.lifted)
 
@@ -244,7 +248,7 @@ func _play_miss(screen: Vector2) -> void:
 func _refresh_hud() -> void:
 	var sample: AimSample = AimBus.peek()
 	var op := Locker.operator()
-	_score_label.text = "%s  %d   —   %d" % [op.display_name, _you, _them]
+	_score_label.text = "%s  %d   —   %d   ·  %s" % [op.display_name, _you, _them, Locker.equipped_style_id]
 	_phase_label.text = _phase_name()
 	_phase_label.add_theme_color_override("font_color", Locker.MINT)
 	_score_label.add_theme_color_override("font_color", Locker.BONE)
@@ -260,7 +264,7 @@ func _refresh_hud() -> void:
 		_cover_label.text = "LIFT"
 	else:
 		_cover_label.text = "PAD"
-	_hint.text = "WASD on the mat   Space lift   click fires AimSample   first to 5"
+	_hint.text = "WASD pad   Space lift   L cycle look (%s)   click AimSample   first to 5" % Locker.equipped_style_id
 	if _match_over:
 		_hint.text = Locker.operator().vo_win + "   first to 5"
 

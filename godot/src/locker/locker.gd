@@ -39,20 +39,33 @@ func equip_style(id: String) -> void:
 		equipped_style_id = id
 
 
+func cycle_style() -> String:
+	var ids := style_ids()
+	if ids.is_empty():
+		return equipped_style_id
+	var i := 0
+	for n in ids.size():
+		if ids[n] == equipped_style_id:
+			i = n
+			break
+	equipped_style_id = ids[(i + 1) % ids.size()]
+	return equipped_style_id
+
+
 func apply_capsule(body: MeshInstance3D, collar: MeshInstance3D, arm: MeshInstance3D, stripe: MeshInstance3D, rust: MeshInstance3D, chest: MeshInstance3D, lifted: bool) -> void:
 	var s := style()
 	_paint(body, s.body)
 	_paint(collar, s.body)
 	_paint(arm, s.body)
-	_paint(stripe, MINT)
+	_paint(stripe, s.stripe if lifted else s.stripe_rest)
 	_paint(rust, s.rust)
 	if rust != null:
 		rust.visible = s.rust_visible
 	if stripe != null:
-		stripe.visible = lifted if s.stripe_only_on_lift else true
+		stripe.visible = true
 	if chest != null:
 		chest.visible = s.chest_band
-		_paint(chest, MINT if s.chest_mint else s.stitch)
+		_paint(chest, s.stripe)
 
 
 func _paint(mesh: MeshInstance3D, color: Color) -> void:
@@ -82,37 +95,34 @@ func _cancho() -> OperatorDef:
 func _default() -> OutfitStyle:
 	var s := OutfitStyle.new()
 	s.id = STYLE_DEFAULT
-	s.body = Color(0.14, 0.145, 0.155)
-	s.stitch = BONE
-	s.chest_band = true
-	s.chest_mint = false
+	s.body = Color(0.06, 0.07, 0.08)
+	s.stripe = MINT
+	s.stripe_rest = MINT
+	s.chest_band = false
 	s.rust = Color(0.55, 0.28, 0.18)
 	s.rust_visible = true
-	s.stripe_only_on_lift = false
 	return s
 
 
 func _ranked() -> OutfitStyle:
 	var s := OutfitStyle.new()
 	s.id = STYLE_RANKED
-	s.body = Color(0.12, 0.14, 0.16)
-	s.stitch = MINT
+	s.body = Color(0.04, 0.05, 0.07)
+	s.stripe = MINT
+	s.stripe_rest = MINT
 	s.chest_band = true
-	s.chest_mint = true
 	s.rust = Color(0.45, 0.26, 0.2)
 	s.rust_visible = true
-	s.stripe_only_on_lift = false
 	return s
 
 
 func _night() -> OutfitStyle:
 	var s := OutfitStyle.new()
 	s.id = STYLE_NIGHT
-	s.body = Color(0.04, 0.04, 0.045)
-	s.stitch = Color(0.04, 0.04, 0.045)
+	s.body = Color(0.02, 0.02, 0.025)
+	s.stripe = MINT
+	s.stripe_rest = Color(0.12, 0.35, 0.28)
 	s.chest_band = false
-	s.chest_mint = false
 	s.rust = Color(0.2, 0.1, 0.08)
 	s.rust_visible = true
-	s.stripe_only_on_lift = true
 	return s
