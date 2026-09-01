@@ -22,6 +22,9 @@ jobs:
       - name: HID fire contract
         run: python3 tools/test_hid_fire.py
 
+      - name: Range pad-lift gate
+        run: python3 tools/test_range_loop.py
+
       - name: Aim pipeline tests
         run: |
           cmake -S native/cv_input -B native/cv_input/build -DCMAKE_CXX_COMPILER=g++
