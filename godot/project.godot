@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 App="*res://src/app/app.gd"
 AimBus="*res://src/input/aim_bus.gd"
 AimService="*res://src/input/aim_service.gd"
+Locker="*res://src/locker/locker.gd"
 
 [display]
 

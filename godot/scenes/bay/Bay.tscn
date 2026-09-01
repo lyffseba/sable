@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://sablebay000001"]
+[gd_scene load_steps=16 format=3 uid="uid://sablebay000001"]
 
 [ext_resource type="Script" path="res://src/app/bay_controller.gd" id="1_bay"]
 
@@ -56,6 +56,9 @@ size = Vector3(0.07, 0.07, 0.42)
 
 [sub_resource type="BoxMesh" id="Box_stripe"]
 size = Vector3(0.085, 0.085, 0.055)
+
+[sub_resource type="BoxMesh" id="Box_chest"]
+size = Vector3(0.42, 0.03, 0.08)
 
 [sub_resource type="CylinderMesh" id="Cyl_collar"]
 top_radius = 0.3
@@ -155,6 +158,11 @@ surface_material_override/0 = SubResource("Mat_charcoal")
 [node name="Collar" type="MeshInstance3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, 0)
 mesh = SubResource("Cyl_collar")
+surface_material_override/0 = SubResource("Mat_charcoal")
+
+[node name="ChestBand" type="MeshInstance3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.18, 0.16)
+mesh = SubResource("Box_chest")
 surface_material_override/0 = SubResource("Mat_charcoal")
 
 [node name="Camera3D" type="Camera3D" parent="Player"]

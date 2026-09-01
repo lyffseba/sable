@@ -1,6 +1,6 @@
 extends Node3D
 
-## Bay 1v1. AimSample is the gun. CANCHO is a capsule tell, not a scan.
+## Bay 1v1. AimSample is the gun. CANCHO (operator 1) wears the capsule until a body exists.
 
 enum Phase { PAD, GUN, FREEZE, MATCH }
 
@@ -13,16 +13,15 @@ const EYE_H := 1.64
 const HEIGHT := 1.78
 const SPAWN_A := Vector3(0.0, 0.0, 10.0)
 const SPAWN_B := Vector3(0.0, 0.89, -10.0)
-const MINT := Color(0.35, 0.95, 0.78, 1)
-const BONE := Color(0.90, 0.88, 0.82, 1)
-const VO_LIFT := "Al aire."
-const VO_HIT := "Claro."
-const VO_DROP := "Al suelo."
-const VO_WIN := "Se escribió."
-
 @onready var _player: CharacterBody3D = $Player
 @onready var _camera: Camera3D = $Player/Camera3D
+@onready var _body: MeshInstance3D = $Player/Body
+@onready var _collar: MeshInstance3D = $Player/Collar
+@onready var _chest: MeshInstance3D = $Player/ChestBand
 @onready var _gun_arm: Node3D = $Player/Camera3D/GunArm
+@onready var _arm: MeshInstance3D = $Player/Camera3D/GunArm/Arm
+@onready var _stripe: MeshInstance3D = $Player/Camera3D/GunArm/MintStripe
+@onready var _rust: MeshInstance3D = $Player/Camera3D/GunArm/RustWrist
 @onready var _foe: MeshInstance3D = $Foe
 @onready var _score_label: Label = $HUD/Score
 @onready var _phase_label: Label = $HUD/ModeChip
@@ -46,12 +45,15 @@ var _vo_t: float = 0.0
 var _miss_t: float = 0.0
 var _match_over: bool = false
 var _pending_drop_vo: bool = false
+var _skin_lifted: bool = false
+var _skin_ready: bool = false
 
 
 func _ready() -> void:
 	_camera.current = true
 	_tick_player.stream = _make_tick(1850.0, 0.028, 0.22)
 	_boot_btn.visible = false
+	_apply_locker(false)
 	_place_round()
 	_refresh_hud()
 
@@ -83,6 +85,8 @@ func _process(_delta: float) -> void:
 	var size: Vector2 = get_viewport().get_visible_rect().size
 	_cross.position = Vector2(sample.uv.x * size.x, sample.uv.y * size.y) - _cross.size * 0.5
 	_gun_arm.visible = sample.lifted and not _match_over
+	if not _skin_ready or sample.lifted != _skin_lifted:
+		_apply_locker(sample.lifted)
 
 
 func _note_lift(sample: AimSample) -> void:
@@ -90,10 +94,10 @@ func _note_lift(sample: AimSample) -> void:
 		_was_lifted = sample.lifted
 		return
 	if sample.lifted and not _was_lifted:
-		_vo(VO_LIFT)
+		_vo(Locker.operator().vo_lift)
 	if _was_lifted and not sample.lifted:
 		if _pending_drop_vo or _phase != Phase.FREEZE:
-			_vo(VO_DROP)
+			_vo(Locker.operator().vo_drop)
 			_pending_drop_vo = false
 	_was_lifted = sample.lifted
 	if _frozen:
@@ -163,7 +167,7 @@ func _fire(sample: AimSample) -> void:
 		_play_miss(screen)
 		return
 	_you += 1
-	_vo(VO_HIT)
+	_vo(Locker.operator().vo_hit)
 	if _you >= TO_WIN:
 		_end_match()
 		return
@@ -219,7 +223,7 @@ func _end_match() -> void:
 	_frozen = true
 	_phase = Phase.MATCH
 	_boot_btn.visible = true
-	_vo(VO_WIN)
+	_vo(Locker.operator().vo_win)
 
 
 func _vo(line: String) -> void:
@@ -239,12 +243,13 @@ func _play_miss(screen: Vector2) -> void:
 
 func _refresh_hud() -> void:
 	var sample: AimSample = AimBus.peek()
-	_score_label.text = "CANCHO  %d   —   %d" % [_you, _them]
+	var op := Locker.operator()
+	_score_label.text = "%s  %d   —   %d" % [op.display_name, _you, _them]
 	_phase_label.text = _phase_name()
-	_phase_label.add_theme_color_override("font_color", MINT)
-	_score_label.add_theme_color_override("font_color", BONE)
+	_phase_label.add_theme_color_override("font_color", Locker.MINT)
+	_score_label.add_theme_color_override("font_color", Locker.BONE)
 	_vo_label.visible = _vo_t > 0.0
-	_vo_label.add_theme_color_override("font_color", BONE)
+	_vo_label.add_theme_color_override("font_color", Locker.BONE)
 	if _in_open_middle(_player.global_position) and not _frozen:
 		_cover_label.text = "OPEN"
 	elif _in_left_window(_player.global_position):
@@ -257,7 +262,7 @@ func _refresh_hud() -> void:
 		_cover_label.text = "PAD"
 	_hint.text = "WASD on the mat   Space lift   click fires AimSample   first to 5"
 	if _match_over:
-		_hint.text = VO_WIN + "   first to 5"
+		_hint.text = Locker.operator().vo_win + "   first to 5"
 
 
 func _phase_name() -> String:
@@ -270,6 +275,12 @@ func _phase_name() -> String:
 			return "DROP"
 		_:
 			return "DROP"
+
+
+func _apply_locker(lifted: bool) -> void:
+	Locker.apply_capsule(_body, _collar, _arm, _stripe, _rust, _chest, lifted)
+	_skin_lifted = lifted
+	_skin_ready = true
 
 
 func _on_boot() -> void:
