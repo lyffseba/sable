@@ -111,6 +111,23 @@ def test_proto_mailbox() -> None:
         raise AssertionError("PAD must not hide the reticle")
 
 
+def test_pointing_filter() -> None:
+    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    m = re.search(r"EURO_MINCUTOFF = ([0-9.]+)", src)
+    if not m or float(m.group(1)) < 2.5:
+        raise AssertionError("One Euro mincutoff must be pointing-fast, not 1Hz soup")
+    if "function adaptTpl" not in src:
+        raise AssertionError("strong lock must refresh the template")
+    lost = _js_fn(src, "nccTrack")
+    if "age > COAST_MS && S.euroX" in lost:
+        raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")
+    if "QUALITY_LOST_MS" not in lost:
+        raise AssertionError("long hole resets filters, short hole coasts")
+    mode_body = _js_fn(src, "updateMode")
+    if "LIFT_ON_MS" not in mode_body and "S.liftMs" not in mode_body:
+        raise AssertionError("lift needs hysteresis so HID noise does not flicker fire")
+
+
 def test_range_gate() -> None:
     text = (ROOT / "godot/src/app/range_controller.gd").read_text(encoding="utf-8")
     leave = _fn(text, "_can_leave_pad")
@@ -129,6 +146,7 @@ def main() -> int:
         test_lift_and_fire()
         test_ruled_out()
         test_proto_mailbox()
+        test_pointing_filter()
         test_range_gate()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
