@@ -1,13 +1,13 @@
-[gd_scene load_steps=6 format=3 uid="uid://sablerange0001"]
+[gd_scene load_steps=8 format=3 uid="uid://sablerange0001"]
 
 [ext_resource type="Script" path="res://src/app/range_controller.gd" id="1_range"]
 
 [sub_resource type="Environment" id="Environment_dark"]
 background_mode = 1
-background_color = Color(0.03, 0.035, 0.04, 1)
+background_color = Color(0.015, 0.017, 0.02, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.12, 0.14, 0.16, 1)
-ambient_light_energy = 0.35
+ambient_light_color = Color(0.06, 0.07, 0.08, 1)
+ambient_light_energy = 0.18
 glow_enabled = false
 ssr_enabled = false
 ssao_enabled = false
@@ -20,7 +20,7 @@ size = Vector2(24, 24)
 
 [sub_resource type="StandardMaterial3D" id="Mat_floor"]
 shading_mode = 0
-albedo_color = Color(0.07, 0.08, 0.09, 1)
+albedo_color = Color(0.035, 0.038, 0.042, 1)
 
 [sub_resource type="SphereMesh" id="SphereMesh_orb"]
 radius = 0.35
@@ -28,7 +28,14 @@ height = 0.7
 
 [sub_resource type="StandardMaterial3D" id="Mat_orb"]
 shading_mode = 0
-albedo_color = Color(0.25, 0.95, 0.78, 1)
+albedo_color = Color(0.82, 1, 0.92, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_wall"]
+shading_mode = 0
+albedo_color = Color(0.022, 0.024, 0.028, 1)
 
 [node name="Range" type="Node3D"]
 script = ExtResource("1_range")
@@ -40,13 +47,31 @@ environment = SubResource("Environment_dark")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 5.2)
 current = true
 fov = 70.0
+keep_aspect = 1
+h_offset = 0.0
+v_offset = 0.0
 
 [node name="Floor" type="MeshInstance3D" parent="."]
 material_override = SubResource("Mat_floor")
 mesh = SubResource("PlaneMesh_floor")
 
+[node name="BackWall" type="MeshInstance3D" parent="."]
+transform = Transform3D(18, 0, 0, 0, 6, 0, 0, 0, 0.35, 0, 3, -7)
+material_override = SubResource("Mat_wall")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="LeftWall" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.35, 0, 0, 0, 6, 0, 0, 0, 16, -8, 3, -1)
+material_override = SubResource("Mat_wall")
+mesh = SubResource("BoxMesh_wall")
+
+[node name="RightWall" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.35, 0, 0, 0, 6, 0, 0, 0, 16, 8, 3, -1)
+material_override = SubResource("Mat_wall")
+mesh = SubResource("BoxMesh_wall")
+
 [node name="DummyOrb" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, -2)
+transform = Transform3D(1.85, 0, 0, 0, 1.85, 0, 0, 0, 1.85, 0, 1.4, -1.6)
 material_override = SubResource("Mat_orb")
 mesh = SubResource("SphereMesh_orb")
 
@@ -61,6 +86,19 @@ theme_override_colors/font_color = Color(0.9, 0.94, 0.96, 1)
 theme_override_font_sizes/font_size = 22
 text = "SCORE  0"
 
+[node name="Countdown" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -48.0
+offset_top = 16.0
+offset_right = 48.0
+offset_bottom = 72.0
+theme_override_colors/font_color = Color(0.9, 0.94, 0.96, 1)
+theme_override_font_sizes/font_size = 40
+text = "30"
+horizontal_alignment = 1
+
 [node name="ModeChip" type="Label" parent="HUD"]
 anchors_preset = 1
 anchor_left = 1.0
@@ -71,7 +109,7 @@ offset_right = -24.0
 offset_bottom = 56.0
 theme_override_colors/font_color = Color(0.35, 0.95, 0.78, 1)
 theme_override_font_sizes/font_size = 22
-text = "DESKTOP"
+text = "PAD"
 horizontal_alignment = 2
 
 [node name="Confidence" type="Label" parent="HUD"]
@@ -86,6 +124,21 @@ theme_override_colors/font_color = Color(0.7, 0.76, 0.8, 1)
 theme_override_font_sizes/font_size = 16
 text = "CONF  1.00"
 horizontal_alignment = 2
+
+[node name="LiftPrompt" type="Label" parent="HUD"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = 96.0
+offset_right = 140.0
+offset_bottom = 148.0
+theme_override_colors/font_color = Color(0.86, 0.93, 0.95, 1)
+theme_override_font_sizes/font_size = 36
+text = "LIFT"
+horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="HUD"]
 anchors_preset = 7
