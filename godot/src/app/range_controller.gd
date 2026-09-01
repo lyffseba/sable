@@ -61,12 +61,17 @@ var _was_lifted: bool = false
 func _ready() -> void:
 	_booth_xform = _camera.global_transform
 	_camera.current = true
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	_first_ever = not FileAccess.file_exists(FIRST_HIT_PATH)
 	_tick_player.stream = _make_tick(1850.0, 0.028, 0.22)
 	_hit_ping.visible = false
 	_miss_tick.visible = false
 	_show_fat_orb()
 	_refresh_hud()
+
+
+func _exit_tree() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -137,7 +142,10 @@ func _update_phase() -> void:
 
 
 func _can_leave_pad() -> bool:
+	# Clock alone cannot skip the verb. PAD holds until AimSample.lifted.
 	if _elapsed < PAD_END:
+		return false
+	if not AimBus.peek().lifted:
 		return false
 	if _first_ever and not _fat_hit:
 		return false
@@ -289,7 +297,7 @@ func _on_fat_hit() -> void:
 	_first_ever = false
 	_fat_orb = false
 	_queue_grid_spawn()
-	if _elapsed >= PAD_END:
+	if _can_leave_pad():
 		_enter_gun()
 
 

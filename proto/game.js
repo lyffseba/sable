@@ -680,8 +680,10 @@ function updateMode(now) {
   const coasting = !!S.smooth && since <= COAST_MS;
   if (S.desktop) { S.mode = "DESKTOP"; S.seeking = false; return; }
   if (S.forceGun) { S.mode = "GUN"; S.seeking = !detGood() && !coasting; return; }
-  if (detGood() || coasting) { S.mode = "GUN"; S.seeking = false; return; }
+  // Superlight still on the mat → PAD. Camera lock must not win that fight.
+  // Lift-off is HID silence. Until then the plastic on the pad is not a gun.
   if (S.hidMoving) { S.mode = "PAD"; S.seeking = true; return; }
+  if (detGood() || coasting) { S.mode = "GUN"; S.seeking = false; return; }
   S.mode = "SEEKING";
   S.seeking = true;
 }

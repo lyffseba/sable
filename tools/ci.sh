@@ -15,4 +15,5 @@ fi
 python3 tools/check_protocol.py
 python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
+python3 tools/test_aim_verb.py
 ./tools/run_cv_tests.sh
