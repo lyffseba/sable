@@ -9,6 +9,9 @@ const GUN_END := 27.0
 const LOOP_END := 30.0
 const POP_S := 0.08
 const SPAWN_DELAY_S := 0.18
+const PING_S := 0.10
+const MISS_TICK_S := 0.055
+const MEDAL_S := 0.40
 const FIRST_HIT_PATH := "user://range_first_hit.flag"
 
 const FAT_SCALE := 1.85
@@ -27,6 +30,9 @@ const DEPTH_Z := [2.0, -1.4, -5.0]
 @onready var _cross: Control = $HUD/Crosshair
 @onready var _countdown: Label = $HUD/Countdown
 @onready var _lift: Label = $HUD/LiftPrompt
+@onready var _hit_ping: ColorRect = $HUD/HitPing
+@onready var _miss_tick: ColorRect = $HUD/MissTick
+@onready var _tick_player: AudioStreamPlayer = $TickPlayer
 
 var _score: int = 0
 var _elapsed: float = 0.0
@@ -45,12 +51,20 @@ var _pop_t: float = 0.0
 var _pop_base := Vector3.ONE
 var _pending_grid: bool = false
 var _spawn_at: float = -1.0
+var _ping_t: float = 0.0
+var _miss_t: float = 0.0
+var _medal_t: float = 0.0
+var _saw_lift: bool = false
+var _was_lifted: bool = false
 
 
 func _ready() -> void:
 	_booth_xform = _camera.global_transform
 	_camera.current = true
 	_first_ever = not FileAccess.file_exists(FIRST_HIT_PATH)
+	_tick_player.stream = _make_tick(1850.0, 0.028, 0.22)
+	_hit_ping.visible = false
+	_miss_tick.visible = false
 	_show_fat_orb()
 	_refresh_hud()
 
@@ -66,6 +80,7 @@ func _physics_process(delta: float) -> void:
 	if _elapsed < LOOP_END:
 		_elapsed = minf(_elapsed + delta, LOOP_END)
 	_tick_pop(delta)
+	_tick_juice(delta)
 	_update_phase()
 	_try_flush_spawn()
 
@@ -76,12 +91,41 @@ func _process(_delta: float) -> void:
 	var sample: AimSample = AimBus.peek()
 	var size: Vector2 = get_viewport().get_visible_rect().size
 	_cross.position = Vector2(sample.uv.x * size.x, sample.uv.y * size.y) - _cross.size * 0.5
+	_note_lift(sample)
+	if _hit_ping.visible:
+		_place_hit_ping()
 
 
 func _lock_booth_cam() -> void:
 	_camera.global_transform = _booth_xform
 	_camera.h_offset = 0.0
 	_camera.v_offset = 0.0
+
+
+func _note_lift(sample: AimSample) -> void:
+	# First lifted this run is the medal: the existing LIFT chip, 400ms.
+	if sample.lifted and not _was_lifted and not _saw_lift:
+		_saw_lift = true
+		_medal_t = MEDAL_S
+	_was_lifted = sample.lifted
+
+
+func _tick_juice(delta: float) -> void:
+	if _ping_t > 0.0:
+		_ping_t = maxf(0.0, _ping_t - delta)
+		var u := clampf(_ping_t / PING_S, 0.0, 1.0)
+		_hit_ping.modulate.a = u
+		_hit_ping.scale = Vector2(1.0 + 0.8 * (1.0 - u), 1.0 + 0.8 * (1.0 - u))
+		if _ping_t <= 0.0:
+			_hit_ping.visible = false
+			_orb.modulate = Color.WHITE
+	if _miss_t > 0.0:
+		_miss_t = maxf(0.0, _miss_t - delta)
+		_miss_tick.modulate.a = clampf(_miss_t / MISS_TICK_S, 0.0, 1.0)
+		if _miss_t <= 0.0:
+			_miss_tick.visible = false
+	if _medal_t > 0.0:
+		_medal_t = maxf(0.0, _medal_t - delta)
 
 
 func _update_phase() -> void:
@@ -102,7 +146,6 @@ func _can_leave_pad() -> bool:
 
 func _enter_gun() -> void:
 	_phase = Phase.GUN
-	_lift.visible = false
 	if _orb_live and _fat_orb:
 		_hide_orb()
 		_spawn_grid_orb()
@@ -117,7 +160,6 @@ func _enter_drop() -> void:
 	_pending_grid = false
 	_spawn_at = -1.0
 	_popping = false
-	_lift.visible = false
 	_hide_orb()
 
 
@@ -128,11 +170,20 @@ func _refresh_hud() -> void:
 	_conf_label.text = "CONF  %.2f" % sample.confidence
 	var remain := maxf(0.0, LOOP_END - _elapsed)
 	_countdown.text = "%d" % int(ceil(remain))
-	_lift.visible = _phase == Phase.PAD
+	var medal := _medal_t > 0.0
+	_lift.visible = _phase == Phase.PAD or medal
 	if _phase == Phase.PAD and not sample.lifted:
 		_phase_label.modulate.a = 0.45 + 0.55 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.009))
 	else:
 		_phase_label.modulate.a = 1.0
+	if _phase == Phase.DROP:
+		_countdown.modulate.a = 0.40 + 0.60 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.014))
+	else:
+		_countdown.modulate.a = 1.0
+	if medal:
+		_lift.modulate.a = 1.0
+	else:
+		_lift.modulate.a = 1.0 if _phase == Phase.PAD else 0.0
 
 
 func _phase_name() -> String:
@@ -146,25 +197,70 @@ func _phase_name() -> String:
 
 
 func _fire(sample: AimSample) -> void:
-	# HID peek of the latest AimSample. Miss is a dry tick: no flinch, no VFX.
-	if _phase == Phase.DROP:
-		return
-	if not _orb_live or _popping:
-		return
+	# HID peek of the latest AimSample. Miss is a dry tick that must read.
 	var vp := get_viewport()
 	var size: Vector2 = vp.get_visible_rect().size
 	var screen := Vector2(sample.uv.x * size.x, sample.uv.y * size.y)
+	if _phase == Phase.DROP:
+		_play_miss(screen)
+		return
+	if not _orb_live or _popping:
+		_play_miss(screen)
+		return
 	var origin: Vector3 = _camera.project_ray_origin(screen)
 	var dir: Vector3 = _camera.project_ray_normal(screen)
 	if not _ray_hits_sphere(origin, dir, _orb.global_position, _orb_radius):
+		_play_miss(screen)
 		return
 	_score += 1
 	_start_pop()
+	_play_hit_ping()
 	if _fat_orb:
 		_on_fat_hit()
 	else:
 		_queue_grid_spawn()
 	_refresh_hud()
+
+
+func _play_hit_ping() -> void:
+	_ping_t = PING_S
+	_orb.modulate = Color(1.55, 1.55, 1.45)
+	_hit_ping.visible = true
+	_hit_ping.modulate.a = 1.0
+	_hit_ping.scale = Vector2.ONE
+	_place_hit_ping()
+
+
+func _place_hit_ping() -> void:
+	var sp: Vector2 = _camera.unproject_position(_orb.global_position)
+	_hit_ping.position = sp - _hit_ping.size * 0.5 * _hit_ping.scale
+
+
+func _play_miss(screen: Vector2) -> void:
+	_miss_t = MISS_TICK_S
+	_miss_tick.visible = true
+	_miss_tick.modulate.a = 1.0
+	_miss_tick.position = screen - _miss_tick.size * 0.5
+	if _tick_player.playing:
+		_tick_player.stop()
+	_tick_player.play()
+
+
+func _make_tick(hz: float, seconds: float, vol: float) -> AudioStreamWAV:
+	var rate := 22050
+	var n := maxi(8, int(float(rate) * seconds))
+	var bytes := PackedByteArray()
+	bytes.resize(n * 2)
+	for i in n:
+		var env := 1.0 - float(i) / float(n)
+		var s := int(clampf(sin(TAU * hz * float(i) / float(rate)) * env * vol, -1.0, 1.0) * 32767.0)
+		bytes[i * 2] = s & 0xFF
+		bytes[i * 2 + 1] = (s >> 8) & 0xFF
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.data = bytes
+	return stream
 
 
 func _start_pop() -> void:
@@ -184,6 +280,7 @@ func _tick_pop(delta: float) -> void:
 		_popping = false
 		_orb.visible = false
 		_orb.scale = _pop_base
+		_orb.modulate = Color.WHITE
 
 
 func _on_fat_hit() -> void:
@@ -221,6 +318,7 @@ func _show_fat_orb() -> void:
 	_orb_radius = FAT_HIT_RADIUS
 	_orb.scale = Vector3(FAT_SCALE, FAT_SCALE, FAT_SCALE)
 	_orb.position = FAT_POS
+	_orb.modulate = Color.WHITE
 	_orb.visible = true
 	_lift.visible = true
 
@@ -231,6 +329,7 @@ func _spawn_grid_orb() -> void:
 	_popping = false
 	_orb_radius = GRID_HIT_RADIUS
 	_orb.scale = Vector3.ONE
+	_orb.modulate = Color.WHITE
 	var cell := _next_cell()
 	_orb.position = Vector3(LANE_X[cell.x], ORB_Y, DEPTH_Z[cell.y])
 	_orb.visible = true
@@ -257,6 +356,7 @@ func _hide_orb() -> void:
 	_fat_orb = false
 	_popping = false
 	_orb.visible = false
+	_orb.modulate = Color.WHITE
 
 
 func _mark_first_hit() -> void:
