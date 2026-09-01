@@ -690,17 +690,15 @@ function updateMode(now) {
 function updateAim() {
   if (S.desktop) return;
   if (!S.smooth) return;
-  if (phase === "range" || phase === "calibrate") {
-    if (S.H || S.camPts.every(Boolean)) {
-      if (S.mode === "GUN" || S.mode === "SEEKING" || S.forceGun) {
-        const p = camToScreen(S.smooth.x, S.smooth.y);
-        if (!p.lost) { S.aim.x = p.x; S.aim.y = p.y; }
-        else S.seeking = true;
-      }
-    } else {
-      S.aim.x = (S.smooth.x / PROC_W) * W;
-      S.aim.y = (S.smooth.y / PROC_H) * H;
-    }
+  if (phase !== "range" && phase !== "calibrate") return;
+  // Camera is the mouse. HID never writes S.aim. PAD may block fire, not the reticle.
+  if (S.H || S.camPts.every(Boolean)) {
+    const p = camToScreen(S.smooth.x, S.smooth.y);
+    if (!p.lost) { S.aim.x = p.x; S.aim.y = p.y; }
+    else S.seeking = true;
+  } else {
+    S.aim.x = (S.smooth.x / PROC_W) * W;
+    S.aim.y = (S.smooth.y / PROC_H) * H;
   }
 }
 

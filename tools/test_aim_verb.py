@@ -66,6 +66,24 @@ def test_proto_source_order() -> None:
         raise AssertionError("hidMoving must beat detGood — pad HID is PAD")
 
 
+def test_camera_writes_aim() -> None:
+    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    m = re.search(r"function updateAim\(\) \{[\s\S]*?\n\}", src)
+    if not m:
+        raise AssertionError("missing updateAim")
+    body = m.group(0)
+    if 'S.mode === "GUN"' in body:
+        raise AssertionError("camera must drive the reticle even on PAD")
+    if "camToScreen" not in body:
+        raise AssertionError("updateAim maps camera to screen")
+    move = re.search(r"pointermove[\s\S]{0,400}", src)
+    if not move:
+        raise AssertionError("missing pointermove")
+    block = move.group(0)
+    if "S.aim.x = e.clientX" in block and "if (S.desktop)" not in block:
+        raise AssertionError("OS pointer must not write aim outside DESKTOP")
+
+
 def test_range_gate() -> None:
     text = (ROOT / "godot/src/app/range_controller.gd").read_text(encoding="utf-8")
     leave = _fn(text, "_can_leave_pad")
@@ -83,6 +101,7 @@ def main() -> int:
         test_mode_table()
         test_ruled_out()
         test_proto_source_order()
+        test_camera_writes_aim()
         test_range_gate()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
