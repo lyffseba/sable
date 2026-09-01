@@ -137,7 +137,10 @@ func _update_phase() -> void:
 
 
 func _can_leave_pad() -> bool:
+	# Clock alone cannot skip the verb. PAD holds until AimSample.lifted.
 	if _elapsed < PAD_END:
+		return false
+	if not AimBus.peek().lifted:
 		return false
 	if _first_ever and not _fat_hit:
 		return false
@@ -289,7 +292,7 @@ func _on_fat_hit() -> void:
 	_first_ever = false
 	_fat_orb = false
 	_queue_grid_spawn()
-	if _elapsed >= PAD_END:
+	if _can_leave_pad():
 		_enter_gun()
 
 
