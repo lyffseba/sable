@@ -54,13 +54,17 @@ Linux V4L2 first (YUY2 preferred, MJPEG fallback). Windows Media Foundation late
 
 ## Other computer
 
+Latest zip: <https://github.com/lyffseba/sable/releases/latest> (private — log in as lyffseba).
+
 ```bash
-git clone git@github.com:lyffseba/sable.git
-cd sable && git checkout <tag-or-branch>
-cd proto && python3 -m http.server 8080 --bind 127.0.0.1
+gh release download --repo lyffseba/sable -p 'sable-proto-*.zip'
+unzip sable-proto-*.zip -d sable-proto && cd sable-proto
+python3 -m http.server 8080 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:8080, allow camera, tilt down at hands, lift mouse.
+Open http://127.0.0.1:8080 — allow camera, tilt down at hands, lift.
+
+Or clone `main` and `cd proto` with the same server command. Tag `v*.*.*` publishes a new zip.
 
 ## Legal red line
 

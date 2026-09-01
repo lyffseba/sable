@@ -1,40 +1,38 @@
-# LIFTSHOT
+# SABLE proto
 
-Physical-aim shooter. On the mat the mouse is a mouse. Lift it, point it at the screen like a gun, click to fire.
+Chrome range. Webcam tracks the physical mouse. The camera is never drawn.
 
-You never see your face. The webcam stays hidden; nothing from the camera is drawn on the game canvas. After PLAY the front webcam locks a **48×48 patch of stock mouse plastic** (no tape) the way a Superlight sensor locks the mat. That patch’s motion is the aim.
+## Zip (other computer)
 
-## Hardware
-
-- Lightweight wireless mouse (Logitech Superlight class). Stock only.
-- Webcam at the **top of the monitor**. **Tilt it down at your hands, not your face.** Sit ~40cm+ back.
-- Chrome on localhost (camera needs a secure origin; `file://` fails).
-
-## Run
+Unzip `sable-proto-*.zip`, then in that folder:
 
 ```
-cd liftshot
-python3 -m http.server 8080
+python3 -m http.server 8080 --bind 127.0.0.1
 ```
 
-Open **http://localhost:8080**. PLAY. Allow camera if prompted.
+Open **http://127.0.0.1:8080**. PLAY. Allow camera. Tilt it **down at your hands**. Lift.
+
+## From git
+
+```
+cd proto
+python3 -m http.server 8080 --bind 127.0.0.1
+```
+
+`file://` fails — camera needs localhost.
 
 ## Play
 
 1. PLAY
-2. Hold the mouse up to the webcam. We lock the plastic like the sensor locks the mat. Tilt the cam at your hands. Stay on SEEKING until a template exists — the game does **not** fall back to the OS mouse.
-3. Four corners light up — aim the mouse-gun, click each, then one center shot.
+2. Hold the mouse up to the webcam until it locks. Stay on SEEKING until a template exists — no OS-mouse fallback.
+3. Four corners — aim the mouse-gun, click each, then one center shot.
 4. 60-second arcade wave. Lift, point, click.
 
 ## Keys
 
 | Key | What |
 |-----|------|
-| **T** | Hidden debug: desktop-aim (OS mouse moves the crosshair) |
-| **Space** (hold) | Force GUN mode |
+| **T** | Hidden debug: desktop-aim |
+| **Space** (hold) | Force GUN |
 
 Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`.
-
-## Aim
-
-The webcam watches a compact patch of the mouse body (top 30% of the camera is cropped so the face is out of the working image). Normalized cross-correlation tracks that patch each frame; 2D position maps through a 4-corner homography. Recalibrate if you move the webcam or change seats.
