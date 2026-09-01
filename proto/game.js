@@ -33,7 +33,9 @@ const TPL = 48;
 const NCC_GOOD = 0.58;
 const SEARCH_R = 56;
 const FIND_STEP = 8;
-const EURO_MINCUTOFF = 1.0, EURO_BETA = 0.007, EURO_DCUTOFF = 1.0;
+// Pointing, not soup. fcmin=1Hz is ~160ms lag at 30fps — the reticle trails the Superlight.
+const EURO_MINCUTOFF = 3.0, EURO_BETA = 0.03, EURO_DCUTOFF = 1.0;
+const LIFT_ON_MS = 50;
 let W = 1280, H = 720, dpr = 1, PROC_H = 270, phase = "boot";
 let stream = null, camReady = false, lastT = 0;
 const S = {
@@ -41,7 +43,7 @@ const S = {
   camStamp: -1, quality: 0, euroX: null, euroY: null, lastRaw: null, seeking: false,
   H: null, useBilinear: false, camPts: [null, null, null, null], calibIndex: 0,
   calibFlash: 0, forceGun: false, desktop: false, hidLast: 0, hidMoving: false,
-  mode: "PAD", lifted: false, aim: { x: 0.5, y: 0.5 }, recoil: 0, punch: 0, flash: 0, hitstop: 0,
+  mode: "PAD", lifted: false, liftMs: 0, liftTick: 0, aim: { x: 0.5, y: 0.5 }, recoil: 0, punch: 0, flash: 0, hitstop: 0,
   orbs: [], parts: [], pops: [], score: 0, hits: 0, shots: 0, combo: 0, comboMax: 0,
   rangeStart: 0, lockSince: 0, locked: false, lockStart: 0, lockAdvance: false,
   noLockFlash: 0, liftPulse: 0, enteringRange: false,
@@ -352,8 +354,10 @@ function extractPatch(gray, iw, tlx, tly) {
 }
 
 function makeTpl(patch) {
+  return rebuildTplFromRaw(patch);
+}
+function rebuildTplFromRaw(raw) {
   const n = TPL * TPL;
-  const raw = patch;
   let sum = 0;
   for (let i = 0; i < n; i++) sum += raw[i];
   const mean = sum / n;
@@ -366,6 +370,17 @@ function makeTpl(patch) {
   }
   if (e < 2500) return null;
   return { w: TPL, h: TPL, raw, centered, mean, sigma: Math.sqrt(e) };
+}
+function adaptTpl(gray, iw, ih, cx, cy, ncc) {
+  if (!S.tpl || ncc < 0.82) return;
+  const tlx = clamp(Math.round(cx - TPL * 0.5), 0, iw - TPL);
+  const tly = clamp(Math.round(cy - TPL * 0.5), 0, ih - TPL);
+  const patch = extractPatch(gray, iw, tlx, tly);
+  const a = 0.08;
+  const raw = S.tpl.raw;
+  for (let i = 0; i < raw.length; i++) raw[i] = raw[i] * (1 - a) + patch[i] * a;
+  const next = rebuildTplFromRaw(raw);
+  if (next) S.tpl = next;
 }
 
 function nccAt(gray, iw, tlx, tly, tpl, step) {
@@ -639,15 +654,11 @@ function nccTrack(now) {
     S.det = { x: sub.x, y: sub.y, conf: clamp(sub.ncc, 0, 1) };
     S.lastDetAt = now;
     applyEuroPoint(now, sub.x, sub.y);
+    adaptTpl(gray, iw, ih, sub.x, sub.y, sub.ncc);
   } else {
     S.det = null;
-    if (age > COAST_MS && S.euroX && S.euroX.ready) {
-      S.euroX.ready = false;
-      S.euroY.ready = false;
-      S.vel.x = 0;
-      S.vel.y = 0;
-    }
     coastTrack(now);
+    if (age > QUALITY_LOST_MS) resetTrackFilters();
   }
 }
 
@@ -679,20 +690,25 @@ function updateMode(now) {
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
   const coasting = !!S.smooth && since <= COAST_MS;
   const locked = detGood() || coasting;
+  const dtm = S.liftTick ? Math.min(40, now - S.liftTick) : 16;
+  S.liftTick = now;
   if (S.desktop) {
-    S.mode = "DESKTOP"; S.seeking = false; S.lifted = true; return;
+    S.mode = "DESKTOP"; S.seeking = false; S.lifted = true; S.liftMs = LIFT_ON_MS; return;
   }
+  const want = S.forceGun || (!S.hidMoving && locked);
+  if (want) S.liftMs = Math.min(160, S.liftMs + dtm);
+  else S.liftMs = Math.max(0, S.liftMs - dtm);
+  S.lifted = S.forceGun || S.liftMs >= LIFT_ON_MS;
   if (S.forceGun) {
-    S.mode = "GUN"; S.lifted = true; S.seeking = !locked; return;
+    S.mode = "GUN"; S.seeking = !locked; return;
   }
-  // Chip: pad HID is PAD. Mailbox: camera still writes aim.
   if (S.hidMoving) {
-    S.mode = "PAD"; S.lifted = false; S.seeking = !locked; return;
+    S.mode = "PAD"; S.seeking = !locked; return;
   }
   if (locked) {
-    S.mode = "GUN"; S.lifted = true; S.seeking = false; return;
+    S.mode = "GUN"; S.seeking = false; return;
   }
-  S.mode = "SEEKING"; S.lifted = false; S.seeking = true;
+  S.mode = "SEEKING"; S.seeking = true;
 }
 function publishAim(x, y) {
   if (!isFinite(x) || !isFinite(y)) return;
@@ -760,6 +776,7 @@ function resetLockState() {
   S.lockAcc = null; S.lockBestScore = 0; S.lockBestPatch = null; S.lockBestTL = null;
   S.lockTplAt = 0; S.lockSince = 0; S.locked = false; S.lockAdvance = false;
   S.desktop = false; S.mode = "SEEKING"; S.smooth = null;
+  S.lifted = false; S.liftMs = 0; S.liftTick = 0;
   resetTrackFilters();
 }
 
