@@ -2,22 +2,19 @@
 
 Private. Original IP. Do **not** add third-party game assets, names, maps, audio, or code. Codename only — do not write the eventual public title into this repository.
 
-Physical-aim arena FPS. Lightweight wireless mouse on the pad = move / menus. The player **lifts** the mouse and points it at the monitor. A clip-on webcam at the **top-center** of the monitor tracks a **2–3-dot** (or 40 mm ArUco) sleeve on the mouse. Click (HID) fires. Unique verb = physical ADS.
+Physical-aim arena FPS. Lift the Superlight, point it at the monitor, click. Webcam pose is the gun. Fire is HID.
 
-Neon tape is a temporary blob fallback, not the product.
+## Engine
 
-## Requirements
+**Unity 2022.3 LTS** (`unity/`). Open that folder in Unity Hub. Godot is not in this tree.
 
-- **Godot 4.7.2** (Forward+, Jolt). Open the `godot/` folder as the project.
-- C++17 toolchain to build `native/cv_input` tests and, later, the GDExtension.
-- A clip-on webcam is optional. The Range is always testable with desktop aim.
+This G14 has **no Unity Editor and no Unreal**. Unity is the right install: the webcam tracker we vendored is Unity compute shaders. Unreal would be 50–100 GB for no gain on the gun.
 
-## Open in Godot 4.7
+Until Hub is installed, the Chrome proto still plays:
 
-1. Install Godot **4.7.2**.
-2. Import `godot/project.godot`.
-3. Run the main scene (`scenes/boot/Boot.tscn`).
-4. **Enter Range** — or **Enable camera** (binds `cv_input` if the extension loaded; otherwise stays on DESKTOP aim).
+```
+python3 tools/serve_proto.py
+```
 
 ### Range keys
 
@@ -27,7 +24,7 @@ Neon tape is a temporary blob fallback, not the product.
 | **T** | Desktop aim (OS cursor) |
 | **Space** | Force gun (lifted) |
 
-Reticle may lag 50–80 ms on a bad camera. The shot does not: fire is HID against the mailbox, never gated on the next frame.
+The shot never waits on a camera frame.
 
 ## Headless dedicated server
 

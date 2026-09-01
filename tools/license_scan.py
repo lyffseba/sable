@@ -11,8 +11,8 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-TREES = (ROOT / "godot", ROOT / "server", ROOT / "native")
-SKIP_PARTS = {".git", "build", "bin", ".godot"}
+TREES = (ROOT / "unity", ROOT / "server", ROOT / "native", ROOT / "proto")
+SKIP_PARTS = {".git", "build", "bin", "Library", "Temp", "Obj", "Logs"}
 NEEDLES = (
     "GNU General Public License",
     "GPL-2.0",
@@ -42,6 +42,10 @@ TEXT_SUFFIX = {
     ".cmake",
     ".gdextension",
     ".svg",
+    ".cs",
+    ".shader",
+    ".compute",
+    ".json",
 }
 
 
@@ -55,10 +59,11 @@ def iter_files() -> list[pathlib.Path]:
                 continue
             if any(part in SKIP_PARTS for part in path.parts):
                 continue
+            if path.name in {"LICENSE", "LICENSE.md"}:
+                continue
             if path.suffix.lower() not in TEXT_SUFFIX and path.name not in {
                 "CMakeLists.txt",
                 "SConstruct",
-                "LICENSE",
             }:
                 continue
             out.append(path)

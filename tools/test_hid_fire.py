@@ -53,32 +53,31 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_gdscript_does_not_wait() -> None:
-    hid = _read("godot/src/input/hid_fire.gd")
-    bus = _read("godot/src/input/aim_bus.gd")
+def test_engine_does_not_wait() -> None:
+    hid = _read("unity/Assets/Sable/Aim/HidFire.cs")
+    bus = _read("unity/Assets/Sable/Aim/AimBus.cs")
     banned = (
-        r"await\s+",
-        r"wait_for",
+        r"WaitForSeconds",
+        r"async\s+",
         r"poll_capture",
-        r"process_missing",
-        r"get_next_frame",
+        r"WebCamTexture\.GetPixels",
     )
-    for src, label in ((hid, "hid_fire.gd"), (bus, "aim_bus.gd")):
+    for src, label in ((hid, "HidFire.cs"), (bus, "AimBus.cs")):
         for pat in banned:
             if re.search(pat, src):
                 raise AssertionError(f"{label} gates fire on a camera wait ({pat})")
-    if "func fire(" not in bus:
-        raise AssertionError("aim_bus.gd must define fire()")
-    if "return _latest" not in bus:
-        raise AssertionError("aim_bus.gd fire/peek must return _latest")
-    if "shot_from_bus" not in hid:
-        raise AssertionError("hid_fire.gd must peek the bus")
+    if "Fire()" not in bus:
+        raise AssertionError("AimBus must define Fire()")
+    if "_latest" not in bus:
+        raise AssertionError("AimBus fire/peek must return _latest")
+    if "Fire()" not in hid:
+        raise AssertionError("HidFire must peek the bus")
 
 
 def main() -> int:
     try:
         test_python_mailbox()
-        test_gdscript_does_not_wait()
+        test_engine_does_not_wait()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

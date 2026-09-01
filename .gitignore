@@ -1,23 +1,13 @@
-# Godot 4.2+ specific ignores
+# Unity
+unity/Library/
+unity/Temp/
+unity/Obj/
+unity/Logs/
+unity/UserSettings/
+unity/*.csproj
+unity/*.sln
+unity/.vs/
 ~*.dll
-
-# Godot 4+ specific ignores
-.godot/
-.nomedia
-
-# Godot-specific ignores
-.import/
-export.cfg
-export_credentials.cfg
-*.tmp
-
-# Imported translations (automatically generated from CSV files)
-*.translation
-
-# Mono-specific ignores
-.mono/
-data_*/
-mono_crash.*.json
 
 # Secrets
 .env

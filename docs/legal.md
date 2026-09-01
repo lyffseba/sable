@@ -11,9 +11,10 @@ Do not write the eventual public title into this repo. Codename only: **SABLE**.
 ## Licensing posture
 
 - Game content, design, and first-party code: proprietary, all rights reserved. See `LICENSE` and `CLA.md`.
-- Godot Engine: MIT. Credit in `docs/THIRD_PARTY_NOTICES.md`.
+- Unity Engine: Unity ToS. Editor is not shipped.
+- Hydrargyrum Games webcam tracker: MPL-2.0. Credit **Hydrargyrum Games**. Modified MPL files keep the header. See `unity/Assets/Plugins/HgWebcamObjectTracking/LICENSE`.
 - OpenCV, when linked: Apache 2.0.
-- **No GPL** in client or server binaries we ship. Godot engine credits may mention historical licenses; do not pull GPL libraries into `godot/` or `server/`.
+- **No GPL** in client or server binaries we ship.
 
 ## Anti-cheat / Steam
 
