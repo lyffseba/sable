@@ -1,13 +1,27 @@
 name: ci
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  checks:
+  proto:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Syntax-check proto/game.js
+        run: |
+          if [ ! -d proto ]; then
+            echo "proto/ not in this tree; skip"
+            exit 0
+          fi
+          node --check proto/game.js
+
+  contracts:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,29 +36,24 @@ jobs:
       - name: HID fire contract
         run: python3 tools/test_hid_fire.py
 
-      - name: Aim pipeline tests
+  cv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ libopencv-dev
+
+      - name: Build and run cv tests
         run: |
+          set -euo pipefail
           cmake -S native/cv_input -B native/cv_input/build -DCMAKE_CXX_COMPILER=g++
           cmake --build native/cv_input/build
           ./native/cv_input/build/sable_cv_tests
 
-      - name: Headless Godot boot (skip if missing)
-        env:
-          GODOT_BIN: ${{ env.GODOT_BIN }}
-        run: |
-          set -e
-          BIN="${GODOT_BIN:-}"
-          if [ -z "$BIN" ]; then
-            for c in godot godot4; do
-              if command -v "$c" >/dev/null 2>&1; then
-                BIN="$c"
-                break
-              fi
-            done
-          fi
-          if [ -z "$BIN" ]; then
-            echo "Godot not on runner. Set GODOT_BIN to enable headless boot. Skipping."
-            exit 0
-          fi
-          "$BIN" --version || true
-          "$BIN" --headless --path godot --quit-after 3
+  godot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip
+        run: echo "Godot headless skipped — no cached 4.3+ binary; do not download the editor on every PR."

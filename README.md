@@ -52,6 +52,16 @@ cmake --build native/cv_input/build
 
 Linux V4L2 first (YUY2 preferred, MJPEG fallback). Windows Media Foundation later. See `native/cv_input/README.md` and `docs/aim_pipeline.md`.
 
+## Other computer
+
+```bash
+git clone git@github.com:lyffseba/sable.git
+cd sable && git checkout <tag-or-branch>
+cd proto && python3 -m http.server 8080 --bind 127.0.0.1
+```
+
+Open http://127.0.0.1:8080, allow camera, tilt down at hands, lift mouse.
+
 ## Legal red line
 
 Proprietary game content. No GPL in client/server. Godot MIT notice: `docs/THIRD_PARTY_NOTICES.md`. Fan licenses are not commercial. Details: `docs/legal.md`.
