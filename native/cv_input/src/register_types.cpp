@@ -12,7 +12,11 @@
 #include <godot_cpp/variant/vector2.hpp>
 
 #include "sable/aim_sample.hpp"
+#include "sable/capture.hpp"
 #include "sable/pipeline.hpp"
+
+#include <cstdint>
+#include <memory>
 
 using namespace godot;
 
@@ -28,7 +32,45 @@ public:
 		pipeline_.set_calib_hsv(hsv);
 	}
 
+	bool start_capture(const String& device) {
+		capture_ = sable::make_capture();
+		last_seq_ = 0;
+		sable::CaptureConfig cfg;
+		if (!device.is_empty()) {
+			const CharString utf = device.utf8();
+			cfg.device = utf.get_data();
+		}
+		return capture_->start(cfg);
+	}
+
+	void stop_capture() {
+		if (capture_) {
+			capture_->stop();
+		}
+	}
+
+	// Feed the newest camera frame into the pipeline. Does not wait.
+	// Fire must not call this.
+	int poll_capture() {
+		if (!capture_) {
+			return 0;
+		}
+		const std::uint64_t seq = capture_->seq();
+		if (seq == 0 || seq == last_seq_) {
+			return 0;
+		}
+		sable::FrameBuffer frame;
+		if (!capture_->latest(frame) || frame.bytes.empty()) {
+			return 0;
+		}
+		last_seq_ = seq;
+		pipeline_.set_exposure_locked(capture_->exposure_locked());
+		pipeline_.process(frame.view());
+		return 1;
+	}
+
 	Dictionary peek() const { return to_dict(pipeline_.peek()); }
+	// HID fire peeks. Never polls capture. Never waits on a frame.
 	Dictionary fire() const { return to_dict(pipeline_.fire()); }
 
 	void process_missing(int64_t t_hw, float dt_s) { pipeline_.process_missing(t_hw, dt_s); }
@@ -36,6 +78,9 @@ public:
 protected:
 	static void _bind_methods() {
 		ClassDB::bind_method(D_METHOD("set_calib_hsv", "h", "s", "v"), &CvInput::set_calib_hsv);
+		ClassDB::bind_method(D_METHOD("start_capture", "device"), &CvInput::start_capture);
+		ClassDB::bind_method(D_METHOD("stop_capture"), &CvInput::stop_capture);
+		ClassDB::bind_method(D_METHOD("poll_capture"), &CvInput::poll_capture);
 		ClassDB::bind_method(D_METHOD("peek"), &CvInput::peek);
 		ClassDB::bind_method(D_METHOD("fire"), &CvInput::fire);
 		ClassDB::bind_method(D_METHOD("process_missing", "t_hw", "dt_s"), &CvInput::process_missing);
@@ -53,6 +98,8 @@ private:
 	}
 
 	sable::AimPipeline pipeline_;
+	std::unique_ptr<sable::CaptureThread> capture_;
+	std::uint64_t last_seq_ = 0;
 };
 
 static void initialize_cv_input(ModuleInitializationLevel level) {

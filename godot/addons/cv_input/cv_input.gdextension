@@ -8,9 +8,21 @@ linux.debug.x86_64 = "res://../native/cv_input/bin/libcv_input.linux.debug.x86_6
 linux.release.x86_64 = "res://../native/cv_input/bin/libcv_input.linux.release.x86_64.so"
 windows.debug.x86_64 = "res://../native/cv_input/bin/cv_input.windows.debug.x86_64.dll"
 windows.release.x86_64 = "res://../native/cv_input/bin/cv_input.windows.release.x86_64.dll"
+macos.debug = "res://../native/cv_input/bin/libcv_input.macos.debug.dylib"
+macos.release = "res://../native/cv_input/bin/libcv_input.macos.release.dylib"
+macos.debug.x86_64 = "res://../native/cv_input/bin/libcv_input.macos.debug.dylib"
+macos.release.x86_64 = "res://../native/cv_input/bin/libcv_input.macos.release.dylib"
+macos.debug.arm64 = "res://../native/cv_input/bin/libcv_input.macos.debug.dylib"
+macos.release.arm64 = "res://../native/cv_input/bin/libcv_input.macos.release.dylib"
 
 [dependencies]
 linux.debug.x86_64 = {}
 linux.release.x86_64 = {}
 windows.debug.x86_64 = {}
 windows.release.x86_64 = {}
+macos.debug = {}
+macos.release = {}
+macos.debug.x86_64 = {}
+macos.release.x86_64 = {}
+macos.debug.arm64 = {}
+macos.release.arm64 = {}

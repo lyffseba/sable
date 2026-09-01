@@ -3,6 +3,7 @@
 #include "sable/color.hpp"
 #include "sable/pipeline.hpp"
 
+#include <cstdint>
 #include <memory>
 
 extern "C" {
@@ -10,6 +11,7 @@ extern "C" {
 struct CvInputHandle {
 	sable::AimPipeline pipeline;
 	std::unique_ptr<sable::CaptureThread> capture;
+	std::uint64_t last_seq = 0;
 };
 
 void* cv_input_create() { return new CvInputHandle(); }
@@ -120,7 +122,8 @@ int cv_input_start_capture(void* ptr, const char* device) {
 	if (device && device[0]) {
 		cfg.device = device;
 	}
-	handle->capture = std::make_unique<sable::V4l2Capture>();
+	handle->last_seq = 0;
+	handle->capture = sable::make_capture();
 	return handle->capture->start(cfg) ? 1 : 0;
 }
 
@@ -137,10 +140,15 @@ int cv_input_poll_capture(void* ptr) {
 	if (!handle || !handle->capture) {
 		return 0;
 	}
+	const std::uint64_t seq = handle->capture->seq();
+	if (seq == 0 || seq == handle->last_seq) {
+		return 0;
+	}
 	sable::FrameBuffer frame;
 	if (!handle->capture->latest(frame) || frame.bytes.empty()) {
 		return 0;
 	}
+	handle->last_seq = seq;
 	handle->pipeline.set_exposure_locked(handle->capture->exposure_locked());
 	handle->pipeline.process(frame.view());
 	return 1;

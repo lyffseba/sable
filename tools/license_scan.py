@@ -33,6 +33,8 @@ TEXT_SUFFIX = {
     ".cpp",
     ".cc",
     ".c",
+    ".mm",
+    ".m",
     ".py",
     ".md",
     ".txt",

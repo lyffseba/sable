@@ -11,6 +11,10 @@ Licensed under the MIT License. https://godotengine.org/license
 
 Jolt Physics is included with Godot 4.4+ and used here as the 3D physics backend.
 
+## Apple AVFoundation (macOS capture)
+
+System frameworks (`AVFoundation`, `CoreMedia`, `CoreVideo`, `Foundation`). Not vendored. Linked only when building `native/cv_input` on Apple.
+
 ## OpenCV (when linked)
 
 Copyright (c) OpenCV team.

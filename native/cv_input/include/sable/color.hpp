@@ -62,6 +62,19 @@ inline float luma_rgb(std::uint8_t r, std::uint8_t g, std::uint8_t b) {
 	return (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255.0f;
 }
 
+// BT.601 limited-range YUV → RGB. Used by packed YUY2 (Y0 U Y1 V).
+inline void yuv_to_rgb(int y, int u, int v, Rgb& out) {
+	const int c = y - 16;
+	const int d = u - 128;
+	const int e = v - 128;
+	const int r = (298 * c + 409 * e + 128) >> 8;
+	const int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+	const int b = (298 * c + 516 * d + 128) >> 8;
+	out.r = static_cast<std::uint8_t>(std::clamp(r, 0, 255));
+	out.g = static_cast<std::uint8_t>(std::clamp(g, 0, 255));
+	out.b = static_cast<std::uint8_t>(std::clamp(b, 0, 255));
+}
+
 inline bool sample_rgb(const ImageView& img, int x, int y, Rgb& out) {
 	if (!img.data || x < 0 || y < 0 || x >= img.width || y >= img.height) {
 		return false;
@@ -86,11 +99,18 @@ inline bool sample_rgb(const ImageView& img, int x, int y, Rgb& out) {
 		out.r = p[2];
 		return true;
 	}
+	case PixelFormat::Bgra32: {
+		const std::uint8_t* p = img.data + y * img.stride + x * 4;
+		out.b = p[0];
+		out.g = p[1];
+		out.r = p[2];
+		return true;
+	}
 	case PixelFormat::Yuy2: {
 		const int pair = x & ~1;
 		const std::uint8_t* p = img.data + y * img.stride + pair * 2;
 		const std::uint8_t y8 = (x & 1) ? p[2] : p[0];
-		out.r = out.g = out.b = y8;
+		yuv_to_rgb(y8, p[1], p[3], out);
 		return true;
 	}
 	}

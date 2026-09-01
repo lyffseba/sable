@@ -42,7 +42,7 @@ Click is **always** HID / Raw Input against the **latest** AimSample.
 
 ## Pipeline (camera space, then map)
 
-Capture runs on a **worker thread**. Queue depth is effectively **1**: always the newest frame, drop stale. Prefer **YUY2 / raw**; MJPEG is a fallback (decode when OpenCV is linked).
+Capture runs on a **worker thread**. Queue depth is effectively **1**: always the newest frame, drop stale. Prefer **YUY2 / raw** on Linux V4L2; **32BGRA** on macOS AVFoundation. MJPEG is a fallback (decode when OpenCV is linked). Fire never waits on that worker.
 
 Once a frame is in:
 
