@@ -29,6 +29,7 @@ secrets/
 
 # Native build products (do not ignore source)
 native/cv_input/build/
+native/cv_input/build-release/
 native/cv_input/bin/
 *.so
 *.dylib

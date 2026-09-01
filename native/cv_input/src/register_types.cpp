@@ -5,6 +5,7 @@
 #if defined(SABLE_WITH_GODOT_CPP)
 
 #include <gdextension_interface.h>
+#include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>

@@ -43,13 +43,36 @@ That binary is the contract: synthetic 720p-class noise, dropouts, AE pops, coas
 
 ## GDExtension
 
-`cv_input.gdextension` (and `godot/addons/cv_input/`) points at `bin/`. Build the shared library after cloning [godot-cpp](https://github.com/godotengine/godot-cpp) for 4.7:
+`cv_input.gdextension` (and `godot/addons/cv_input/`) points at `bin/`. Clone [godot-cpp](https://github.com/godotengine/godot-cpp) **outside this repo**. There is no `4.7` / `godot-4.7-stable` tag; use `master` (v10) with `GODOTCPP_API_VERSION=4.7`.
 
 ```bash
-cmake -S . -B build -DCMAKE_CXX_COMPILER=g++ -DSABLE_GODOT_CPP=/path/to/godot-cpp
+# outside the sable tree, once
+git clone --depth 1 --branch master https://github.com/godotengine/godot-cpp.git ../godot-cpp
+
+# debug dylib → bin/libcv_input.macos.debug.dylib
+cmake -S . -B build \
+  -DCMAKE_CXX_COMPILER=g++ \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+  -DSABLE_GODOT_CPP=/abs/path/to/godot-cpp \
+  -DGODOTCPP_API_VERSION=4.7 \
+  -DGODOTCPP_TARGET=template_debug
+cmake --build build --target cv_input
+
+# release (separate build dir; GODOTCPP_TARGET is cache)
+cmake -S . -B build-release \
+  -DCMAKE_CXX_COMPILER=g++ \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+  -DSABLE_GODOT_CPP=/abs/path/to/godot-cpp \
+  -DGODOTCPP_API_VERSION=4.7 \
+  -DGODOTCPP_TARGET=template_release
+cmake --build build-release --target cv_input
 ```
 
-Until that `.so` exists, the Range runs in DESKTOP aim.
+macOS capture is in `sable_cv` (`capture_avf.mm`, `-fobjc-arc`, AVFoundation/CoreMedia/CoreVideo/Foundation). The shared target links that static lib; it does not recompile the `.mm`. Until the dylib exists, the Range runs in DESKTOP aim.
+
+Optional: dump this editor's API and pass `-DGODOTCPP_CUSTOM_API_FILE=extension_api.json` instead of `GODOTCPP_API_VERSION`.
 
 ## Constants
 

@@ -50,7 +50,21 @@ cmake --build native/cv_input/build
 ./native/cv_input/build/sable_cv_tests
 ```
 
-Linux V4L2 first (YUY2 preferred, MJPEG fallback). Windows Media Foundation later. See `native/cv_input/README.md` and `docs/aim_pipeline.md`.
+GDExtension (macOS dylib, godot-cpp **outside** this repo — no 4.7 tag, use `master` + API 4.7):
+
+```bash
+git clone --depth 1 --branch master https://github.com/godotengine/godot-cpp.git ../godot-cpp
+cmake -S native/cv_input -B native/cv_input/build \
+  -DCMAKE_CXX_COMPILER=g++ \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+  -DSABLE_GODOT_CPP="$PWD/../godot-cpp" \
+  -DGODOTCPP_API_VERSION=4.7 \
+  -DGODOTCPP_TARGET=template_debug
+cmake --build native/cv_input/build --target cv_input
+```
+
+Output: `native/cv_input/bin/libcv_input.macos.debug.dylib` (gitignored). Linux V4L2 first (YUY2 preferred, MJPEG fallback). Windows Media Foundation later. See `native/cv_input/README.md` and `docs/aim_pipeline.md`.
 
 ## Legal red line
 
