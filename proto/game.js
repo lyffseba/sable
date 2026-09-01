@@ -19,7 +19,7 @@ const screens = {
 };
 const PROC_W = 480;
 const CROP_TOP = 0.30;
-const HID_IDLE_MS = 100;
+const HID_IDLE_MS = 40;
 const RANGE_MS = 60000;
 const HUD_PAD = 16;
 const CORNER_NAMES = ["TOP LEFT", "TOP RIGHT", "BOTTOM RIGHT", "BOTTOM LEFT"];
@@ -41,7 +41,7 @@ const S = {
   camStamp: -1, quality: 0, euroX: null, euroY: null, lastRaw: null, seeking: false,
   H: null, useBilinear: false, camPts: [null, null, null, null], calibIndex: 0,
   calibFlash: 0, forceGun: false, desktop: false, hidLast: 0, hidMoving: false,
-  mode: "PAD", aim: { x: 0.5, y: 0.5 }, recoil: 0, punch: 0, flash: 0, hitstop: 0,
+  mode: "PAD", lifted: false, aim: { x: 0.5, y: 0.5 }, recoil: 0, punch: 0, flash: 0, hitstop: 0,
   orbs: [], parts: [], pops: [], score: 0, hits: 0, shots: 0, combo: 0, comboMax: 0,
   rangeStart: 0, lockSince: 0, locked: false, lockStart: 0, lockAdvance: false,
   noLockFlash: 0, liftPulse: 0, enteringRange: false,
@@ -678,29 +678,36 @@ function updateMode(now) {
   S.hidMoving = now - S.hidLast < HID_IDLE_MS;
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
   const coasting = !!S.smooth && since <= COAST_MS;
-  if (S.desktop) { S.mode = "DESKTOP"; S.seeking = false; return; }
-  if (S.forceGun) { S.mode = "GUN"; S.seeking = !detGood() && !coasting; return; }
-  // Superlight still on the mat → PAD. Camera lock must not win that fight.
-  // Lift-off is HID silence. Until then the plastic on the pad is not a gun.
-  if (S.hidMoving) { S.mode = "PAD"; S.seeking = true; return; }
-  if (detGood() || coasting) { S.mode = "GUN"; S.seeking = false; return; }
-  S.mode = "SEEKING";
-  S.seeking = true;
+  const locked = detGood() || coasting;
+  if (S.desktop) {
+    S.mode = "DESKTOP"; S.seeking = false; S.lifted = true; return;
+  }
+  if (S.forceGun) {
+    S.mode = "GUN"; S.lifted = true; S.seeking = !locked; return;
+  }
+  // Chip: pad HID is PAD. Mailbox: camera still writes aim.
+  if (S.hidMoving) {
+    S.mode = "PAD"; S.lifted = false; S.seeking = !locked; return;
+  }
+  if (locked) {
+    S.mode = "GUN"; S.lifted = true; S.seeking = false; return;
+  }
+  S.mode = "SEEKING"; S.lifted = false; S.seeking = true;
+}
+function publishAim(x, y) {
+  if (!isFinite(x) || !isFinite(y)) return;
+  S.aim.x = x; S.aim.y = y;
 }
 function updateAim() {
   if (S.desktop) return;
   if (!S.smooth) return;
-  if (phase === "range" || phase === "calibrate") {
-    if (S.H || S.camPts.every(Boolean)) {
-      if (S.mode === "GUN" || S.mode === "SEEKING" || S.forceGun) {
-        const p = camToScreen(S.smooth.x, S.smooth.y);
-        if (!p.lost) { S.aim.x = p.x; S.aim.y = p.y; }
-        else S.seeking = true;
-      }
-    } else {
-      S.aim.x = (S.smooth.x / PROC_W) * W;
-      S.aim.y = (S.smooth.y / PROC_H) * H;
-    }
+  if (phase !== "range" && phase !== "calibrate") return;
+  if (S.H || S.camPts.every(Boolean)) {
+    const p = camToScreen(S.smooth.x, S.smooth.y);
+    if (!p.lost) publishAim(p.x, p.y);
+    else S.seeking = true;
+  } else {
+    publishAim((S.smooth.x / PROC_W) * W, (S.smooth.y / PROC_H) * H);
   }
 }
 
@@ -943,11 +950,8 @@ function fire() {
     if (now - (S.trackT || 0) > 0) coastTrack(now);
     updateAim();
   }
-  if (phase === "range") {
-    if (S.mode === "PAD") return;
-  } else {
-    if (S.mode !== "GUN" && S.mode !== "DESKTOP" && S.mode !== "SEEKING" && !S.forceGun) return;
-  }
+  // Peek the mailbox. Lift is the trigger. Camera already wrote S.aim.
+  if (!S.desktop && !S.lifted) return;
   bang();
   S.recoil = 2.2; S.flash = 0.04; S.punch = 1.6;
   if (phase === "calibrate") {
@@ -1220,9 +1224,7 @@ function draw() {
     drawModeChip();
   } else if (phase === "calibrate") {
     drawCalib(now);
-    if (S.calibIndex >= 4 && (S.mode === "GUN" || S.mode === "DESKTOP" || S.forceGun || S.mode === "SEEKING")) {
-      drawCrosshair(S.aim.x, S.aim.y);
-    }
+    drawCrosshair(S.aim.x, S.aim.y);
     drawModeChip();
   } else if (phase === "range") {
     for (const o of S.orbs) drawOrb(o, now);
@@ -1242,9 +1244,7 @@ function draw() {
       ctx.fillText(p.text, p.x, p.y);
       ctx.globalAlpha = 1;
     }
-    if (S.mode === "GUN" || S.mode === "DESKTOP" || S.mode === "SEEKING") {
-      drawCrosshair(S.aim.x, S.aim.y);
-    }
+    drawCrosshair(S.aim.x, S.aim.y);
     drawHUD(now);
   }
   ctx.restore();
@@ -1298,7 +1298,7 @@ window.addEventListener("contextmenu", (e) => e.preventDefault());
 
 window.addEventListener("pointermove", (e) => {
   S.hidLast = performance.now();
-  if (S.desktop) { S.aim.x = e.clientX; S.aim.y = e.clientY; }
+  if (S.desktop) publishAim(e.clientX, e.clientY);
 });
 
 window.addEventListener("keydown", (e) => {

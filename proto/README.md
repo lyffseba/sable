@@ -7,7 +7,7 @@ Chrome range. Webcam tracks the physical mouse. The camera is never drawn.
 Unzip `sable-proto-*.zip`, then in that folder:
 
 ```
-python3 -m http.server 8080 --bind 127.0.0.1
+python3 serve_proto.py
 ```
 
 Open **http://127.0.0.1:8080**. PLAY. Allow camera. Tilt it **down at your hands**. Lift.
@@ -15,8 +15,7 @@ Open **http://127.0.0.1:8080**. PLAY. Allow camera. Tilt it **down at your hands
 ## From git
 
 ```
-cd proto
-python3 -m http.server 8080 --bind 127.0.0.1
+python3 tools/serve_proto.py
 ```
 
 `file://` fails — camera needs localhost.
