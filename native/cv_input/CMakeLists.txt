@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(sable_cv_input LANGUAGES CXX)
+if (APPLE)
+	enable_language(OBJCXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -13,6 +16,17 @@ add_library(sable_cv STATIC
 target_include_directories(sable_cv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 find_package(Threads REQUIRED)
 target_link_libraries(sable_cv PUBLIC Threads::Threads)
+
+if (APPLE)
+	target_sources(sable_cv PRIVATE src/capture_avf.mm)
+	set_source_files_properties(src/capture_avf.mm PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+	target_link_libraries(sable_cv PUBLIC
+		"-framework Foundation"
+		"-framework AVFoundation"
+		"-framework CoreMedia"
+		"-framework CoreVideo"
+	)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	target_compile_options(sable_cv PRIVATE -Wall -Wextra -Wpedantic)

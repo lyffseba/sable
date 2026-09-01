@@ -29,6 +29,8 @@ func enable_camera() -> bool:
 	camera_enabled = true
 	_try_bind_cv()
 	if _cv != null:
+		if _cv.has_method("start_capture"):
+			_cv.start_capture("")
 		mode = Mode.PAD
 		return true
 	mode = Mode.DESKTOP
@@ -117,6 +119,9 @@ func _poll_cv() -> void:
 	if _cv == null:
 		_publish_desktop()
 		return
+	# Reticle may poll the newest frame. HID fire never does.
+	if _cv.has_method("poll_capture"):
+		_cv.poll_capture()
 	var d: Dictionary = _cv.peek()
 	var sample := AimSample.new()
 	sample.uv = d.get("uv", Vector2(0.5, 0.5))

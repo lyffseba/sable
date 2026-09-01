@@ -1,16 +1,19 @@
 #include "sable/aim_bus.hpp"
 #include "sable/aim_sample.hpp"
+#include "sable/capture.hpp"
 #include "sable/color.hpp"
 #include "sable/constants.hpp"
 #include "sable/one_euro.hpp"
 #include "sable/pipeline.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -233,6 +236,154 @@ void test_never_snaps_origin_after_loss() {
 	check(!(lost.uv_x == 0.0f && lost.uv_y == 0.0f), "lost tracker does not snap to 0,0");
 }
 
+sable::FrameBuffer make_frame_bgra(int w, int h, float cx, float cy, float radius, float peak,
+								   std::int64_t t_hw) {
+	sable::FrameBuffer frame;
+	frame.width = w;
+	frame.height = h;
+	frame.stride = w * 4;
+	frame.format = sable::PixelFormat::Bgra32;
+	frame.t_hw = t_hw;
+	frame.bytes.assign(static_cast<size_t>(w * h * 4), 12);
+	const float r2 = radius * radius * 2.2f;
+	for (int y = 0; y < h; ++y) {
+		for (int x = 0; x < w; ++x) {
+			const float dx = (static_cast<float>(x) + 0.5f) - cx;
+			const float dy = (static_cast<float>(y) + 0.5f) - cy;
+			float a = std::exp(-(dx * dx + dy * dy) / r2) * peak;
+			if (a < 0.02f) {
+				a = 0.0f;
+			}
+			std::uint8_t* p = frame.bytes.data() + (y * w + x) * 4;
+			p[0] = static_cast<std::uint8_t>(std::min(255.0f, 12.0f + 230.0f * a)); // B
+			p[1] = static_cast<std::uint8_t>(std::min(255.0f, 12.0f + 255.0f * a)); // G
+			p[2] = static_cast<std::uint8_t>(std::min(255.0f, 12.0f + 40.0f * a));  // R
+			p[3] = 255;
+		}
+	}
+	return frame;
+}
+
+void rgb_to_yuy2_pair(sable::Rgb a, sable::Rgb b, std::uint8_t* p) {
+	auto y = [](sable::Rgb c) {
+		return static_cast<int>(((66 * c.r + 129 * c.g + 25 * c.b + 128) >> 8) + 16);
+	};
+	auto u = [](sable::Rgb c) {
+		return static_cast<int>(((-38 * c.r - 74 * c.g + 112 * c.b + 128) >> 8) + 128);
+	};
+	auto v = [](sable::Rgb c) {
+		return static_cast<int>(((112 * c.r - 94 * c.g - 18 * c.b + 128) >> 8) + 128);
+	};
+	p[0] = static_cast<std::uint8_t>(std::clamp(y(a), 16, 235));
+	p[1] = static_cast<std::uint8_t>(std::clamp((u(a) + u(b)) / 2, 0, 255));
+	p[2] = static_cast<std::uint8_t>(std::clamp(y(b), 16, 235));
+	p[3] = static_cast<std::uint8_t>(std::clamp((v(a) + v(b)) / 2, 0, 255));
+}
+
+void test_bgra_and_yuy2_sample() {
+	std::uint8_t bgra[4] = {200, 180, 10, 255};
+	sable::ImageView v;
+	v.data = bgra;
+	v.width = 1;
+	v.height = 1;
+	v.stride = 4;
+	v.format = sable::PixelFormat::Bgra32;
+	sable::Rgb rgb;
+	check(sable::sample_rgb(v, 0, 0, rgb), "BGRA sample in bounds");
+	check(rgb.r == 10 && rgb.g == 180 && rgb.b == 200, "BGRA maps B,G,R,A → RGB");
+
+	std::uint8_t yuy2[4];
+	sable::Rgb cyan{40, 255, 230};
+	rgb_to_yuy2_pair(cyan, cyan, yuy2);
+	sable::ImageView yv;
+	yv.data = yuy2;
+	yv.width = 2;
+	yv.height = 1;
+	yv.stride = 4;
+	yv.format = sable::PixelFormat::Yuy2;
+	sable::Rgb back;
+	check(sable::sample_rgb(yv, 0, 0, back), "YUY2 sample in bounds");
+	const sable::Hsv hsv = sable::rgb_to_hsv(back.r, back.g, back.b);
+	check(hsv.s > 0.35f && hsv.h > 140.0f && hsv.h < 210.0f, "YUY2 chroma keeps cyan hue");
+}
+
+void test_bgra_pipeline_locks() {
+	sable::AimPipeline pipe;
+	sable::Hsv cyan;
+	cyan.h = 175.0f;
+	cyan.s = 0.85f;
+	cyan.v = 0.90f;
+	pipe.set_calib_hsv(cyan);
+	auto frame = make_frame_bgra(320, 240, 200.0f, 90.0f, 9.0f, 1.0f, 3'000'000);
+	const sable::AimSample seen = pipe.process(frame.view());
+	check(seen.valid, "pipeline locks onto BGRA cyan blob");
+	check(seen.uv_x > 0.4f && seen.uv_y > 0.2f, "BGRA lock UV is not the origin");
+}
+
+struct PumpCapture : sable::CaptureThread {
+	void run() override {
+		while (!stop_) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(4));
+		}
+	}
+	void inject(const sable::FrameBuffer& f) { publish(f); }
+};
+
+void test_capture_drop_old_and_dummy() {
+	PumpCapture pump;
+	auto a = make_frame(64, 48, 10.0f, 10.0f, 4.0f, 1.0f, 1.0f, false, 11);
+	auto b = make_frame(64, 48, 20.0f, 10.0f, 4.0f, 1.0f, 1.0f, false, 22);
+	auto c = make_frame(64, 48, 30.0f, 10.0f, 4.0f, 1.0f, 1.0f, false, 33);
+	pump.inject(a);
+	pump.inject(b);
+	pump.inject(c);
+	sable::FrameBuffer got;
+	check(pump.latest(got), "mailbox has a frame");
+	check(got.t_hw == 33, "drop-old keeps the newest frame");
+	check(pump.seq() == 3, "seq counts publishes");
+
+	sable::DummyCapture dummy;
+	check(dummy.start({}), "dummy starts");
+	std::this_thread::sleep_for(std::chrono::milliseconds(30));
+	sable::FrameBuffer none;
+	check(!dummy.has_frame(), "dummy does not invent a frame");
+	check(!dummy.latest(none), "dummy latest is empty");
+	dummy.stop();
+}
+
+void test_make_capture_backend() {
+	auto cap = sable::make_capture();
+	check(cap != nullptr, "make_capture returns a backend");
+#if defined(__APPLE__)
+	check(cap->backend() == "avf", "macOS factory is AvfCapture");
+#elif defined(__linux__)
+	check(cap->backend() == "v4l2", "Linux factory is V4l2Capture");
+#else
+	check(cap->backend() == "dummy", "other platforms use dummy capture");
+#endif
+	check(!cap->has_frame(), "factory does not publish before start");
+}
+
+void test_optional_live_camera() {
+	const char* live = std::getenv("SABLE_LIVE_CAMERA");
+	if (!live || live[0] == '\0' || live[0] == '0') {
+		std::printf("skip live capture (set SABLE_LIVE_CAMERA=1 to probe the webcam)\n");
+		return;
+	}
+	auto cap = sable::make_capture();
+	check(cap->start({}), "live capture start");
+	for (int i = 0; i < 40 && !cap->has_frame(); ++i) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	}
+	check(cap->has_frame(), "live capture published a frame");
+	sable::FrameBuffer frame;
+	check(cap->latest(frame) && !frame.bytes.empty(), "live frame has pixels");
+	check(frame.width >= 160 && frame.height >= 120, "live frame is at least QVGA");
+	std::printf("live backend=%s %dx%d seq=%llu\n", cap->backend().c_str(), frame.width, frame.height,
+				static_cast<unsigned long long>(cap->seq()));
+	cap->stop();
+}
+
 void test_bus_fire_without_new_frame() {
 	sable::AimBus bus;
 	sable::AimSample a;
@@ -257,6 +408,11 @@ int main() {
 	test_two_frame_dropout_coasts();
 	test_synthetic_path_rms();
 	test_never_snaps_origin_after_loss();
+	test_bgra_and_yuy2_sample();
+	test_bgra_pipeline_locks();
+	test_capture_drop_old_and_dummy();
+	test_make_capture_backend();
+	test_optional_live_camera();
 	if (g_fails != 0) {
 		std::fprintf(stderr, "\n%d test(s) failed\n", g_fails);
 		return 1;

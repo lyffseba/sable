@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <memory>
 #include <vector>
 
 #if defined(__linux__)
@@ -15,15 +16,6 @@
 #endif
 
 namespace sable {
-namespace {
-
-std::int64_t now_us() {
-	using clock = std::chrono::steady_clock;
-	return std::chrono::duration_cast<std::chrono::microseconds>(clock::now().time_since_epoch())
-		.count();
-}
-
-} // namespace
 
 bool CaptureThread::start(const CaptureConfig& cfg) {
 	stop();
@@ -50,6 +42,7 @@ void CaptureThread::publish(const FrameBuffer& frame) {
 	std::lock_guard<std::mutex> lock(mu_);
 	latest_ = frame;
 	has_frame_ = true;
+	seq_.fetch_add(1, std::memory_order_release);
 }
 
 bool CaptureThread::latest(FrameBuffer& out) const {
@@ -77,6 +70,12 @@ void DummyCapture::run() {
 #if defined(__linux__)
 
 namespace {
+
+std::int64_t now_us() {
+	using clock = std::chrono::steady_clock;
+	return std::chrono::duration_cast<std::chrono::microseconds>(clock::now().time_since_epoch())
+		.count();
+}
 
 bool v4l2_set_ctrl(int fd, __u32 id, __s32 value) {
 	struct v4l2_control ctrl;
@@ -271,5 +270,33 @@ void V4l2Capture::run() {
 }
 
 #endif
+
+#if !defined(__APPLE__)
+
+bool AvfCapture::start(const CaptureConfig& cfg) {
+	backend_ = "dummy";
+	error_ = "AVFoundation not available on this platform";
+	return CaptureThread::start(cfg);
+}
+
+void AvfCapture::on_sample_buffer(void*) {}
+
+void AvfCapture::run() {
+	while (!stop_) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	}
+}
+
+#endif
+
+std::unique_ptr<CaptureThread> make_capture() {
+#if defined(__APPLE__)
+	return std::make_unique<AvfCapture>();
+#elif defined(__linux__)
+	return std::make_unique<V4l2Capture>();
+#else
+	return std::make_unique<DummyCapture>();
+#endif
+}
 
 } // namespace sable

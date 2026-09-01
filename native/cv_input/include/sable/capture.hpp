@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -21,7 +22,7 @@ struct CaptureConfig {
 };
 
 // Worker-thread capture. Always keeps the newest frame (drop-old, buffer=1
-// semantics). Linux V4L2 first; Media Foundation is a later Windows port.
+// semantics). Linux V4L2; macOS AVFoundation; Media Foundation later.
 class CaptureThread {
 public:
 	virtual ~CaptureThread() { stop(); }
@@ -31,6 +32,7 @@ public:
 	bool running() const { return running_.load(); }
 	bool exposure_locked() const { return exposure_locked_.load(); }
 	bool has_frame() const { return has_frame_.load(); }
+	std::uint64_t seq() const { return seq_.load(); }
 
 	// Copy the latest frame. Returns false if none yet.
 	bool latest(FrameBuffer& out) const;
@@ -47,6 +49,7 @@ protected:
 	std::atomic<bool> running_{false};
 	std::atomic<bool> has_frame_{false};
 	std::atomic<bool> exposure_locked_{false};
+	std::atomic<std::uint64_t> seq_{0};
 	std::string error_;
 	std::string backend_ = "none";
 
@@ -59,7 +62,20 @@ private:
 // V4L2 capture when built on Linux. Otherwise a no-device stub.
 class V4l2Capture : public CaptureThread {
 public:
+	V4l2Capture() { backend_ = "v4l2"; }
 	bool start(const CaptureConfig& cfg) override;
+
+protected:
+	void run() override;
+};
+
+// AVFoundation capture when built on Apple. Otherwise a no-device stub.
+class AvfCapture : public CaptureThread {
+public:
+	AvfCapture() { backend_ = "avf"; }
+	bool start(const CaptureConfig& cfg) override;
+	// AVF delegate hook (CMSampleBufferRef as void*). Not a game API.
+	void on_sample_buffer(void* sample_buffer);
 
 protected:
 	void run() override;
@@ -68,10 +84,14 @@ protected:
 // Dummy capture used when no camera is present. Does not invent aim.
 class DummyCapture : public CaptureThread {
 public:
+	DummyCapture() { backend_ = "dummy"; }
 	bool start(const CaptureConfig& cfg) override;
 
 protected:
 	void run() override;
 };
+
+// Platform camera: AvfCapture on Apple, V4l2Capture on Linux, else dummy.
+std::unique_ptr<CaptureThread> make_capture();
 
 } // namespace sable

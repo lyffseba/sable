@@ -24,18 +24,22 @@ That binary is the contract: synthetic 720p-class noise, dropouts, AE pops, coas
 | `include/sable/one_euro.hpp` | Casiez 2012, pointing constants |
 | `include/sable/pipeline.hpp` | ROI, moments, HSV, coast, outliers, quality |
 | `include/sable/aim_bus.hpp` | Latest-sample mailbox; `fire()` peeks |
-| `src/capture.cpp` | Worker thread, V4L2 YUY2, drop-old |
+| `src/capture.cpp` | Worker thread, V4L2 YUY2, drop-old, `make_capture()` |
+| `src/capture_avf.mm` | macOS AVFoundation, 32BGRA, drop-old |
 | `src/cv_input_c_api.cpp` | Stable C ABI |
 | `src/register_types.cpp` | GDExtension (needs godot-cpp) |
 | `tests/test_aim.cpp` | No-webcam tests |
 
 ## Capture
 
-- Linux **V4L2** first. Prefer **YUY2**. MJPEG is fallback (skipped until OpenCV/libjpeg is linked — do not invent a pose).
+- Linux **V4L2**. Prefer **YUY2**. MJPEG is fallback (skipped until OpenCV/libjpeg is linked — do not invent a pose).
+- macOS **AVFoundation** (`capture_avf.mm`). Prefer **32BGRA**. `alwaysDiscardsLateVideoFrames`. Lock exposure / AWB when the device allows. No extra packages — system frameworks only.
 - `buffer ≈ 1`: dequeue every pending buffer, keep the newest.
 - Lock exposure / AWB when the driver allows. If not, the pipeline adapts thresholds every 15 frames.
 - Windows **Media Foundation** is a later port of the same `CaptureThread` interface.
 - Dummy capture publishes **no** fake aim. Godot desktop fallback (T) supplies UV.
+- Unit tests never open a camera. `SABLE_LIVE_CAMERA=1 ./build/sable_cv_tests` probes a real device.
+- Godot `.app` needs `NSCameraUsageDescription` in Info.plist before AVF will grant access.
 
 ## GDExtension
 

@@ -9,6 +9,7 @@ enum class PixelFormat {
 	Gray8,
 	Rgb24,
 	Bgr24,
+	Bgra32,
 	Yuy2,
 };
 
