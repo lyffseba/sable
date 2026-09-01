@@ -20,3 +20,7 @@ func _on_enable_camera() -> void:
 
 func _on_enter_range() -> void:
 	App.go(App.State.RANGE)
+
+
+func _on_enter_bay() -> void:
+	App.go(App.State.BAY)

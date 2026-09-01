@@ -1,12 +1,13 @@
 extends Node
 
-enum State { BOOT, MARKER, CALIB, RANGE, RESULTS, SERVER }
+enum State { BOOT, MARKER, CALIB, RANGE, BAY, RESULTS, SERVER }
 
 const SCENE := {
 	State.BOOT: "res://scenes/boot/Boot.tscn",
 	State.MARKER: "res://scenes/boot/Marker.tscn",
 	State.CALIB: "res://scenes/boot/Calib.tscn",
 	State.RANGE: "res://scenes/range/Range.tscn",
+	State.BAY: "res://scenes/bay/Bay.tscn",
 	State.RESULTS: "res://scenes/boot/Results.tscn",
 }
 
