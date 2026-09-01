@@ -59,7 +59,7 @@ Latest zip: <https://github.com/lyffseba/sable/releases/latest> (private — log
 ```bash
 gh release download --repo lyffseba/sable -p 'sable-proto-*.zip'
 unzip sable-proto-*.zip -d sable-proto && cd sable-proto
-python3 -m http.server 8080 --bind 127.0.0.1
+python3 serve_proto.py
 ```
 
 Open http://127.0.0.1:8080 — allow camera, tilt down at hands, lift.

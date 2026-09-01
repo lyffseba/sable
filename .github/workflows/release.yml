@@ -57,8 +57,10 @@ jobs:
           test -f proto/game.js
           test -f proto/style.css
           test -f proto/README.md
+          test -f tools/serve_proto.py
           zip -j "sable-proto-${TAG}.zip" \
-            proto/index.html proto/game.js proto/style.css proto/README.md
+            proto/index.html proto/game.js proto/style.css proto/README.md \
+            tools/serve_proto.py
           sha256sum "sable-proto-${TAG}.zip" | tee "sable-proto-${TAG}.zip.sha256"
           ls -l "sable-proto-${TAG}.zip"
 
@@ -76,7 +78,7 @@ jobs:
           2. Unzip, then:
 
           \`\`\`
-          python3 -m http.server 8080 --bind 127.0.0.1
+          python3 serve_proto.py
           \`\`\`
 
           3. Open http://127.0.0.1:8080 — allow camera, tilt it down at your hands, lift.

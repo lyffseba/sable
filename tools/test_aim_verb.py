@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def mode(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> str:
-    """Proto updateMode, extracted. HID on the mat beats a live NCC lock."""
+    """Chip only. Camera still writes the mailbox on PAD."""
     if desktop:
         return "DESKTOP"
     if force:
@@ -23,26 +23,44 @@ def mode(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool
     return "SEEKING"
 
 
+def lifted(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> bool:
+    if desktop or force:
+        return True
+    if hid_moving:
+        return False
+    return det or coasting
+
+
+def can_fire(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> bool:
+    return desktop or lifted(desktop, force, hid_moving, det, coasting)
+
+
 def test_mode_table() -> None:
-    # Camera still sees the Superlight on the pad. That is not a gun.
     assert mode(False, False, True, True, False) == "PAD"
-    assert mode(False, False, True, True, True) == "PAD"
-    # Lift-off: HID silent, lock holds.
     assert mode(False, False, False, True, False) == "GUN"
-    # 100 ms hole: coast, still GUN, UV must not snap.
     assert mode(False, False, False, False, True) == "GUN"
-    # Lost.
     assert mode(False, False, False, False, False) == "SEEKING"
-    # Space.
     assert mode(False, True, True, False, False) == "GUN"
-    # T debug.
     assert mode(True, False, True, True, False) == "DESKTOP"
+
+
+def test_lift_and_fire() -> None:
+    # On the mat with a live lock: see the reticle, do not shoot.
+    assert lifted(False, False, True, True, False) is False
+    assert can_fire(False, False, True, True, False) is False
+    # Lift-off.
+    assert lifted(False, False, False, True, False) is True
+    assert can_fire(False, False, False, True, False) is True
+    # Space.
+    assert can_fire(False, True, True, False, False) is True
+    # T debug always shoots.
+    assert can_fire(True, False, True, False, False) is True
 
 
 def test_ruled_out() -> None:
     """Desktop HID-idle as lift: cursor IS the gun, idle means you cannot aim."""
-    # If we treated desktop hid_moving as PAD, debug T could not paint UV.
     assert mode(True, False, True, False, False) == "DESKTOP"
+    assert can_fire(True, False, True, False, False) is True
 
 
 def _fn(src: str, name: str) -> str:
@@ -52,36 +70,45 @@ def _fn(src: str, name: str) -> str:
     return m.group(0)
 
 
-def test_proto_source_order() -> None:
-    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
-    m = re.search(r"function updateMode\([^)]*\) \{[\s\S]*?\n\}", src)
+def _js_fn(src: str, name: str) -> str:
+    m = re.search(rf"function {name}\([^)]*\) \{{[\s\S]*?\n\}}", src)
     if not m:
-        raise AssertionError("missing updateMode")
-    body = m.group(0)
-    hid = body.find("if (S.hidMoving)")
-    gun = body.find("if (detGood() || coasting)")
-    if hid < 0 or gun < 0:
-        raise AssertionError("updateMode must test hidMoving and detGood")
-    if hid > gun:
-        raise AssertionError("hidMoving must beat detGood — pad HID is PAD")
+        raise AssertionError(f"missing function {name}")
+    return m.group(0)
 
 
-def test_camera_writes_aim() -> None:
+def test_proto_mailbox() -> None:
     src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
-    m = re.search(r"function updateAim\(\) \{[\s\S]*?\n\}", src)
-    if not m:
-        raise AssertionError("missing updateAim")
-    body = m.group(0)
-    if 'S.mode === "GUN"' in body:
-        raise AssertionError("camera must drive the reticle even on PAD")
-    if "camToScreen" not in body:
+    mode_body = _js_fn(src, "updateMode")
+    hid = mode_body.find("if (S.hidMoving)")
+    locked = mode_body.find("if (locked)")
+    if hid < 0 or locked < 0 or hid > locked:
+        raise AssertionError("chip: hidMoving must beat lock")
+    if "S.lifted" not in mode_body:
+        raise AssertionError("updateMode must write lifted")
+
+    aim = _js_fn(src, "updateAim")
+    if "S.mode" in aim:
+        raise AssertionError("camera must write aim with no mode gate")
+    if "camToScreen" not in aim:
         raise AssertionError("updateAim maps camera to screen")
-    move = re.search(r"pointermove[\s\S]{0,400}", src)
-    if not move:
-        raise AssertionError("missing pointermove")
-    block = move.group(0)
-    if "S.aim.x = e.clientX" in block and "if (S.desktop)" not in block:
-        raise AssertionError("OS pointer must not write aim outside DESKTOP")
+    if "function publishAim" not in src:
+        raise AssertionError("one publisher for the mailbox")
+
+    fire = _js_fn(src, "fire")
+    if 'S.mode === "PAD"' in fire:
+        raise AssertionError("fire gates on lifted, not the chip")
+    if "!S.lifted" not in fire:
+        raise AssertionError("fire peeks lifted")
+
+    move = re.search(r"pointermove[\s\S]{0,280}", src)
+    if not move or "if (S.desktop)" not in move.group(0):
+        raise AssertionError("OS pointer writes aim only in DESKTOP")
+
+    if src.count("drawCrosshair(S.aim.x, S.aim.y)") < 2:
+        raise AssertionError("calib + range must draw the reticle")
+    if 'if (S.mode === "GUN" || S.mode === "DESKTOP" || S.mode === "SEEKING")' in src:
+        raise AssertionError("PAD must not hide the reticle")
 
 
 def test_range_gate() -> None:
@@ -99,9 +126,9 @@ def test_range_gate() -> None:
 def main() -> int:
     try:
         test_mode_table()
+        test_lift_and_fire()
         test_ruled_out()
-        test_proto_source_order()
-        test_camera_writes_aim()
+        test_proto_mailbox()
         test_range_gate()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
