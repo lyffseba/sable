@@ -124,6 +124,7 @@ const S = {
   tpl: null, ncc: 0, gray: null,
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
+  engine: { mojo: null, gemini: false },
 };
 
 // --- Bay 1v1 Arena State ---
@@ -835,7 +836,7 @@ function missTick() {
 // ==========================================
 let renderer, scene, camera;
 let gunGroup, gunBody, gunStripe, gunMuzzleLight;
-let rangeTargetGroup, shardGroup;
+let rangeTargetGroup, rangeHallGroup, shardGroup;
 let bayGroup, foeGroup, foeMesh, foeVisor;
 let tracerLines = [];
 
@@ -847,20 +848,24 @@ function init3D() {
   });
   renderer.setSize(W, H);
   renderer.setPixelRatio(dpr);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x05080e);
-  scene.fog = new THREE.FogExp2(0x05080e, 0.04);
+  scene.background = new THREE.Color(0x03050a);
+  scene.fog = new THREE.FogExp2(0x03050a, 0.032);
 
-  camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 120);
+  camera = new THREE.PerspectiveCamera(68, W / H, 0.08, 160);
   camera.position.set(0, 1.64, 0);
 
-  // Ambient & Rim Lighting
-  const amb = new THREE.AmbientLight(0x223344, 0.9);
-  scene.add(amb);
-  const dir = new THREE.DirectionalLight(0xaaddee, 1.2);
-  dir.position.set(5, 12, 6);
+  scene.add(new THREE.HemisphereLight(0x4a6a88, 0x08060a, 0.85));
+  const dir = new THREE.DirectionalLight(0xc8e8ff, 1.35);
+  dir.position.set(4, 14, 7);
   scene.add(dir);
+  const rim = new THREE.DirectionalLight(Locker.colors.mintHex, 0.35);
+  rim.position.set(-8, 6, -4);
+  scene.add(rim);
 
   buildFirstPersonGun();
   buildRange3D();
@@ -897,9 +902,16 @@ function buildFirstPersonGun() {
   rustMesh.position.set(0, -0.01, 0.1);
   gunGroup.add(rustMesh);
 
-  // Dynamic Muzzle Light
-  gunMuzzleLight = new THREE.PointLight(Locker.colors.mintHex, 0, 4);
-  gunMuzzleLight.position.set(0, 0, -0.16);
+  const barrel = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.012, 0.014, 0.16, 10),
+    new THREE.MeshStandardMaterial({ color: 0x1a222c, metalness: 0.9, roughness: 0.2 })
+  );
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.008, -0.16);
+  gunGroup.add(barrel);
+
+  gunMuzzleLight = new THREE.PointLight(Locker.colors.mintHex, 0, 5);
+  gunMuzzleLight.position.set(0, 0.008, -0.24);
   gunGroup.add(gunMuzzleLight);
 
   // Default rest pose (lowered on pad)
@@ -909,10 +921,34 @@ function buildFirstPersonGun() {
 }
 
 function buildRange3D() {
+  rangeHallGroup = new THREE.Group();
   rangeTargetGroup = new THREE.Group();
   shardGroup = new THREE.Group();
+  scene.add(rangeHallGroup);
   scene.add(rangeTargetGroup);
   scene.add(shardGroup);
+
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(28, 28),
+    new THREE.MeshStandardMaterial({ color: 0x07090e, roughness: 0.92, metalness: 0.12 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -1.64;
+  rangeHallGroup.add(floor);
+  const hallGrid = new THREE.GridHelper(28, 28, 0x0a3a44, 0x0a1820);
+  hallGrid.position.y = -1.63;
+  rangeHallGroup.add(hallGrid);
+
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a1018, roughness: 0.88 });
+  const back = new THREE.Mesh(new THREE.BoxGeometry(28, 10, 0.4), wallMat);
+  back.position.set(0, 3.2, -14);
+  rangeHallGroup.add(back);
+  const strip = new THREE.Mesh(
+    new THREE.BoxGeometry(18, 0.08, 0.12),
+    new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex })
+  );
+  strip.position.set(0, 6.4, -13.7);
+  rangeHallGroup.add(strip);
 }
 
 function buildBay3D() {
@@ -939,12 +975,17 @@ function buildBay3D() {
   // Concrete Pillars & Barriers
   const pillarGeo = new THREE.BoxGeometry(2.4, 8, 2.4);
   const pillarMat = new THREE.MeshStandardMaterial({ color: 0x09121c, roughness: 0.8 });
-  const p1 = new THREE.Mesh(pillarGeo, pillarMat);
-  p1.position.set(-6, 4, -4);
-  const p2 = new THREE.Mesh(pillarGeo, pillarMat);
-  p2.position.set(6, 4, -4);
-  bayGroup.add(p1);
-  bayGroup.add(p2);
+  for (const [x, z] of [[-6, -4], [6, -4], [0, -16], [-10, 2], [10, 2]]) {
+    const p = new THREE.Mesh(pillarGeo, pillarMat);
+    p.position.set(x, 4, z);
+    bayGroup.add(p);
+  }
+  const neon = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  for (const z of [-8, 0, 8]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(22, 0.06, 0.1), neon);
+    bar.position.set(0, 7.2, z);
+    bayGroup.add(bar);
+  }
 
   // Left Window Cover
   const coverGeo = new THREE.BoxGeometry(3.2, 2.4, 0.8);
@@ -970,6 +1011,9 @@ function buildBay3D() {
   foeVisor = new THREE.Mesh(visorGeo, visorMat);
   foeVisor.position.set(0, 1.35, 0.25);
   foeGroup.add(foeVisor);
+  const visorLight = new THREE.PointLight(Locker.colors.mintHex, 1.4, 6);
+  visorLight.position.set(0, 1.42, 0.4);
+  foeGroup.add(visorLight);
 
   foeGroup.position.set(0, 0, -10);
   bayGroup.add(foeGroup);
@@ -1214,6 +1258,7 @@ function setPhase(next) {
   phase = next;
   for (const k of Object.keys(screens)) screens[k].hidden = k !== next;
   if (rangeTargetGroup) rangeTargetGroup.visible = (next === "range");
+  if (rangeHallGroup) rangeHallGroup.visible = (next !== "bay");
   if (bayGroup) bayGroup.visible = (next === "bay");
 
   if (next === "calibrate") {
@@ -1545,6 +1590,26 @@ function drawModeChip() {
   ctx.strokeRect(qx, 16, qw, 22);
   ctx.fillStyle = qCol;
   ctx.fillText(qLabel, qx + 11, 26);
+
+  function chip(text, on, x) {
+    const w = ctx.measureText(text).width + 18;
+    ctx.fillStyle = "rgba(5,8,14,0.78)";
+    ctx.strokeStyle = on ? Locker.colors.mint : "#3a4450";
+    ctx.fillRect(x, 16, w, 22);
+    ctx.strokeRect(x, 16, w, 22);
+    ctx.fillStyle = on ? Locker.colors.mint : "#6a7a88";
+    ctx.fillText(text, x + 9, 28);
+    return w + 8;
+  }
+  let ex = W - 16;
+  const mojoOn = !!S.engine.mojo;
+  const gemOn = !!S.engine.gemini;
+  const mLabel = mojoOn ? "MOJO 1.0" : "MOJO OFF";
+  const gLabel = gemOn ? "GEMINI" : "GEMINI OFF";
+  ex -= ctx.measureText(gLabel).width + 18;
+  chip(gLabel, gemOn, ex);
+  ex -= 8 + ctx.measureText(mLabel).width + 18;
+  chip(mLabel, mojoOn, ex);
   ctx.restore();
 }
 
@@ -1886,4 +1951,8 @@ fit();
 init3D();
 S.aim.x = W / 2;
 S.aim.y = H / 2;
+fetch("/api/health").then((r) => r.json()).then((h) => {
+  S.engine.mojo = h.mojo || null;
+  S.engine.gemini = !!h.gemini;
+}).catch(() => {});
 requestAnimationFrame(frame);
