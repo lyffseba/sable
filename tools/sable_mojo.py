@@ -41,6 +41,21 @@ def ping() -> str | None:
     return str(kern.ping())
 
 
+def ncc_selftest() -> dict:
+    kern = load()
+    if kern is None:
+        return {"ok": False, "error": _error or "mojo unavailable"}
+    score, x, y = list(kern.ncc_selftest())
+    return {"ok": True, "score": float(score), "x": int(x), "y": int(y)}
+
+
+def arena_tick() -> dict:
+    kern = load()
+    if kern is None:
+        return {"ok": False, "error": _error or "mojo unavailable"}
+    return {"ok": True, "hits": int(kern.arena_tick())}
+
+
 def centroid(width: int, height: int, blob_x: int, blob_y: int, radius: int) -> dict:
     kern = load()
     if kern is None:
@@ -84,6 +99,8 @@ def main() -> int:
         hitscan([0, 1.64, 10], [0, -0.038, -1], [0, 0.89, -10], 0.52),
     )
     print("one_euro", one_euro(100.0, 0.016, 100.0, -1.0))
+    print("ncc", ncc_selftest())
+    print("arena_tick", arena_tick())
     return 0
 
 

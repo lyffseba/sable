@@ -7,7 +7,7 @@ Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no thir
 
 Mouse on the pad = move. **Lift** it, point at the monitor, click. Webcam tracks the muzzle (Gemini 3.8 Flash lock + One Euro). Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
 
-Stack: WebGL (Three.js) client, Mojo 1.0 SIMD kernels via Pixi, C++17 aim tests.
+Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitscan via Pixi; **Three.js** WebGL client; C++17 reference tests. Fire stays HID-local. Native kernels run at hardware SIMD width (`std.sys.info.simd_width_of`).
 
 ## Requirements
 
