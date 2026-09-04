@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail if GPL strings appear in client/server trees.
 
-Godot engine credits may mention historical licenses only in
+Third-party credits may mention historical licenses only in
 docs/THIRD_PARTY_NOTICES.md, which is not scanned. Never skip this tool.
 """
 
@@ -11,8 +11,8 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-TREES = (ROOT / "godot", ROOT / "server", ROOT / "native")
-SKIP_PARTS = {".git", "build", "bin", ".godot"}
+TREES = (ROOT / "proto", ROOT / "server", ROOT / "native")
+SKIP_PARTS = {".git", "build", "bin", "node_modules"}
 NEEDLES = (
     "GNU General Public License",
     "GPL-2.0",
@@ -23,10 +23,10 @@ NEEDLES = (
 )
 
 TEXT_SUFFIX = {
-    ".gd",
-    ".tscn",
-    ".godot",
-    ".cfg",
+    ".js",
+    ".html",
+    ".css",
+    ".json",
     ".hpp",
     ".h",
     ".hh",
@@ -40,7 +40,6 @@ TEXT_SUFFIX = {
     ".yaml",
     ".sh",
     ".cmake",
-    ".gdextension",
     ".svg",
 }
 
