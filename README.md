@@ -23,9 +23,9 @@ python3 tools/serve_proto.py
 ```
 Open **http://127.0.0.1:8080** in your browser.
 
-- **RANGE (3D)**: 60-second arcade wave with floating 3D crystalline targets, shattered fragments, and first-person gun ADS lift animation.
-- **BAY 1v1 (3D)**: Full 3D arena duel vs CANCHO bot. WASD moves on pad; lifting mouse locks walk to aim and shoot; use window/angle cover to avoid open-middle sniper fire.
-- **AI MUZZLE LOCK**: Click the button on the lock screen for instant zero-shot Gemini 3.8 Flash muzzle detection.
+- **OFFLINE**: Straight into the Range — one iconic shooting ground.
+- **ONLINE**: Waiting-arena lobby. Enter the **same** Range, or **Host 5v5** (ten slots, then the same Range).
+- **AI MUZZLE LOCK**: Gemini 3.8 Flash on the lock screen.
 
 ### Keys
 
