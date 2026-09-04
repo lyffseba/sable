@@ -17,3 +17,8 @@ python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
 python3 tools/test_aim_verb.py
 ./tools/run_cv_tests.sh
+
+if command -v pixi >/dev/null 2>&1; then
+  echo "Running Mojo 1.0 test suite via Pixi..."
+  pixi run test-aim
+fi

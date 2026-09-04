@@ -1,10 +1,10 @@
 # SABLE
 
-Private. Original IP. Do **not** add third-party game assets, names, maps, audio, or code. Codename only — do not write the eventual public title into this repository.
+**Apache-2.0 open source.** Original IP. Do **not** add third-party game assets, names, maps, audio, or code. Codename only.
 
 Physical-aim arena FPS. Lightweight wireless mouse on the pad = move / menus. The player **lifts** the mouse and points it at the monitor. A clip-on webcam at the **top-center** of the monitor tracks the mouse muzzle via **Gemini 3.8 Flash** zero-shot spatial vision + client-side One Euro pointing filter. Click (HID) fires instantly. Unique verb = physical ADS.
 
-Zero external engine installs. 100% web-native 3D WebGL (Three.js), sub-millisecond HID fire, authentic Spanish operator voicelines, and real-time physical aiming.
+Zero external engine installs. Web-native 3D WebGL (Three.js) + Mojo 1.0 SIMD kernels (Pixi). Sub-millisecond HID fire.
 
 ## Requirements
 
@@ -51,7 +51,7 @@ cmake --build native/cv_input/build
 
 ## Other computer
 
-Latest zip: <https://github.com/lyffseba/sable/releases/latest> (private — log in as lyffseba).
+Latest zip: <https://github.com/lyffseba/sable/releases/latest>.
 
 ```bash
 gh release download --repo lyffseba/sable -p 'sable-proto-*.zip'
@@ -63,6 +63,16 @@ Open http://127.0.0.1:8080 — allow camera, tilt down at hands, lift.
 
 Or clone `main` and `cd proto` with the same server command. Tag `v*.*.*` publishes a new zip.
 
-## Legal red line
+## Legal
 
-Proprietary game content. No GPL in client/server. Godot MIT notice: `docs/THIRD_PARTY_NOTICES.md`. Fan licenses are not commercial. Details: `docs/legal.md`.
+Apache-2.0. No GPL/AGPL/SSPL in client/server. Notices: `docs/THIRD_PARTY_NOTICES.md`. Details: `docs/legal.md`.
+
+## Mojo 1.0 (Pixi)
+
+```bash
+pixi install
+pixi run serve      # http://127.0.0.1:8080
+pixi run test-aim   # Mojo unit suite
+pixi run bench      # SIMD microbenchmarks
+pixi run ci         # full Python + C++ + Mojo CI
+```
