@@ -8,49 +8,45 @@ Neon tape is a temporary blob fallback, not the product.
 
 ## Requirements
 
-- **Godot 4.7.2** (Forward+, Jolt). Open the `godot/` folder as the project.
-- C++17 toolchain to build `native/cv_input` tests and, later, the GDExtension.
-- A clip-on webcam is optional. The Range is always testable with desktop aim.
+- Modern web browser (Chrome, Edge, Safari, Firefox).
+- Python 3 to serve the client locally (`python3 tools/serve_proto.py`).
+- C++17 toolchain for `native/cv_input` standalone tests (`./tools/run_cv_tests.sh`).
+- A clip-on webcam is optional. The game is always testable with desktop aim (**T** key).
 
-## Open in Godot 4.7
+## Run SABLE
 
-1. Install Godot **4.7.2**.
-2. Import `godot/project.godot`.
-3. Run the main scene (`scenes/boot/Boot.tscn`).
-4. **Enter Range** — or **Enable camera** (binds `cv_input` if the extension loaded; otherwise stays on DESKTOP aim).
+```bash
+python3 tools/serve_proto.py
+```
+Open **http://127.0.0.1:8080** in your browser.
 
-### Range keys
+- **RANGE**: 60-second arcade wave. Lift the mouse, point, and click.
+- **BAY 1v1**: 3D duel arena vs CANCHO capsule. WASD moves on pad, lift mouse locks walk to shoot, use cover to avoid open-middle exposure.
+
+### Keys
 
 | Key | Action |
 |-----|--------|
-| Mouse click | Fire at the **latest** `AimSample.uv` |
-| **T** | Desktop aim (OS cursor) |
-| **Space** | Force gun (lifted) |
+| Mouse click | Fire at the **latest** `AimSample.uv` (HID click, never waits on camera) |
+| **WASD** | Move on the pad (Bay 1v1 mode only, locked during lift) |
+| **L** | Cycle CANCHO outfit style (`default`, `ranked`, `night`) |
+| **T** | Desktop aim toggle (OS cursor fallback) |
+| **Space** | Force gun (simulates physical lift) |
 
 Reticle may lag 50–80 ms on a bad camera. The shot does not: fire is HID against the mailbox, never gated on the next frame.
 
-## Headless dedicated server
+## Native aim tests
 
 ```bash
-# Editor / official binary, from repo root
-export GODOT_BIN="${GODOT_BIN:-godot}"
-"$GODOT_BIN" --headless --path godot
-
-# Or:
-./tools/headless_tick.sh
+./tools/run_cv_tests.sh
 ```
 
-Export preset: **Linux Dedicated Server** in `godot/export_presets.cfg`. See `server/README.md`.
-
-## Native aim plugin
-
+Validates the One Euro filter, centroid extraction, coasting, and HID peek contract. Also builds via CMake if available:
 ```bash
 cmake -S native/cv_input -B native/cv_input/build
 cmake --build native/cv_input/build
 ./native/cv_input/build/sable_cv_tests
 ```
-
-Linux V4L2 first (YUY2 preferred, MJPEG fallback). Windows Media Foundation later. See `native/cv_input/README.md` and `docs/aim_pipeline.md`.
 
 ## Other computer
 

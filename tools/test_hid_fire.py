@@ -53,32 +53,37 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
-def test_gdscript_does_not_wait() -> None:
-    hid = _read("godot/src/input/hid_fire.gd")
-    bus = _read("godot/src/input/aim_bus.gd")
+def _js_fn(src: str, name: str) -> str:
+    m = re.search(rf"function {name}\([^)]*\) \{{[\s\S]*?\n\}}", src)
+    if not m:
+        raise AssertionError(f"missing function {name}")
+    return m.group(0)
+
+
+def test_client_does_not_wait() -> None:
+    src = _read("proto/game.js")
+    fire_src = _js_fn(src, "fire")
     banned = (
         r"await\s+",
         r"wait_for",
         r"poll_capture",
-        r"process_missing",
-        r"get_next_frame",
+        r"requestVideoFrameCallback",
     )
-    for src, label in ((hid, "hid_fire.gd"), (bus, "aim_bus.gd")):
-        for pat in banned:
-            if re.search(pat, src):
-                raise AssertionError(f"{label} gates fire on a camera wait ({pat})")
-    if "func fire(" not in bus:
-        raise AssertionError("aim_bus.gd must define fire()")
-    if "return _latest" not in bus:
-        raise AssertionError("aim_bus.gd fire/peek must return _latest")
-    if "shot_from_bus" not in hid:
-        raise AssertionError("hid_fire.gd must peek the bus")
+    for pat in banned:
+        if re.search(pat, fire_src):
+            raise AssertionError(f"fire() gates fire on a camera wait ({pat})")
+    if "class AimBus" not in src:
+        raise AssertionError("proto/game.js must define class AimBus")
+    if "return this._latest" not in src:
+        raise AssertionError("AimBus fire/peek must return this._latest")
+    if "aimBus.fire" not in fire_src and "aimBus.peek" not in fire_src:
+        raise AssertionError("fire must peek the AimBus mailbox")
 
 
 def main() -> int:
     try:
         test_python_mailbox()
-        test_gdscript_does_not_wait()
+        test_client_does_not_wait()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

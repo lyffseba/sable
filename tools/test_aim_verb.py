@@ -129,15 +129,12 @@ def test_pointing_filter() -> None:
 
 
 def test_range_gate() -> None:
-    text = (ROOT / "godot/src/app/range_controller.gd").read_text(encoding="utf-8")
-    leave = _fn(text, "_can_leave_pad")
-    if "lifted" not in leave:
-        raise AssertionError("Range PAD must gate on AimSample.lifted")
-    fat = _fn(text, "_on_fat_hit")
-    if "_can_leave_pad()" not in fat:
-        raise AssertionError("fat hit must reuse the lift gate")
-    if re.search(r"if _elapsed >= PAD_END:", fat):
-        raise AssertionError("fat hit must not enter GUN on the clock alone")
+    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    fire_body = _js_fn(src, "fire")
+    if "lifted" not in fire_body:
+        raise AssertionError("Range fire must gate on AimSample.lifted")
+    if "!S.desktop && !S.lifted" not in fire_body:
+        raise AssertionError("Range fire must gate on lifted unless desktop")
 
 
 def main() -> int:

@@ -17,6 +17,105 @@ const screens = {
   range: $("screen-range"),
   results: $("screen-results"),
 };
+
+class AimSample {
+  constructor(uv = { x: 0.5, y: 0.5 }, valid = false, lifted = false, confidence = 0.0, t_hw = 0) {
+    this.uv = uv;
+    this.valid = valid;
+    this.lifted = lifted;
+    this.confidence = confidence;
+    this.t_hw = t_hw;
+  }
+}
+
+class AimBus {
+  constructor() {
+    this._latest = new AimSample();
+  }
+  publish(sample) {
+    this._latest = sample;
+  }
+  peek() {
+    return this._latest;
+  }
+  fire() {
+    return this._latest;
+  }
+}
+const aimBus = new AimBus();
+
+const OP_CANCHO = "cancho";
+const STYLE_DEFAULT = "default";
+const STYLE_RANKED = "ranked";
+const STYLE_NIGHT = "night";
+
+const Locker = {
+  operator: {
+    id: OP_CANCHO,
+    displayName: "CANCHO",
+    styles: [STYLE_DEFAULT, STYLE_RANKED, STYLE_NIGHT],
+    vo: {
+      lift: "Al aire.",
+      hit: "Claro.",
+      drop: "Al suelo.",
+      win: "Se escribió."
+    }
+  },
+  equippedStyle: STYLE_DEFAULT,
+  colors: {
+    mint: "#59F2C7",
+    bone: "#E6E0D1",
+    rust: "#8C472E"
+  },
+  cycleStyle() {
+    const s = this.operator.styles;
+    const idx = (s.indexOf(this.equippedStyle) + 1) % s.length;
+    this.equippedStyle = s[idx];
+    return this.equippedStyle;
+  }
+};
+
+const Bay = {
+  active: false,
+  you: 0,
+  them: 0,
+  toWin: 5,
+  round: 1,
+  speed: 5.0,
+  pos: { x: 0, y: 1.64, z: 10 },
+  foe: { x: 0, y: 0.89, z: -10, radius: 0.52, alive: true },
+  frozen: false,
+  freezeT: 0,
+  freezePadS: 0.45,
+  expose: 0,
+  exposeMax: 0.14,
+  voText: "",
+  voT: 0,
+  missT: 0,
+  over: false,
+  wasLifted: false,
+  keys: { w: false, a: false, s: false, d: false },
+  resetRound() {
+    this.pos.x = 0; this.pos.y = 1.64; this.pos.z = 10;
+    this.foe.x = (Math.random() - 0.5) * 4.0;
+    this.foe.y = 0.89;
+    this.foe.z = -10 - Math.random() * 2.0;
+    this.foe.alive = true;
+    this.expose = 0;
+    this.frozen = false;
+  },
+  resetMatch() {
+    this.you = 0;
+    this.them = 0;
+    this.round = 1;
+    this.over = false;
+    this.resetRound();
+  },
+  vo(line) {
+    this.voText = line;
+    this.voT = 0.85;
+  }
+};
 const PROC_W = 480;
 const CROP_TOP = 0.30;
 const HID_IDLE_MS = 40;
@@ -699,6 +798,9 @@ function updateMode(now) {
   if (want) S.liftMs = Math.min(160, S.liftMs + dtm);
   else S.liftMs = Math.max(0, S.liftMs - dtm);
   S.lifted = S.forceGun || S.liftMs >= LIFT_ON_MS;
+  if (aimBus.peek()) {
+    aimBus.peek().lifted = S.lifted;
+  }
   if (S.forceGun) {
     S.mode = "GUN"; S.seeking = !locked; return;
   }
@@ -713,11 +815,20 @@ function updateMode(now) {
 function publishAim(x, y) {
   if (!isFinite(x) || !isFinite(y)) return;
   S.aim.x = x; S.aim.y = y;
+  const nowUs = Math.round(performance.now() * 1000);
+  const sample = new AimSample(
+    { x: clamp(x / W, 0, 1), y: clamp(y / H, 0, 1) },
+    !S.seeking && (S.locked || S.desktop),
+    S.lifted,
+    clamp(S.quality / 100, 0, 1),
+    nowUs
+  );
+  aimBus.publish(sample);
 }
 function updateAim() {
   if (S.desktop) return;
   if (!S.smooth) return;
-  if (phase !== "range" && phase !== "calibrate") return;
+  if (phase !== "range" && phase !== "calibrate" && phase !== "bay") return;
   if (S.H || S.camPts.every(Boolean)) {
     const p = camToScreen(S.smooth.x, S.smooth.y);
     if (!p.lost) publishAim(p.x, p.y);
@@ -754,12 +865,22 @@ async function enableCamera() {
   }
 }
 
+let targetGameMode = "range";
+
+function enterGame() {
+  if (targetGameMode === "bay") {
+    setPhase("bay");
+  } else {
+    setPhase("range");
+  }
+}
+
 function goDesktopRange() {
   if (S.lockAdvance) return;
   S.lockAdvance = true;
   S.desktop = true;
   S.mode = "DESKTOP";
-  setPhase("range");
+  enterGame();
 }
 
 function goCalib() {
@@ -780,9 +901,12 @@ function resetLockState() {
   resetTrackFilters();
 }
 
-async function play() {
+async function play(target = "range") {
+  targetGameMode = target;
   unlockAudio();
   $("btn-play").disabled = true;
+  const bayBtn = $("btn-bay");
+  if (bayBtn) bayBtn.disabled = true;
   $("btn-play").textContent = "...";
   resetLockState();
   setPhase("lock");
@@ -804,6 +928,10 @@ function setPhase(next) {
     $("btn-redo").hidden = !S.camPts.some(Boolean) || S.calibIndex >= 4;
   }
   if (next === "range") startRange();
+  if (next === "bay") {
+    Bay.active = true;
+    Bay.resetMatch();
+  }
   if (next === "results") showResults();
 }
 
@@ -961,16 +1089,21 @@ function updateRange(dt, now) {
 }
 
 function fire() {
-  if (phase !== "range" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
+  if (phase !== "range" && phase !== "bay" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
   if (!S.desktop && S.smooth) {
     const now = performance.now();
     if (now - (S.trackT || 0) > 0) coastTrack(now);
     updateAim();
   }
   // Peek the mailbox. Lift is the trigger. Camera already wrote S.aim.
+  const shot = aimBus.fire();
   if (!S.desktop && !S.lifted) return;
   bang();
   S.recoil = 2.2; S.flash = 0.04; S.punch = 1.6;
+  if (phase === "bay") {
+    fireBay(shot);
+    return;
+  }
   if (phase === "calibrate") {
     S.shots++;
     const tx = W / 2, ty = H / 2;
@@ -978,7 +1111,7 @@ function fire() {
       burst(tx, ty, 185, 18); hitBlip(1); S.hitstop = 1;
       if (!S.enteringRange) {
         S.enteringRange = true;
-        setTimeout(() => { S.enteringRange = false; setPhase("range"); }, 420);
+        setTimeout(() => { S.enteringRange = false; enterGame(); }, 420);
       }
     } else missTick();
     return;
@@ -999,6 +1132,53 @@ function fire() {
     hitBlip(S.combo); S.hitstop = 1;
     S.orbs = S.orbs.filter((o) => o !== hit);
   } else { S.combo = 0; missTick(); }
+}
+
+function fireBay(shot) {
+  if (Bay.frozen || Bay.over) {
+    missTick();
+    return;
+  }
+  const p = Bay.pos;
+  const fov = H * 0.9;
+  const screenX = S.aim.x - W * 0.5;
+  const screenY = -(S.aim.y - H * 0.5);
+  let rx = screenX / fov;
+  let ry = screenY / fov;
+  let rz = -1.0;
+  const rlen = Math.hypot(rx, ry, rz);
+  rx /= rlen; ry /= rlen; rz /= rlen;
+
+  const ocX = p.x - Bay.foe.x;
+  const ocY = p.y - Bay.foe.y;
+  const ocZ = p.z - Bay.foe.z;
+  const radius = Bay.foe.radius * 1.35;
+  const b = 2.0 * (ocX * rx + ocY * ry + ocZ * rz);
+  const c = (ocX * ocX + ocY * ocY + ocZ * ocZ) - radius * radius;
+  const disc = b * b - 4.0 * c;
+
+  if (disc >= 0 && Bay.foe.alive) {
+    const t = (-b - Math.sqrt(disc)) * 0.5;
+    if (t > 0) {
+      Bay.you++;
+      Bay.foe.alive = false;
+      Bay.vo(Locker.operator.vo.hit);
+      hitBlip(Bay.you);
+      S.hitstop = 1;
+      burst(S.aim.x, S.aim.y, 160, 24);
+      if (Bay.you >= Bay.toWin) {
+        Bay.over = true;
+        Bay.frozen = true;
+        Bay.vo(Locker.operator.vo.win);
+      } else {
+        Bay.frozen = true;
+        Bay.freezeT = 0;
+      }
+      return;
+    }
+  }
+  missTick();
+  Bay.missT = 0.06;
 }
 
 function captureCorner() {
@@ -1228,6 +1408,242 @@ function drawCalib(now) {
     ctx.restore();
   }
 }
+function tickBay(dt) {
+  if (phase !== "bay") return;
+  const sample = aimBus.peek();
+
+  // VO triggers on lift state transition
+  if (!Bay.over) {
+    if (sample.lifted && !Bay.wasLifted) {
+      Bay.vo(Locker.operator.vo.lift);
+    } else if (!sample.lifted && Bay.wasLifted) {
+      Bay.vo(Locker.operator.vo.drop);
+    }
+  }
+  Bay.wasLifted = sample.lifted;
+
+  // Particle update in Bay
+  for (const p of S.parts) {
+    p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.92; p.vy *= 0.92; p.vy += 40 * dt;
+  }
+  S.parts = S.parts.filter((p) => p.age < p.life);
+
+  // Freeze ticking
+  if (Bay.frozen && !Bay.over) {
+    Bay.freezeT += dt;
+    if (Bay.freezeT >= Bay.freezePadS && !sample.lifted) {
+      Bay.round++;
+      Bay.resetRound();
+    }
+    return;
+  }
+
+  if (Bay.over) return;
+
+  // WASD only on the mat (PAD). Lift locks walk: physical ADS!
+  if (!sample.lifted) {
+    let mx = 0, mz = 0;
+    if (Bay.keys.w) mz -= 1;
+    if (Bay.keys.s) mz += 1;
+    if (Bay.keys.a) mx -= 1;
+    if (Bay.keys.d) mx += 1;
+    if (mx !== 0 && mz !== 0) { mx *= 0.7071; mz *= 0.7071; }
+    Bay.pos.x = clamp(Bay.pos.x + mx * Bay.speed * dt, -7.0, 7.0);
+    Bay.pos.z = clamp(Bay.pos.z + mz * Bay.speed * dt, 1.0, 12.0);
+  }
+
+  // Check Open Middle exposure
+  const inWindow = Bay.pos.x < -4.8;
+  const inAngle = Bay.pos.x > 4.6;
+  const inOpen = !inWindow && !inAngle && Bay.pos.z < 8.0;
+  if (inOpen && !sample.lifted) {
+    Bay.expose += dt;
+    if (Bay.expose >= Bay.exposeMax) {
+      Bay.them++;
+      Bay.expose = 0;
+      missTick();
+      if (Bay.them >= Bay.toWin) {
+        Bay.over = true;
+        Bay.frozen = true;
+        Bay.vo(Locker.operator.vo.win);
+      } else {
+        Bay.frozen = true;
+        Bay.freezeT = 0;
+      }
+    }
+  } else {
+    Bay.expose = Math.max(0, Bay.expose - dt * 2.0);
+  }
+
+  if (Bay.voT > 0) Bay.voT = Math.max(0, Bay.voT - dt);
+  if (Bay.missT > 0) Bay.missT = Math.max(0, Bay.missT - dt);
+}
+
+function drawBay(now) {
+  ctx.fillStyle = "#030406";
+  ctx.fillRect(0, 0, W, H);
+
+  const p = Bay.pos;
+  const fov = H * 0.9;
+  function proj(x, y, z) {
+    const dx = x - p.x;
+    const dy = y - p.y;
+    const dz = z - p.z;
+    if (dz >= -0.2) return null;
+    const invZ = 1.0 / -dz;
+    return {
+      x: W * 0.5 + dx * invZ * fov,
+      y: H * 0.5 - dy * invZ * fov,
+      scale: invZ * fov
+    };
+  }
+
+  // Perspective Floor Grid
+  ctx.save();
+  ctx.strokeStyle = "rgba(0, 240, 255, 0.08)";
+  ctx.lineWidth = 1;
+  for (let gx = -8; gx <= 8; gx += 2) {
+    const p1 = proj(gx, 0, -18);
+    const p2 = proj(gx, 0, 14);
+    if (p1 && p2) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+  }
+  for (let gz = -18; gz <= 14; gz += 2) {
+    const p1 = proj(-8, 0, gz);
+    const p2 = proj(8, 0, gz);
+    if (p1 && p2) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+  }
+
+  // Cover Pillars
+  function drawBox(bx, bz, bw, bh, color) {
+    const b1 = proj(bx - bw / 2, 0, bz);
+    const b2 = proj(bx + bw / 2, 0, bz);
+    const t1 = proj(bx - bw / 2, bh, bz);
+    const t2 = proj(bx + bw / 2, bh, bz);
+    if (b1 && b2 && t1 && t2) {
+      ctx.fillStyle = color;
+      ctx.strokeStyle = Locker.colors.mint;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y);
+      ctx.lineTo(t2.x, t2.y); ctx.lineTo(t1.x, t1.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+  drawBox(-5.5, 4.0, 2.2, 2.8, "rgba(8, 22, 32, 0.85)");
+  drawBox(5.5, 4.0, 2.2, 2.8, "rgba(8, 22, 32, 0.85)");
+
+  // Opponent Capsule
+  if (Bay.foe.alive) {
+    const fp = proj(Bay.foe.x, Bay.foe.y, Bay.foe.z);
+    if (fp) {
+      const radius = Bay.foe.radius * fp.scale;
+      const height = radius * 2.8;
+      ctx.fillStyle = Locker.equippedStyle === STYLE_NIGHT ? "#0c1015" : "#141c24";
+      ctx.strokeStyle = Locker.colors.mint;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(fp.x, fp.y, radius, height * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Mint Visor / Stripe
+      ctx.fillStyle = Locker.colors.mint;
+      ctx.fillRect(fp.x - radius * 0.6, fp.y - height * 0.25, radius * 1.2, height * 0.1);
+
+      // Rust Arm Accent
+      ctx.fillStyle = Locker.colors.rust;
+      ctx.fillRect(fp.x - radius * 0.8, fp.y + height * 0.1, radius * 0.35, height * 0.15);
+      ctx.fillRect(fp.x + radius * 0.45, fp.y + height * 0.1, radius * 0.35, height * 0.15);
+    }
+  }
+
+  // Draw Hit Particles in Bay
+  for (const p of S.parts) {
+    const a = 1 - p.age / p.life;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = "hsla(" + p.hue + ",100%,70%," + a + ")";
+    ctx.fill();
+  }
+  ctx.restore();
+
+  drawBayHUD(now);
+}
+
+function drawBayHUD(now) {
+  ctx.save();
+  const op = Locker.operator;
+  ctx.font = "700 22px system-ui, sans-serif";
+  ctx.fillStyle = Locker.colors.bone;
+  ctx.textAlign = "left";
+  ctx.fillText(`${op.displayName}  ${Bay.you}   —   ${Bay.them}   ·  ${Locker.equippedStyle.toUpperCase()}`, HUD_PAD, HUD_PAD + 20);
+
+  const inWindow = Bay.pos.x < -4.8;
+  const inAngle = Bay.pos.x > 4.6;
+  const inOpen = !inWindow && !inAngle && Bay.pos.z < 8.0;
+  let coverText = "PAD";
+  let coverColor = Locker.colors.mint;
+  if (inOpen && !Bay.frozen) {
+    coverText = "DANGER: OPEN";
+    coverColor = "#ff2bd6";
+  } else if (inWindow) {
+    coverText = "COVER: WINDOW";
+    coverColor = Locker.colors.mint;
+  } else if (inAngle) {
+    coverText = "COVER: ANGLE";
+    coverColor = Locker.colors.mint;
+  } else if (S.lifted) {
+    coverText = "LIFT";
+    coverColor = Locker.colors.mint;
+  }
+
+  ctx.font = "700 13px system-ui, sans-serif";
+  ctx.fillStyle = coverColor;
+  ctx.fillText(coverText, HUD_PAD, HUD_PAD + 44);
+
+  if (Bay.expose > 0 && !Bay.frozen) {
+    ctx.fillStyle = "rgba(255, 43, 214, 0.2)";
+    ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120, 6);
+    ctx.fillStyle = "#ff2bd6";
+    const frac = clamp(Bay.expose / Bay.exposeMax, 0, 1);
+    ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120 * frac, 6);
+  }
+
+  drawModeChip();
+
+  if (Bay.voT > 0 && Bay.voText) {
+    ctx.font = "italic 700 24px system-ui, sans-serif";
+    ctx.fillStyle = Locker.colors.bone;
+    ctx.textAlign = "center";
+    ctx.fillText(`"${Bay.voText}"`, W * 0.5, H - 70);
+  }
+
+  ctx.font = "500 13px system-ui, sans-serif";
+  ctx.fillStyle = "rgba(232, 246, 255, 0.55)";
+  ctx.textAlign = "center";
+  if (Bay.over) {
+    ctx.fillText(`${Bay.you >= Bay.toWin ? "VICTORY" : "DEFEATED"} · ${op.vo.win} · First to 5`, W * 0.5, H - 32);
+  } else if (Bay.frozen) {
+    ctx.fillText("ROUND FROZEN · DROP TO PAD (LIFT OFF) TO CONTINUE", W * 0.5, H - 32);
+  } else {
+    ctx.fillText(`WASD on pad  ·  LIFT to lock walk & point  ·  CLICK fire  ·  L cycle look (${Locker.equippedStyle})  ·  First to 5`, W * 0.5, H - 32);
+  }
+  ctx.restore();
+}
+
 function draw() {
   const now = performance.now();
   ctx.save();
@@ -1235,34 +1651,39 @@ function draw() {
     const a = Math.random() * Math.PI * 2;
     ctx.translate(Math.cos(a) * S.punch, Math.sin(a) * S.punch);
   }
-  bg();
-  drawGrid();
-  if (phase === "lock") {
-    drawModeChip();
-  } else if (phase === "calibrate") {
-    drawCalib(now);
+  if (phase === "bay") {
+    drawBay(now);
     drawCrosshair(S.aim.x, S.aim.y);
-    drawModeChip();
-  } else if (phase === "range") {
-    for (const o of S.orbs) drawOrb(o, now);
-    for (const p of S.parts) {
-      const a = 1 - p.age / p.life;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = "hsla(" + p.hue + ",100%,70%," + a + ")";
-      ctx.fill();
+  } else {
+    bg();
+    drawGrid();
+    if (phase === "lock") {
+      drawModeChip();
+    } else if (phase === "calibrate") {
+      drawCalib(now);
+      drawCrosshair(S.aim.x, S.aim.y);
+      drawModeChip();
+    } else if (phase === "range") {
+      for (const o of S.orbs) drawOrb(o, now);
+      for (const p of S.parts) {
+        const a = 1 - p.age / p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "hsla(" + p.hue + ",100%,70%," + a + ")";
+        ctx.fill();
+      }
+      for (const p of S.pops) {
+        const a = 1 - p.age / p.life;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = "hsla(" + p.hue + ",100%,70%,1)";
+        ctx.font = "700 16px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(p.text, p.x, p.y);
+        ctx.globalAlpha = 1;
+      }
+      drawCrosshair(S.aim.x, S.aim.y);
+      drawHUD(now);
     }
-    for (const p of S.pops) {
-      const a = 1 - p.age / p.life;
-      ctx.globalAlpha = a;
-      ctx.fillStyle = "hsla(" + p.hue + ",100%,70%,1)";
-      ctx.font = "700 16px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(p.text, p.x, p.y);
-      ctx.globalAlpha = 1;
-    }
-    drawCrosshair(S.aim.x, S.aim.y);
-    drawHUD(now);
   }
   ctx.restore();
 }
@@ -1285,6 +1706,7 @@ function frame(t) {
   S.noLockFlash = Math.max(0, S.noLockFlash - dt);
   S.calibFlash = Math.max(0, S.calibFlash - dt);
   if (phase === "range") updateRange(dt, t);
+  if (phase === "bay") tickBay(dt);
   syncCursor();
   draw();
 }
@@ -1308,7 +1730,7 @@ canvas.addEventListener("pointerdown", (e) => {
     else fire();
     return;
   }
-  if (phase === "range") { e.preventDefault(); fire(); }
+  if (phase === "range" || phase === "bay") { e.preventDefault(); fire(); }
 });
 
 window.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -1325,15 +1747,31 @@ window.addEventListener("keydown", (e) => {
     S.desktop = !S.desktop;
     if (S.desktop) S.mode = "DESKTOP";
   }
+  if (e.code === "KeyW") Bay.keys.w = true;
+  if (e.code === "KeyA") Bay.keys.a = true;
+  if (e.code === "KeyS") Bay.keys.s = true;
+  if (e.code === "KeyD") Bay.keys.d = true;
+  if (e.code === "KeyL") {
+    const nextStyle = Locker.cycleStyle();
+    Bay.vo("STYLE: " + nextStyle.toUpperCase());
+  }
 });
 
 window.addEventListener("keyup", (e) => {
   if (e.code === "Space") S.forceGun = false;
+  if (e.code === "KeyW") Bay.keys.w = false;
+  if (e.code === "KeyA") Bay.keys.a = false;
+  if (e.code === "KeyS") Bay.keys.s = false;
+  if (e.code === "KeyD") Bay.keys.d = false;
 });
 
 window.addEventListener("resize", fit);
 
-$("btn-play").addEventListener("click", () => { play(); });
+$("btn-play").addEventListener("click", () => { play("range"); });
+const btnBay = $("btn-bay");
+if (btnBay) {
+  btnBay.addEventListener("click", () => { play("bay"); });
+}
 $("btn-redo").addEventListener("click", () => {
   let last = -1;
   for (let i = 0; i < 4; i++) if (S.camPts[i]) last = i;
@@ -1344,7 +1782,7 @@ $("btn-redo").addEventListener("click", () => {
     updateCalibMsg();
   }
 });
-$("btn-again").addEventListener("click", () => setPhase("range"));
+$("btn-again").addEventListener("click", () => enterGame());
 $("btn-recal").addEventListener("click", () => {
   S.camPts = [null, null, null, null];
   S.H = null;
@@ -1354,7 +1792,7 @@ $("btn-recal").addEventListener("click", () => {
 });
 
 function syncCursor() {
-  const hide = phase === "range" || phase === "calibrate" || phase === "lock";
+  const hide = phase === "range" || phase === "bay" || phase === "calibrate" || phase === "lock";
   canvas.classList.toggle("nocursor", hide);
   const v = hide ? "none" : "";
   document.body.style.cursor = v;
