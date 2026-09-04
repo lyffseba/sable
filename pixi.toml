@@ -12,6 +12,7 @@ bench = "mojo -I native/mojo native/mojo/bench.mojo"
 test-aim = "mojo -I native/mojo native/mojo/test_aim.mojo"
 test-py = "python tools/test_mojo_python.py"
 kern = "python tools/sable_mojo.py"
+tick = "python server/tick.py"
 
 [dependencies]
 mojo = ">=1.0.0b2,<2"
