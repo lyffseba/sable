@@ -2,9 +2,9 @@
 
 Private. Original IP. Do **not** add third-party game assets, names, maps, audio, or code. Codename only — do not write the eventual public title into this repository.
 
-Physical-aim arena FPS. Lightweight wireless mouse on the pad = move / menus. The player **lifts** the mouse and points it at the monitor. A clip-on webcam at the **top-center** of the monitor tracks a **2–3-dot** (or 40 mm ArUco) sleeve on the mouse. Click (HID) fires. Unique verb = physical ADS.
+Physical-aim arena FPS. Lightweight wireless mouse on the pad = move / menus. The player **lifts** the mouse and points it at the monitor. A clip-on webcam at the **top-center** of the monitor tracks the mouse muzzle via **Gemini 3.8 Flash** zero-shot spatial vision + client-side One Euro pointing filter. Click (HID) fires instantly. Unique verb = physical ADS.
 
-Neon tape is a temporary blob fallback, not the product.
+Zero external engine installs. 100% web-native 3D WebGL (Three.js), sub-millisecond HID fire, authentic Spanish operator voicelines, and real-time physical aiming.
 
 ## Requirements
 
@@ -20,8 +20,9 @@ python3 tools/serve_proto.py
 ```
 Open **http://127.0.0.1:8080** in your browser.
 
-- **RANGE**: 60-second arcade wave. Lift the mouse, point, and click.
-- **BAY 1v1**: 3D duel arena vs CANCHO capsule. WASD moves on pad, lift mouse locks walk to shoot, use cover to avoid open-middle exposure.
+- **RANGE (3D)**: 60-second arcade wave with floating 3D crystalline targets, shattered fragments, and first-person gun ADS lift animation.
+- **BAY 1v1 (3D)**: Full 3D arena duel vs CANCHO bot. WASD moves on pad; lifting mouse locks walk to aim and shoot; use window/angle cover to avoid open-middle sniper fire.
+- **AI MUZZLE LOCK**: Click the button on the lock screen for instant zero-shot Gemini 3.8 Flash muzzle detection.
 
 ### Keys
 
