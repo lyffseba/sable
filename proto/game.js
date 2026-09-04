@@ -15,6 +15,7 @@ const pctx = proc.getContext("2d", { willReadFrequently: true, alpha: false });
 
 const screens = {
   boot: $("screen-boot"),
+  lobby: $("screen-lobby"),
   lock: $("screen-lock"),
   calibrate: $("screen-calib"),
   range: $("screen-range"),
@@ -125,6 +126,9 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false },
+  online: false,
+  playlist: "range",
+  room: "",
 };
 
 // --- Bay 1v1 Arena State ---
@@ -1203,8 +1207,7 @@ function fireBay3D(raycaster, muzzleWorld) {
 }
 
 function enterGame() {
-  if (targetGameMode === "bay") setPhase("bay");
-  else setPhase("range");
+  setPhase("range");
 }
 
 function goDesktopRange() {
@@ -1235,13 +1238,70 @@ function resetLockState() {
   resetTrackFilters();
 }
 
+function roomCode() {
+  const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 4; i++) s += a[(Math.random() * a.length) | 0];
+  return s;
+}
+
+function renderLobbySlots() {
+  const el = $("lobby-slots");
+  if (!el) return;
+  const rows = [];
+  rows.push("<b>ALPHA</b><b>BRAVO</b>");
+  for (let i = 0; i < 5; i++) {
+    const a = i === 0 ? "<span class=you>1  YOU</span>" : (i + 1) + "  —";
+    const b = (i + 6) + "  —";
+    rows.push("<span>" + a + "</span><span>" + b + "</span>");
+  }
+  el.innerHTML = rows.join("");
+}
+
+function openLobby() {
+  S.online = true;
+  S.playlist = "range";
+  S.room = roomCode();
+  const room = $("lobby-room");
+  if (room) room.textContent = "ROOM  " + S.room;
+  const slots = $("lobby-slots");
+  if (slots) slots.hidden = true;
+  const host = $("btn-lobby-host");
+  const start = $("btn-lobby-start");
+  if (host) host.hidden = false;
+  if (start) start.hidden = true;
+  const tag = $("lobby-tag");
+  if (tag) tag.textContent = "Same ground as offline. Host a 5v5 when you want a match.";
+  setPhase("lobby");
+}
+
+function lobbyHost5v5() {
+  S.playlist = "5v5";
+  const slots = $("lobby-slots");
+  if (slots) {
+    slots.hidden = false;
+    renderLobbySlots();
+  }
+  const host = $("btn-lobby-host");
+  const start = $("btn-lobby-start");
+  if (host) host.hidden = true;
+  if (start) start.hidden = false;
+  const tag = $("lobby-tag");
+  if (tag) tag.textContent = "Waiting arena. You are Alpha 1. Start when you want the same range.";
+  const kicker = $("lobby-kicker");
+  if (kicker) kicker.textContent = "5v5  ·  WAITING";
+}
+
 async function play(target = "range") {
-  targetGameMode = target;
+  targetGameMode = "range";
   unlockAudio();
-  $("btn-play").disabled = true;
-  const bayBtn = $("btn-bay");
-  if (bayBtn) bayBtn.disabled = true;
-  $("btn-play").textContent = "...";
+  const playBtn = $("btn-play");
+  if (playBtn) {
+    playBtn.disabled = true;
+    playBtn.textContent = "...";
+  }
+  const onBtn = $("btn-online");
+  if (onBtn) onBtn.disabled = true;
   resetLockState();
   setPhase("lock");
   S.lockStart = performance.now();
@@ -1259,7 +1319,7 @@ function setPhase(next) {
   for (const k of Object.keys(screens)) screens[k].hidden = k !== next;
   if (rangeTargetGroup) rangeTargetGroup.visible = (next === "range");
   if (rangeHallGroup) rangeHallGroup.visible = (next !== "bay");
-  if (bayGroup) bayGroup.visible = (next === "bay");
+  if (bayGroup) bayGroup.visible = false;
 
   if (next === "calibrate") {
     S.calibIndex = S.camPts.every(Boolean) ? 4 : firstMissingCorner();
@@ -1626,7 +1686,8 @@ function drawHUD(now) {
   ctx.fillText(String(S.score), W / 2, 16);
   ctx.font = "700 12px system-ui, sans-serif";
   ctx.fillStyle = "#00f0ff";
-  ctx.fillText("SCORE", W / 2, 52);
+  const sess = !S.online ? "OFFLINE RANGE" : (S.playlist === "5v5" ? "5v5  " + S.room : "ONLINE RANGE");
+  ctx.fillText("SCORE  ·  " + sess, W / 2, 52);
   if (S.combo > 1) {
     ctx.fillStyle = "#ff2bd6";
     ctx.font = "900 22px Impact, system-ui, sans-serif";
@@ -1911,9 +1972,37 @@ window.addEventListener("keyup", (e) => {
 
 window.addEventListener("resize", fit);
 
-$("btn-play").addEventListener("click", () => { play("range"); });
-const btnBay = $("btn-bay");
-if (btnBay) btnBay.addEventListener("click", () => { play("bay"); });
+$("btn-play").addEventListener("click", () => {
+  S.online = false;
+  S.playlist = "range";
+  play("range");
+});
+const btnOnline = $("btn-online");
+if (btnOnline) btnOnline.addEventListener("click", () => openLobby());
+const btnLobbyRange = $("btn-lobby-range");
+if (btnLobbyRange) btnLobbyRange.addEventListener("click", () => {
+  S.online = true;
+  if (S.playlist !== "5v5") S.playlist = "range";
+  play("range");
+});
+const btnLobbyHost = $("btn-lobby-host");
+if (btnLobbyHost) btnLobbyHost.addEventListener("click", () => lobbyHost5v5());
+const btnLobbyStart = $("btn-lobby-start");
+if (btnLobbyStart) btnLobbyStart.addEventListener("click", () => {
+  S.online = true;
+  S.playlist = "5v5";
+  play("range");
+});
+const btnLobbyBack = $("btn-lobby-back");
+if (btnLobbyBack) btnLobbyBack.addEventListener("click", () => {
+  S.online = false;
+  S.playlist = "range";
+  const playBtn = $("btn-play");
+  if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
+  const onBtn = $("btn-online");
+  if (onBtn) onBtn.disabled = false;
+  setPhase("boot");
+});
 
 const btnGemini = $("btn-gemini-lock");
 if (btnGemini) btnGemini.addEventListener("click", () => { requestGeminiLock(); });
