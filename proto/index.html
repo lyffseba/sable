@@ -17,13 +17,13 @@
     <div id="screen-boot" class="screen">
       <div class="boot-inner">
         <div class="kicker">PHYSICAL AIM</div>
-        <h1 class="title">LIFTSHOT</h1>
-        <p class="tag">Lift the mouse. Point. Click.</p>
+        <h1 class="title">SABLE</h1>
+        <p class="tag">Lift. Point. Click. Same range, offline or online.</p>
         <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-          <button type="button" id="btn-play" class="btn btn-primary">RANGE</button>
-          <button type="button" id="btn-bay" class="btn btn-primary" style="background: #112836; border-color: #00f0ff;">BAY 1v1</button>
+          <button type="button" id="btn-play" class="btn btn-primary">OFFLINE</button>
+          <button type="button" id="btn-online" class="btn btn-primary" style="background: #112836; border-color: #00f0ff;">ONLINE</button>
         </div>
-        <p class="safety">Tilt the webcam down at your hands.</p>
+        <p class="safety">One shooting ground. Online is a lobby to host 5v5.</p>
       </div>
     </div>
 
@@ -40,6 +40,22 @@
       <div class="calib-top">
         <p id="calib-msg" class="instruction">Aim at the glow. Click to capture.</p>
         <button type="button" id="btn-redo" class="btn btn-ghost" hidden>REDO LAST</button>
+      </div>
+    </div>
+
+    <div id="screen-lobby" class="screen" hidden>
+      <div class="lobby-inner">
+        <div class="kicker" id="lobby-kicker">WAITING ARENA</div>
+        <h1 class="title title-sm">RANGE</h1>
+        <p class="tag" id="lobby-tag">Same ground as offline. Host a 5v5 when you want a match.</p>
+        <p class="room-code" id="lobby-room">ROOM ———</p>
+        <div id="lobby-slots" class="slots" hidden></div>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button type="button" id="btn-lobby-range" class="btn btn-primary">ENTER RANGE</button>
+          <button type="button" id="btn-lobby-host" class="btn btn-ghost">HOST 5v5</button>
+          <button type="button" id="btn-lobby-start" class="btn btn-primary" hidden>START MATCH</button>
+          <button type="button" id="btn-lobby-back" class="btn btn-ghost">BACK</button>
+        </div>
       </div>
     </div>
 

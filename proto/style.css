@@ -70,6 +70,7 @@ html, body {
 
 .screen:not([hidden]) .btn,
 .screen:not([hidden]) .boot-inner,
+.screen:not([hidden]) .lobby-inner,
 .screen:not([hidden]) .results-inner,
 .screen:not([hidden]) .calib-top {
   pointer-events: auto;
@@ -80,7 +81,7 @@ html, body {
 .screen-pass { pointer-events: none; }
 .screen-pass .calib-top { pointer-events: auto; }
 
-.boot-inner, .results-inner {
+.boot-inner, .results-inner, .lobby-inner {
   position: absolute;
   inset: 0;
   display: flex;
@@ -112,6 +113,26 @@ html, body {
 }
 
 .title-sm { font-size: clamp(40px, 8vw, 84px); letter-spacing: 0.16em; }
+
+.room-code {
+  font-family: Impact, "Arial Narrow", system-ui, sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.28em;
+  color: var(--cyan);
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 28px;
+  min-width: min(420px, 86vw);
+  text-align: left;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+}
+.slots b { color: var(--ink); letter-spacing: 0.2em; }
+.slots .you { color: var(--cyan); }
 
 .tag {
   font-size: 18px;
