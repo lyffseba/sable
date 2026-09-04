@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Threaded static server for proto/.
-
-Chrome fetches html+css+js together. python -m http.server is one thread
-and answers empty when a connection stalls (ERR_EMPTY_RESPONSE).
-"""
+"""Threaded static server for proto/ plus SABLE JSON APIs."""
 
 from __future__ import annotations
 
@@ -23,14 +19,46 @@ try:
 except ImportError:
     detect_mouse_in_image = None
 
+try:
+    import sable_mojo
+except ImportError:
+    sable_mojo = None
+
 
 class SableRequestHandler(SimpleHTTPRequestHandler):
+    def _json(self, payload: dict, status: int = 200) -> None:
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _read_json(self) -> dict:
+        n = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(n) if n else b"{}"
+        return json.loads(raw.decode("utf-8") or "{}")
+
+    def do_GET(self) -> None:
+        if self.path.split("?", 1)[0] == "/api/health":
+            mojo_id = sable_mojo.ping() if sable_mojo else None
+            self._json(
+                {
+                    "ok": True,
+                    "game": "sable",
+                    "mojo": mojo_id,
+                    "gemini": bool(detect_mouse_in_image),
+                }
+            )
+            return
+        super().do_GET()
+
     def do_POST(self) -> None:
-        if self.path == "/api/gemini/lock":
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
-            try:
-                data = json.loads(body.decode("utf-8"))
+        path = self.path.split("?", 1)[0]
+        try:
+            if path == "/api/gemini/lock":
+                data = self._read_json()
                 img_b64 = data.get("image", "")
                 if "," in img_b64:
                     img_b64 = img_b64.split(",", 1)[1]
@@ -39,16 +67,41 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                     res = detect_mouse_in_image(img_bytes)
                 else:
                     res = {"detected": False, "error": "Gemini tracker not loaded"}
-            except Exception as e:
-                res = {"detected": False, "error": str(e)}
+                self._json(res)
+                return
 
-            resp_bytes = json.dumps(res).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Content-Length", str(len(resp_bytes)))
-            self.end_headers()
-            self.wfile.write(resp_bytes)
+            if path == "/api/mojo/centroid":
+                if not sable_mojo:
+                    self._json({"ok": False, "error": "mojo unavailable"}, 503)
+                    return
+                d = self._read_json()
+                self._json(
+                    sable_mojo.centroid(
+                        int(d["width"]),
+                        int(d["height"]),
+                        int(d["blob_x"]),
+                        int(d["blob_y"]),
+                        int(d["radius"]),
+                    )
+                )
+                return
+
+            if path == "/api/mojo/hitscan":
+                if not sable_mojo:
+                    self._json({"ok": False, "error": "mojo unavailable"}, 503)
+                    return
+                d = self._read_json()
+                self._json(
+                    sable_mojo.hitscan(
+                        list(d["origin"]),
+                        list(d["direction"]),
+                        list(d["sphere"]),
+                        float(d["radius"]),
+                    )
+                )
+                return
+        except Exception as exc:
+            self._json({"ok": False, "error": str(exc)}, 400)
             return
 
         self.send_response(404)
@@ -76,8 +129,13 @@ def main() -> None:
     else:
         root = proto
     os.chdir(root)
+    mojo_id = sable_mojo.ping() if sable_mojo else None
     httpd = ThreadingHTTPServer((args.bind, args.port), SableRequestHandler)
-    print(f"Serving {os.getcwd()} on http://{args.bind}:{args.port}/ (Gemini 3.8 Flash Muzzle API enabled)", flush=True)
+    print(
+        f"Serving {os.getcwd()} on http://{args.bind}:{args.port}/ "
+        f"(gemini={bool(detect_mouse_in_image)} mojo={mojo_id or 'off'})",
+        flush=True,
+    )
     httpd.serve_forever()
 
 

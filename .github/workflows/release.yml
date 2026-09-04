@@ -42,11 +42,17 @@ jobs:
         with:
           ref: ${{ steps.meta.outputs.tag }}
 
-      - name: Toolchain
+      - name: C++ toolchain
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends cmake g++
 
+      - name: Pixi (Mojo 1.0)
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          manifest-path: pixi.toml
+          cache: true
+
       - name: Checks
-        run: ./tools/ci.sh
+        run: pixi run ci
 
       - name: Zip proto
         env:
@@ -62,7 +68,7 @@ jobs:
           test -f tools/serve_proto.py
           test -f tools/gemini_muzzle_tracker.py
           (cd proto && zip -r "../sable-proto-${TAG}.zip" index.html game.js style.css README.md package.json vendor/)
-          zip -u "sable-proto-${TAG}.zip" -j tools/serve_proto.py tools/gemini_muzzle_tracker.py
+          zip -u "sable-proto-${TAG}.zip" -j tools/serve_proto.py tools/gemini_muzzle_tracker.py tools/sable_mojo.py
           sha256sum "sable-proto-${TAG}.zip" | tee "sable-proto-${TAG}.zip.sha256"
           ls -l "sable-proto-${TAG}.zip"
 

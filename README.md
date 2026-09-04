@@ -1,10 +1,13 @@
 # SABLE
 
-**Apache-2.0 open source.** Original IP. Do **not** add third-party game assets, names, maps, audio, or code. Codename only.
+[![ci](https://github.com/lyffseba/sable/actions/workflows/ci.yml/badge.svg)](https://github.com/lyffseba/sable/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Physical-aim arena FPS. Lightweight wireless mouse on the pad = move / menus. The player **lifts** the mouse and points it at the monitor. A clip-on webcam at the **top-center** of the monitor tracks the mouse muzzle via **Gemini 3.8 Flash** zero-shot spatial vision + client-side One Euro pointing filter. Click (HID) fires instantly. Unique verb = physical ADS.
+Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no third-party game assets, names, maps, audio, or code. Codename only.
 
-Zero external engine installs. Web-native 3D WebGL (Three.js) + Mojo 1.0 SIMD kernels (Pixi). Sub-millisecond HID fire.
+Mouse on the pad = move. **Lift** it, point at the monitor, click. Webcam tracks the muzzle (Gemini 3.8 Flash lock + One Euro). Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
+
+Stack: WebGL (Three.js) client, Mojo 1.0 SIMD kernels via Pixi, C++17 aim tests.
 
 ## Requirements
 
