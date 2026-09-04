@@ -12,7 +12,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TREES = (ROOT / "proto", ROOT / "server", ROOT / "native")
-SKIP_PARTS = {".git", "build", "bin", "node_modules"}
+SKIP_PARTS = {".git", "build", "bin", "node_modules", "__mojocache__", ".pixi"}
 NEEDLES = (
     "GNU General Public License",
     "GPL-2.0",

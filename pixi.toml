@@ -1,6 +1,6 @@
 [workspace]
 name = "sable"
-version = "0.3.0"
+version = "0.4.0"
 description = "SABLE: Physical-aim arena FPS with Mojo 1.0 SIMD acceleration"
 channels = ["https://conda.modular.com/max/", "conda-forge"]
 platforms = ["osx-arm64", "linux-64"]
@@ -10,6 +10,8 @@ serve = "python3 tools/serve_proto.py --port 8080"
 ci = "./tools/ci.sh"
 bench = "mojo -I native/mojo native/mojo/bench.mojo"
 test-aim = "mojo -I native/mojo native/mojo/test_aim.mojo"
+test-py = "python tools/test_mojo_python.py"
+kern = "python tools/sable_mojo.py"
 
 [dependencies]
 mojo = ">=1.0.0b2,<2"
