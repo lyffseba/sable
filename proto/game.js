@@ -129,6 +129,9 @@ const S = {
   online: false,
   playlist: "range",
   room: "",
+  player: "",
+  slot: -1,
+  host: false,
 };
 
 // --- Bay 1v1 Arena State ---
@@ -1238,58 +1241,152 @@ function resetLockState() {
   resetTrackFilters();
 }
 
-function roomCode() {
-  const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let s = "";
-  for (let i = 0; i < 4; i++) s += a[(Math.random() * a.length) | 0];
-  return s;
+let lobbyTimer = 0;
+let lobbyStarting = false;
+
+function stopLobbyPoll() {
+  if (lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = 0; }
 }
 
-function renderLobbySlots() {
-  const el = $("lobby-slots");
-  if (!el) return;
-  const rows = [];
-  rows.push("<b>ALPHA</b><b>BRAVO</b>");
-  for (let i = 0; i < 5; i++) {
-    const a = i === 0 ? "<span class=you>1  YOU</span>" : (i + 1) + "  —";
-    const b = (i + 6) + "  —";
-    rows.push("<span>" + a + "</span><span>" + b + "</span>");
-  }
-  el.innerHTML = rows.join("");
-}
-
-function openLobby() {
-  S.online = true;
-  S.playlist = "range";
-  S.room = roomCode();
-  const room = $("lobby-room");
-  if (room) room.textContent = "ROOM  " + S.room;
-  const slots = $("lobby-slots");
-  if (slots) slots.hidden = true;
-  const host = $("btn-lobby-host");
-  const start = $("btn-lobby-start");
-  if (host) host.hidden = false;
-  if (start) start.hidden = true;
-  const tag = $("lobby-tag");
-  if (tag) tag.textContent = "Same ground as offline. Host a 5v5 when you want a match.";
-  setPhase("lobby");
-}
-
-function lobbyHost5v5() {
+function paintLobby(data) {
+  if (!data || !data.ok) return;
+  S.room = data.code;
+  S.host = data.host === S.player;
   S.playlist = "5v5";
-  const slots = $("lobby-slots");
-  if (slots) {
-    slots.hidden = false;
-    renderLobbySlots();
-  }
-  const host = $("btn-lobby-host");
-  const start = $("btn-lobby-start");
-  if (host) host.hidden = true;
-  if (start) start.hidden = false;
-  const tag = $("lobby-tag");
-  if (tag) tag.textContent = "Waiting arena. You are Alpha 1. Start when you want the same range.";
+  const room = $("lobby-room");
+  if (room) room.textContent = "ROOM  " + data.code;
   const kicker = $("lobby-kicker");
-  if (kicker) kicker.textContent = "5v5  ·  WAITING";
+  if (kicker) kicker.textContent = data.phase === "wait" ? "5v5  ·  WAITING ARENA" : "5v5  ·  RANGE";
+  const tag = $("lobby-tag");
+  if (tag) {
+    tag.textContent = S.host
+      ? "You host. ENTER RANGE starts the same ground for everyone in this room."
+      : "Waiting on host. Same Range as offline when they start.";
+  }
+  const el = $("lobby-slots");
+  if (el && data.slots) {
+    const rows = ["<b>ALPHA</b><b>BRAVO</b>"];
+    for (let i = 0; i < 5; i++) {
+      const A = data.slots[i];
+      const B = data.slots[i + 5];
+      const an = A ? ((A.id === S.player ? "YOU  " : "") + A.name) : "—";
+      const bn = B ? ((B.id === S.player ? "YOU  " : "") + B.name) : "—";
+      rows.push(
+        "<span class=\"" + (A && A.id === S.player ? "you" : "") + "\">" + (i + 1) + "  " + an + "</span>" +
+        "<span class=\"" + (B && B.id === S.player ? "you" : "") + "\">" + (i + 6) + "  " + bn + "</span>"
+      );
+    }
+    el.innerHTML = rows.join("");
+  }
+  const enter = $("btn-lobby-range");
+  if (enter) enter.hidden = !S.host && data.phase === "wait";
+}
+
+async function lobbyCreate() {
+  const res = await fetch("/api/lobby/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "HOST" }),
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "create failed");
+  S.player = data.player;
+  S.slot = data.slot;
+  S.online = true;
+  paintLobby(data);
+  setPhase("lobby");
+  stopLobbyPoll();
+  lobbyTimer = setInterval(lobbyPoll, 400);
+}
+
+async function lobbyJoin(code) {
+  if (S.room && S.player) {
+    try {
+      await fetch("/api/lobby/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: S.room, player: S.player }),
+      });
+    } catch (e) { /* ignore */ }
+  }
+  const res = await fetch("/api/lobby/join", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code, name: "PLAYER" }),
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "join failed");
+  S.player = data.player;
+  S.slot = data.slot;
+  S.online = true;
+  paintLobby(data);
+  setPhase("lobby");
+  stopLobbyPoll();
+  lobbyTimer = setInterval(lobbyPoll, 400);
+}
+
+async function lobbyPoll() {
+  if (phase !== "lobby" || !S.room) return;
+  try {
+    const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
+    const data = await res.json();
+    if (!data.ok) return;
+    paintLobby(data);
+    if (data.phase === "range" && !lobbyStarting) {
+      lobbyStarting = true;
+      stopLobbyPoll();
+      play("range");
+    }
+  } catch (e) { /* keep polling */ }
+}
+
+async function lobbyStartRange() {
+  if (!S.room || !S.player) {
+    play("range");
+    return;
+  }
+  if (S.host) {
+    await fetch("/api/lobby/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: S.room, player: S.player }),
+    });
+  }
+  lobbyStarting = true;
+  stopLobbyPoll();
+  play("range");
+}
+
+async function lobbyLeave() {
+  stopLobbyPoll();
+  if (S.room && S.player) {
+    try {
+      await fetch("/api/lobby/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: S.room, player: S.player }),
+      });
+    } catch (e) { /* ignore */ }
+  }
+  S.online = false;
+  S.player = "";
+  S.room = "";
+  S.host = false;
+  lobbyStarting = false;
+  const playBtn = $("btn-play");
+  if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
+  const onBtn = $("btn-online");
+  if (onBtn) onBtn.disabled = false;
+  setPhase("boot");
+}
+
+async function openLobby() {
+  try {
+    await lobbyCreate();
+  } catch (e) {
+    S.online = true;
+    setPhase("lobby");
+  }
 }
 
 async function play(target = "range") {
@@ -1980,29 +2077,20 @@ $("btn-play").addEventListener("click", () => {
 const btnOnline = $("btn-online");
 if (btnOnline) btnOnline.addEventListener("click", () => openLobby());
 const btnLobbyRange = $("btn-lobby-range");
-if (btnLobbyRange) btnLobbyRange.addEventListener("click", () => {
-  S.online = true;
-  if (S.playlist !== "5v5") S.playlist = "range";
-  play("range");
-});
-const btnLobbyHost = $("btn-lobby-host");
-if (btnLobbyHost) btnLobbyHost.addEventListener("click", () => lobbyHost5v5());
-const btnLobbyStart = $("btn-lobby-start");
-if (btnLobbyStart) btnLobbyStart.addEventListener("click", () => {
-  S.online = true;
-  S.playlist = "5v5";
-  play("range");
-});
+if (btnLobbyRange) btnLobbyRange.addEventListener("click", () => lobbyStartRange());
+const btnLobbyJoin = $("btn-lobby-join");
+if (btnLobbyJoin) {
+  btnLobbyJoin.addEventListener("click", () => {
+    const inp = $("lobby-join");
+    const code = inp ? inp.value : "";
+    lobbyJoin(code).catch((err) => {
+      const tag = $("lobby-tag");
+      if (tag) tag.textContent = String(err.message || err);
+    });
+  });
+}
 const btnLobbyBack = $("btn-lobby-back");
-if (btnLobbyBack) btnLobbyBack.addEventListener("click", () => {
-  S.online = false;
-  S.playlist = "range";
-  const playBtn = $("btn-play");
-  if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
-  const onBtn = $("btn-online");
-  if (onBtn) onBtn.disabled = false;
-  setPhase("boot");
-});
+if (btnLobbyBack) btnLobbyBack.addEventListener("click", () => lobbyLeave());
 
 const btnGemini = $("btn-gemini-lock");
 if (btnGemini) btnGemini.addEventListener("click", () => { requestGeminiLock(); });
