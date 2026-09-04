@@ -17,6 +17,11 @@ Copyright (c) OpenCV team.
 
 Licensed under Apache License 2.0. Not vendored in this scaffold. Linked later from `native/cv_input`.
 
+## Three.js
+
+Copyright (c) 2010-2024 Three.js Authors.
+Licensed under the MIT License. https://github.com/mrdoob/three.js/blob/dev/LICENSE
+
 ## One Euro Filter (algorithm)
 
 Casiez, G., Roussel, N., and Vogel, D. 2012. *1€ Filter: A Simple Speed-based Low-pass Filter for Noisy Input in Interactive Systems.* CHI 2012.

@@ -1,13 +1,16 @@
-/* LiftShot — physical-aim shooter
-   Webcam locks a patch of the mouse body (like a Superlight sensor locks the mat).
-   NCC track → One Euro → 4-corner homography. Face never drawn. */
-"use strict";
+/* SABLE — WebGL Physical-Aim Arena FPS
+   Powered by Gemini 3.8 Flash Spatial Vision & Three.js 3D Engine.
+   Inverted Light-Gun Geometry: webcam on monitor top, player points mouse nose at screen.
+   HID left-click fires atomically from the AimBus mailbox. Physical ADS verb. */
+
+import * as THREE from "./vendor/three.module.js";
 
 const $ = (id) => document.getElementById(id);
 const cam = $("cam");
 const proc = $("proc");
-const canvas = $("game");
-const ctx = canvas.getContext("2d", { alpha: false });
+const canvas3D = $("game");
+const canvasHUD = $("hud");
+const ctx = canvasHUD.getContext("2d");
 const pctx = proc.getContext("2d", { willReadFrequently: true, alpha: false });
 
 const screens = {
@@ -18,6 +21,7 @@ const screens = {
   results: $("screen-results"),
 };
 
+// --- Aim Protocol & Mailbox Contract ---
 class AimSample {
   constructor(uv = { x: 0.5, y: 0.5 }, valid = false, lifted = false, confidence = 0.0, t_hw = 0) {
     this.uv = uv;
@@ -44,6 +48,7 @@ class AimBus {
 }
 const aimBus = new AimBus();
 
+// --- Operator Identity & Locker Catalog ---
 const OP_CANCHO = "cancho";
 const STYLE_DEFAULT = "default";
 const STYLE_RANKED = "ranked";
@@ -55,67 +60,32 @@ const Locker = {
     displayName: "CANCHO",
     styles: [STYLE_DEFAULT, STYLE_RANKED, STYLE_NIGHT],
     vo: {
-      lift: "Al aire.",
-      hit: "Claro.",
-      drop: "Al suelo.",
-      win: "Se escribió."
+      lift: "¡Al aire!",
+      hit: "¡Claro!",
+      drop: "¡Al suelo!",
+      win: "¡Se escribió!"
     }
   },
   equippedStyle: STYLE_DEFAULT,
   colors: {
     mint: "#59F2C7",
+    mintHex: 0x59F2C7,
     bone: "#E6E0D1",
-    rust: "#8C472E"
+    boneHex: 0xE6E0D1,
+    rust: "#8C472E",
+    rustHex: 0x8C472E,
+    bodyHex: 0x141a22,
   },
   cycleStyle() {
     const s = this.operator.styles;
     const idx = (s.indexOf(this.equippedStyle) + 1) % s.length;
     this.equippedStyle = s[idx];
+    speak("Estilo: " + this.equippedStyle);
     return this.equippedStyle;
   }
 };
 
-const Bay = {
-  active: false,
-  you: 0,
-  them: 0,
-  toWin: 5,
-  round: 1,
-  speed: 5.0,
-  pos: { x: 0, y: 1.64, z: 10 },
-  foe: { x: 0, y: 0.89, z: -10, radius: 0.52, alive: true },
-  frozen: false,
-  freezeT: 0,
-  freezePadS: 0.45,
-  expose: 0,
-  exposeMax: 0.14,
-  voText: "",
-  voT: 0,
-  missT: 0,
-  over: false,
-  wasLifted: false,
-  keys: { w: false, a: false, s: false, d: false },
-  resetRound() {
-    this.pos.x = 0; this.pos.y = 1.64; this.pos.z = 10;
-    this.foe.x = (Math.random() - 0.5) * 4.0;
-    this.foe.y = 0.89;
-    this.foe.z = -10 - Math.random() * 2.0;
-    this.foe.alive = true;
-    this.expose = 0;
-    this.frozen = false;
-  },
-  resetMatch() {
-    this.you = 0;
-    this.them = 0;
-    this.round = 1;
-    this.over = false;
-    this.resetRound();
-  },
-  vo(line) {
-    this.voText = line;
-    this.voT = 0.85;
-  }
-};
+// --- Tracking Constants & Parameters ---
 const PROC_W = 480;
 const CROP_TOP = 0.30;
 const HID_IDLE_MS = 40;
@@ -132,17 +102,22 @@ const TPL = 48;
 const NCC_GOOD = 0.58;
 const SEARCH_R = 56;
 const FIND_STEP = 8;
-// Pointing, not soup. fcmin=1Hz is ~160ms lag at 30fps — the reticle trails the Superlight.
 const EURO_MINCUTOFF = 3.0, EURO_BETA = 0.03, EURO_DCUTOFF = 1.0;
 const LIFT_ON_MS = 50;
+
 let W = 1280, H = 720, dpr = 1, PROC_H = 270, phase = "boot";
 let stream = null, camReady = false, lastT = 0;
+let targetGameMode = "range";
+let geminiLockPending = false;
+let geminiAutoTried = false;
+
 const S = {
   det: null, smooth: null, vel: { x: 0, y: 0 }, lastDetAt: 0, trackT: 0,
   camStamp: -1, quality: 0, euroX: null, euroY: null, lastRaw: null, seeking: false,
   H: null, useBilinear: false, camPts: [null, null, null, null], calibIndex: 0,
   calibFlash: 0, forceGun: false, desktop: false, hidLast: 0, hidMoving: false,
-  mode: "PAD", lifted: false, liftMs: 0, liftTick: 0, aim: { x: 0.5, y: 0.5 }, recoil: 0, punch: 0, flash: 0, hitstop: 0,
+  mode: "PAD", lifted: false, liftMs: 0, liftTick: 0, aim: { x: 0.5, y: 0.5 },
+  recoil: 0, punch: 0, flash: 0, hitstop: 0,
   orbs: [], parts: [], pops: [], score: 0, hits: 0, shots: 0, combo: 0, comboMax: 0,
   rangeStart: 0, lockSince: 0, locked: false, lockStart: 0, lockAdvance: false,
   noLockFlash: 0, liftPulse: 0, enteringRange: false,
@@ -150,6 +125,69 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
 };
+
+// --- Bay 1v1 Arena State ---
+const Bay = {
+  active: false,
+  you: 0,
+  them: 0,
+  toWin: 5,
+  round: 1,
+  speed: 5.2,
+  pos: { x: 0, y: 1.64, z: 10 },
+  foe: { x: 0, y: 0.89, z: -10, radius: 0.54, alive: true, strafeDir: 1, strafeT: 0 },
+  frozen: false,
+  freezeT: 0,
+  freezePadS: 0.45,
+  expose: 0,
+  exposeMax: 0.14,
+  voText: "",
+  voT: 0,
+  missT: 0,
+  over: false,
+  wasLifted: false,
+  keys: { w: false, a: false, s: false, d: false },
+  resetRound() {
+    this.pos.x = 0; this.pos.y = 1.64; this.pos.z = 10;
+    this.foe.x = (Math.random() - 0.5) * 4.2;
+    this.foe.y = 0.89;
+    this.foe.z = -10 - Math.random() * 2.0;
+    this.foe.alive = true;
+    this.foe.strafeDir = Math.random() < 0.5 ? 1 : -1;
+    this.foe.strafeT = 0;
+    this.expose = 0;
+    this.frozen = false;
+  },
+  resetMatch() {
+    this.you = 0;
+    this.them = 0;
+    this.round = 1;
+    this.over = false;
+    this.resetRound();
+  },
+  vo(line) {
+    this.voText = line;
+    this.voT = 0.9;
+    speak(line);
+  }
+};
+
+// --- Speech Synthesis Helper ---
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "es-ES";
+    u.rate = 1.12;
+    u.pitch = 0.88;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  } catch (e) {
+    // Audio synthesis fallback
+  }
+}
+
+// --- Math & Filtering ---
 function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 function euroAlpha(dt, cutoff) { const r = 2 * Math.PI * cutoff * dt; return r / (r + 1); }
 function makeEuro() { return { x: 0, dx: 0, t: 0, ready: false }; }
@@ -169,12 +207,6 @@ function resetTrackFilters() {
   S.euroX = makeEuro(); S.euroY = makeEuro(); S.vel.x = 0; S.vel.y = 0;
 }
 
-function predictedCam(now) {
-  if (!S.smooth) return null;
-  const dt = Math.max(0, (now - (S.trackT || now)) * 0.001);
-  return { x: S.smooth.x + S.vel.x * dt, y: S.smooth.y + S.vel.y * dt };
-}
-
 function coastTrack(now) {
   if (!S.smooth) return;
   const age = now - S.lastDetAt;
@@ -192,6 +224,8 @@ function updateQuality(now, hand) {
   const raw = (conf * 0.65 + recency * 0.35) * 100;
   S.quality += (raw - S.quality) * (hand ? 0.45 : 0.22);
 }
+
+// --- Homography Solver (DLT) ---
 function solveLinear(A, b) {
   const n = b.length;
   const M = new Array(n);
@@ -218,203 +252,53 @@ function solveLinear(A, b) {
 function dltHomography(src, dst) {
   const A = [], b = [];
   for (let i = 0; i < 4; i++) {
-    const x = src[i].x, y = src[i].y, u = dst[i].x, v = dst[i].y;
-    A.push([x, y, 1, 0, 0, 0, -x * u, -y * u]); b.push(u);
-    A.push([0, 0, 0, x, y, 1, -x * v, -y * v]); b.push(v);
+    const sx = src[i].x, sy = src[i].y;
+    const dx = dst[i].x, dy = dst[i].y;
+    A.push([sx, sy, 1, 0, 0, 0, -dx * sx, -dx * sy]);
+    b.push(dx);
+    A.push([0, 0, 0, sx, sy, 1, -dy * sx, -dy * sy]);
+    b.push(dy);
   }
   const h = solveLinear(A, b);
   if (!h) return null;
-  return [[h[0], h[1], h[2]], [h[3], h[4], h[5]], [h[6], h[7], 1]];
-}
-
-function applyH(Hm, x, y) {
-  const w = Hm[2][0] * x + Hm[2][1] * y + Hm[2][2];
-  if (Math.abs(w) < 1e-8) return null;
-  return {
-    x: (Hm[0][0] * x + Hm[0][1] * y + Hm[0][2]) / w,
-    y: (Hm[1][0] * x + Hm[1][1] * y + Hm[1][2]) / w,
-  };
-}
-function barycentric(p, a, b, c) {
-  const v0x = b.x - a.x, v0y = b.y - a.y;
-  const v1x = c.x - a.x, v1y = c.y - a.y;
-  const v2x = p.x - a.x, v2y = p.y - a.y;
-  const den = v0x * v1y - v1x * v0y;
-  if (Math.abs(den) < 1e-12) return null;
-  const v = (v2x * v1y - v1x * v2y) / den;
-  const w = (v0x * v2y - v2x * v0y) / den;
-  return { u: 1 - v - w, v, w };
-}
-
-function quadMap(p, src, dst) {
-  const [A, B, C, D] = src;
-  const [A2, B2, C2, D2] = dst;
-  let bar = barycentric(p, A, B, C);
-  if (bar && bar.u >= -0.08 && bar.v >= -0.08 && bar.w >= -0.08) {
-    return { x: bar.u * A2.x + bar.v * B2.x + bar.w * C2.x, y: bar.u * A2.y + bar.v * B2.y + bar.w * C2.y };
-  }
-  bar = barycentric(p, A, C, D);
-  if (bar) return { x: bar.u * A2.x + bar.v * C2.x + bar.w * D2.x, y: bar.u * A2.y + bar.v * C2.y + bar.w * D2.y };
-  bar = barycentric(p, A, B, C);
-  if (!bar) return { x: W / 2, y: H / 2 };
-  return { x: bar.u * A2.x + bar.v * B2.x + bar.w * C2.x, y: bar.u * A2.y + bar.v * B2.y + bar.w * C2.y };
+  return [h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7], 1];
 }
 
 function screenCorners() {
-  const m = Math.round(Math.min(W, H) * 0.085);
-  return [{ x: m, y: m }, { x: W - m, y: m }, { x: W - m, y: H - m }, { x: m, y: H - m }];
+  const m = 32;
+  return [
+    { x: m, y: m },
+    { x: W - m, y: m },
+    { x: W - m, y: H - m },
+    { x: m, y: H - m },
+  ];
 }
 
 function computeH() {
-  if (!S.camPts.every(Boolean)) { S.H = null; return; }
-  const src = S.camPts, dst = screenCorners();
-  const Hm = dltHomography(src, dst);
-  let bilinear = !Hm;
-  if (Hm) {
-    let maxErr = 0;
-    for (let i = 0; i < 4; i++) {
-      const p = applyH(Hm, src[i].x, src[i].y);
-      if (!p) { bilinear = true; break; }
-      const e = Math.hypot(p.x - dst[i].x, p.y - dst[i].y);
-      if (e > maxErr) maxErr = e;
-    }
-    if (maxErr > 10) bilinear = true;
-  }
-  S.H = Hm; S.useBilinear = bilinear;
+  if (!S.camPts.every(Boolean)) return;
+  const dst = screenCorners();
+  S.H = dltHomography(S.camPts, dst);
 }
 
 function camToScreen(cx, cy) {
-  const p = { x: cx, y: cy };
-  let out = null;
-  if (S.H && !S.useBilinear) out = applyH(S.H, cx, cy);
-  if (!out) out = quadMap(p, S.camPts, screenCorners());
-  if (!out || !isFinite(out.x) || !isFinite(out.y)) return { x: S.aim.x, y: S.aim.y, lost: true };
-  // Homography blow-up used to clamp into a screen corner. Freeze instead.
-  if (out.x < -64 || out.x > W + 64 || out.y < -64 || out.y > H + 64) {
-    return { x: S.aim.x, y: S.aim.y, lost: true };
+  if (S.H) {
+    const H = S.H;
+    const z = H[6] * cx + H[7] * cy + H[8];
+    if (Math.abs(z) > 1e-6) {
+      const u = (H[0] * cx + H[1] * cy + H[2]) / z;
+      const v = (H[3] * cx + H[4] * cy + H[5]) / z;
+      return { x: clamp(u, 0, W), y: clamp(v, 0, H), lost: false };
+    }
   }
-  return { x: clamp(out.x, 8, W - 8), y: clamp(out.y, 8, H - 8), lost: false };
-}
-const AU = { ctx: null, master: null, unlocked: false, droneGain: null };
-
-function unlockAudio() {
-  if (AU.unlocked) return;
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return;
-  AU.ctx = new AC();
-  AU.master = AU.ctx.createGain();
-  AU.master.gain.value = 0.32;
-  AU.master.connect(AU.ctx.destination);
-  AU.unlocked = true;
-  startDrone();
-  if (AU.ctx.state === "suspended") AU.ctx.resume();
+  return { x: (cx / PROC_W) * W, y: (cy / PROC_H) * H, lost: false };
 }
 
-function envGain(t, a, d, peak) {
-  const g = AU.ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(peak, t + a);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
-  return g;
+// --- Computer Vision & Template Matching ---
+function predictedCam(now) {
+  if (!S.smooth) return null;
+  const dt = Math.max(0, (now - (S.trackT || now)) * 0.001);
+  return { x: S.smooth.x + S.vel.x * dt, y: S.smooth.y + S.vel.y * dt };
 }
-
-function noiseBuffer(dur) {
-  const n = Math.floor(AU.ctx.sampleRate * dur);
-  const buf = AU.ctx.createBuffer(1, n, AU.ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  return buf;
-}
-
-function bang() {
-  if (!AU.unlocked) return;
-  const t = AU.ctx.currentTime;
-  const osc = AU.ctx.createOscillator();
-  osc.type = "square";
-  osc.frequency.setValueAtTime(180, t);
-  osc.frequency.exponentialRampToValueAtTime(55, t + 0.09);
-  const og = envGain(t, 0.004, 0.09, 0.22);
-  osc.connect(og); og.connect(AU.master);
-  osc.start(t); osc.stop(t + 0.11);
-  const src = AU.ctx.createBufferSource();
-  src.buffer = noiseBuffer(0.08);
-  const bp = AU.ctx.createBiquadFilter();
-  bp.type = "bandpass";
-  bp.frequency.value = 1400;
-  bp.Q.value = 0.7;
-  const ng = envGain(t, 0.002, 0.055, 0.28);
-  src.connect(bp); bp.connect(ng); ng.connect(AU.master);
-  src.start(t);
-}
-function hitBlip(combo) {
-  if (!AU.unlocked) return;
-  const t = AU.ctx.currentTime;
-  const f = 520 * Math.pow(1.08, Math.min(combo, 12));
-  const osc = AU.ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(f, t);
-  osc.frequency.exponentialRampToValueAtTime(f * 1.35, t + 0.07);
-  const g = envGain(t, 0.004, 0.09, 0.2);
-  osc.connect(g); g.connect(AU.master);
-  osc.start(t); osc.stop(t + 0.12);
-}
-
-function missTick() {
-  if (!AU.unlocked) return;
-  const t = AU.ctx.currentTime;
-  const src = AU.ctx.createBufferSource();
-  src.buffer = noiseBuffer(0.04);
-  const bp = AU.ctx.createBiquadFilter();
-  bp.type = "highpass";
-  bp.frequency.value = 2800;
-  const g = envGain(t, 0.001, 0.03, 0.12);
-  src.connect(bp); bp.connect(g); g.connect(AU.master);
-  src.start(t);
-}
-
-function startDrone() {
-  const t = AU.ctx.currentTime;
-  AU.droneGain = AU.ctx.createGain();
-  AU.droneGain.gain.value = 0.028;
-  AU.droneGain.connect(AU.master);
-  [52, 78, 104].forEach((f, i) => {
-    const o = AU.ctx.createOscillator();
-    o.type = i === 2 ? "triangle" : "sine";
-    o.frequency.value = f;
-    const g = AU.ctx.createGain();
-    g.gain.value = i === 0 ? 0.7 : 0.35;
-    const lfo = AU.ctx.createOscillator();
-    const lg = AU.ctx.createGain();
-    lfo.frequency.value = 0.07 + i * 0.03;
-    lg.gain.value = 1.6;
-    lfo.connect(lg); lg.connect(o.frequency);
-    o.connect(g); g.connect(AU.droneGain);
-    o.start(t); lfo.start(t);
-  });
-}
-function sizeProc() {
-  const vw = cam.videoWidth || 1280;
-  const vh = cam.videoHeight || 720;
-  const cropH = vh * (1 - CROP_TOP);
-  PROC_H = Math.max(140, Math.round(PROC_W * cropH / vw));
-  proc.width = PROC_W;
-  proc.height = PROC_H;
-}
-
-function grabFrame() {
-  if (!camReady || cam.readyState < 2) return false;
-  if (proc.width !== PROC_W || proc.height !== PROC_H) sizeProc();
-  const vw = cam.videoWidth;
-  const vh = cam.videoHeight;
-  const sy = vh * CROP_TOP;
-  const sh = vh * (1 - CROP_TOP);
-  pctx.save();
-  pctx.setTransform(-1, 0, 0, 1, PROC_W, 0);
-  pctx.drawImage(cam, 0, sy, vw, sh, 0, 0, PROC_W, PROC_H);
-  pctx.restore();
-  return true;
-}
-
 
 function isSkinHSV(r, g, b) {
   r /= 255; g /= 255; b /= 255;
@@ -432,20 +316,10 @@ function isSkinHSV(r, g, b) {
   return ((h <= 50) || (h >= 340)) && s >= 0.15 && s <= 0.78 && v >= 0.22 && v <= 0.98;
 }
 
-function toGray(img) {
-  const d = img.data, n = img.width * img.height;
-  if (!S.gray || S.gray.length !== n) S.gray = new Float32Array(n);
-  const g = S.gray;
-  for (let i = 0, p = 0; i < n; i++, p += 4) {
-    g[i] = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
-  }
-  return g;
-}
-
-function extractPatch(gray, iw, tlx, tly) {
+function extractPatch(gray, w, tlx, tly) {
   const p = new Float32Array(TPL * TPL);
   for (let j = 0; j < TPL; j++) {
-    const src = (tly + j) * iw + tlx;
+    const src = (tly + j) * w + tlx;
     const dst = j * TPL;
     for (let i = 0; i < TPL; i++) p[dst + i] = gray[src + i];
   }
@@ -455,6 +329,7 @@ function extractPatch(gray, iw, tlx, tly) {
 function makeTpl(patch) {
   return rebuildTplFromRaw(patch);
 }
+
 function rebuildTplFromRaw(raw) {
   const n = TPL * TPL;
   let sum = 0;
@@ -470,6 +345,7 @@ function rebuildTplFromRaw(raw) {
   if (e < 2500) return null;
   return { w: TPL, h: TPL, raw, centered, mean, sigma: Math.sqrt(e) };
 }
+
 function adaptTpl(gray, iw, ih, cx, cy, ncc) {
   if (!S.tpl || ncc < 0.82) return;
   const tlx = clamp(Math.round(cx - TPL * 0.5), 0, iw - TPL);
@@ -761,6 +637,8 @@ function nccTrack(now) {
   }
 }
 
+function detGood() { return S.det && S.det.conf >= NCC_GOOD; }
+
 function runTrack(now) {
   if (!S.euroX) resetTrackFilters();
   const stamp = cam.currentTime;
@@ -770,20 +648,39 @@ function runTrack(now) {
     return;
   }
   S.camStamp = stamp;
-  S.det = null;
-  const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
-  toGray(img);
-  if (!S.tpl) {
+  if (S.tpl) {
+    nccTrack(now);
+  } else {
+    const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
     sampleLock(img, now);
-    updateQuality(now, S.det);
-    return;
   }
-  nccTrack(now);
   updateQuality(now, S.det);
 }
 
-function detGood() { return !!S.det; }
+// --- Frame Capture from Camera Sink ---
+function sizeProc() {
+  if (!cam.videoWidth) return;
+  const aspect = cam.videoWidth / cam.videoHeight;
+  PROC_H = Math.round(PROC_W / aspect);
+  proc.width = PROC_W;
+  proc.height = PROC_H;
+  S.gray = new Uint8Array(PROC_W * PROC_H);
+}
 
+function grabFrame() {
+  if (!camReady || !cam.videoWidth) return false;
+  if (proc.width !== PROC_W) sizeProc();
+  pctx.drawImage(cam, 0, 0, PROC_W, PROC_H);
+  const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
+  const d = img.data;
+  const gray = S.gray;
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    gray[j] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+  }
+  return true;
+}
+
+// --- Mode & Aim Mailbox Wiring ---
 function updateMode(now) {
   S.hidMoving = now - S.hidLast < HID_IDLE_MS;
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
@@ -812,6 +709,7 @@ function updateMode(now) {
   }
   S.mode = "SEEKING"; S.seeking = true;
 }
+
 function publishAim(x, y) {
   if (!isFinite(x) || !isFinite(y)) return;
   S.aim.x = x; S.aim.y = y;
@@ -825,6 +723,7 @@ function publishAim(x, y) {
   );
   aimBus.publish(sample);
 }
+
 function updateAim() {
   if (S.desktop) return;
   if (!S.smooth) return;
@@ -838,63 +737,7 @@ function updateAim() {
   }
 }
 
-async function enableCamera() {
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
-    cam.srcObject = stream;
-    cam.setAttribute("playsinline", "");
-    cam.muted = true;
-    cam.setAttribute("aria-hidden", "true");
-    if (!cam.videoWidth) {
-      await new Promise((res) => {
-        cam.onloadedmetadata = () => res();
-        setTimeout(() => res(), 1500);
-      });
-    }
-    await cam.play();
-    camReady = true;
-    sizeProc();
-    return true;
-  } catch (err) {
-    camReady = false;
-    return false;
-  }
-}
-
-let targetGameMode = "range";
-
-function enterGame() {
-  if (targetGameMode === "bay") {
-    setPhase("bay");
-  } else {
-    setPhase("range");
-  }
-}
-
-function goDesktopRange() {
-  if (S.lockAdvance) return;
-  S.lockAdvance = true;
-  S.desktop = true;
-  S.mode = "DESKTOP";
-  enterGame();
-}
-
-function goCalib() {
-  if (S.lockAdvance) return;
-  S.lockAdvance = true;
-  S.desktop = false;
-  S.camPts = [null, null, null, null];
-  S.H = null;
-  setPhase("calibrate");
-}
-
-let geminiLockPending = false;
-let geminiAutoTried = false;
-
+// --- Gemini 3.8 Flash Spatial Vision Lock ---
 async function requestGeminiLock() {
   if (geminiLockPending || phase !== "lock" || !camReady || !S.gray) return false;
   const st = $("lock-status");
@@ -919,6 +762,7 @@ async function requestGeminiLock() {
       S.locked = true;
       if (st) st.textContent = "AI LOCKED: " + (data.label || "MOUSE").toUpperCase();
       hitBlip(2);
+      speak(data.label ? "Fijado: " + data.label : "Fijado.");
       setTimeout(() => { if (phase === "lock") goCalib(); }, 500);
       geminiLockPending = false;
       return true;
@@ -929,6 +773,411 @@ async function requestGeminiLock() {
   geminiLockPending = false;
   if (st && phase === "lock" && !S.locked) st.textContent = "SEEKING";
   return false;
+}
+
+// --- Audio Synthesizer ---
+let actx = null;
+function unlockAudio() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === "suspended") actx.resume();
+}
+
+function bang() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(320, t);
+  osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+  gain.gain.setValueAtTime(0.42, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  osc.start(t);
+  osc.stop(t + 0.15);
+}
+
+function hitBlip(combo) {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  const baseFreq = 540 + Math.min(600, combo * 70);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(baseFreq, t);
+  osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, t + 0.08);
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  osc.start(t);
+  osc.stop(t + 0.11);
+}
+
+function missTick() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(140, t);
+  gain.gain.setValueAtTime(0.18, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  osc.start(t);
+  osc.stop(t + 0.04);
+}
+
+// ==========================================
+// --- Three.js 3D Engine Architecture ---
+// ==========================================
+let renderer, scene, camera;
+let gunGroup, gunBody, gunStripe, gunMuzzleLight;
+let rangeTargetGroup, shardGroup;
+let bayGroup, foeGroup, foeMesh, foeVisor;
+let tracerLines = [];
+
+function init3D() {
+  renderer = new THREE.WebGLRenderer({
+    canvas: canvas3D,
+    antialias: true,
+    powerPreference: "high-performance",
+  });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(dpr);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05080e);
+  scene.fog = new THREE.FogExp2(0x05080e, 0.04);
+
+  camera = new THREE.PerspectiveCamera(65, W / H, 0.1, 120);
+  camera.position.set(0, 1.64, 0);
+
+  // Ambient & Rim Lighting
+  const amb = new THREE.AmbientLight(0x223344, 0.9);
+  scene.add(amb);
+  const dir = new THREE.DirectionalLight(0xaaddee, 1.2);
+  dir.position.set(5, 12, 6);
+  scene.add(dir);
+
+  buildFirstPersonGun();
+  buildRange3D();
+  buildBay3D();
+}
+
+function buildFirstPersonGun() {
+  gunGroup = new THREE.Group();
+
+  // Cybernetic Mouse-Gun body
+  const bodyGeo = new THREE.BoxGeometry(0.08, 0.06, 0.22);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x11161d,
+    roughness: 0.35,
+    metalness: 0.8,
+  });
+  gunBody = new THREE.Mesh(bodyGeo, bodyMat);
+  gunGroup.add(gunBody);
+
+  // Mint Capacitor Stripe
+  const stripeGeo = new THREE.BoxGeometry(0.084, 0.012, 0.16);
+  const stripeMat = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  gunStripe = new THREE.Mesh(stripeGeo, stripeMat);
+  gunStripe.position.set(0, 0.026, 0.01);
+  gunGroup.add(gunStripe);
+
+  // Rust Wrist Accent
+  const rustGeo = new THREE.BoxGeometry(0.082, 0.04, 0.04);
+  const rustMat = new THREE.MeshStandardMaterial({
+    color: Locker.colors.rustHex,
+    roughness: 0.6,
+  });
+  const rustMesh = new THREE.Mesh(rustGeo, rustMat);
+  rustMesh.position.set(0, -0.01, 0.1);
+  gunGroup.add(rustMesh);
+
+  // Dynamic Muzzle Light
+  gunMuzzleLight = new THREE.PointLight(Locker.colors.mintHex, 0, 4);
+  gunMuzzleLight.position.set(0, 0, -0.16);
+  gunGroup.add(gunMuzzleLight);
+
+  // Default rest pose (lowered on pad)
+  gunGroup.position.set(0.24, -0.22, -0.42);
+  camera.add(gunGroup);
+  scene.add(camera);
+}
+
+function buildRange3D() {
+  rangeTargetGroup = new THREE.Group();
+  shardGroup = new THREE.Group();
+  scene.add(rangeTargetGroup);
+  scene.add(shardGroup);
+}
+
+function buildBay3D() {
+  bayGroup = new THREE.Group();
+  bayGroup.visible = false;
+  scene.add(bayGroup);
+
+  // Arena Floor Grid
+  const grid = new THREE.GridHelper(40, 20, 0x00f0ff, 0x113344);
+  grid.position.y = 0;
+  bayGroup.add(grid);
+
+  // Floor plane
+  const floorGeo = new THREE.PlaneGeometry(40, 40);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x03060a,
+    roughness: 0.9,
+    metalness: 0.2,
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  bayGroup.add(floor);
+
+  // Concrete Pillars & Barriers
+  const pillarGeo = new THREE.BoxGeometry(2.4, 8, 2.4);
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x09121c, roughness: 0.8 });
+  const p1 = new THREE.Mesh(pillarGeo, pillarMat);
+  p1.position.set(-6, 4, -4);
+  const p2 = new THREE.Mesh(pillarGeo, pillarMat);
+  p2.position.set(6, 4, -4);
+  bayGroup.add(p1);
+  bayGroup.add(p2);
+
+  // Left Window Cover
+  const coverGeo = new THREE.BoxGeometry(3.2, 2.4, 0.8);
+  const coverMat = new THREE.MeshStandardMaterial({ color: 0x0c1824, roughness: 0.6 });
+  const leftCover = new THREE.Mesh(coverGeo, coverMat);
+  leftCover.position.set(-5.5, 1.2, 4.0);
+  const rightCover = new THREE.Mesh(coverGeo, coverMat);
+  rightCover.position.set(5.5, 1.2, 3.5);
+  bayGroup.add(leftCover);
+  bayGroup.add(rightCover);
+
+  // Foe CANCHO Opponent Capsule
+  foeGroup = new THREE.Group();
+  const foeBodyGeo = new THREE.CapsuleGeometry(0.48, 1.1, 8, 16);
+  const foeBodyMat = new THREE.MeshStandardMaterial({ color: 0x141a22, roughness: 0.4 });
+  foeMesh = new THREE.Mesh(foeBodyGeo, foeBodyMat);
+  foeMesh.position.y = 1.0;
+  foeGroup.add(foeMesh);
+
+  // Mint Visor
+  const visorGeo = new THREE.BoxGeometry(0.52, 0.12, 0.32);
+  const visorMat = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  foeVisor = new THREE.Mesh(visorGeo, visorMat);
+  foeVisor.position.set(0, 1.35, 0.25);
+  foeGroup.add(foeVisor);
+
+  foeGroup.position.set(0, 0, -10);
+  bayGroup.add(foeGroup);
+}
+
+// --- 3D Target Spawn & Shatter ---
+function createTargetMesh(kind, hue) {
+  const group = new THREE.Group();
+  const geo = kind === "sine"
+    ? new THREE.OctahedronGeometry(0.55, 1)
+    : new THREE.IcosahedronGeometry(0.52, 0);
+
+  const col = new THREE.Color(`hsl(${hue}, 100%, 65%)`);
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: col,
+    emissive: col,
+    emissiveIntensity: 0.65,
+    roughness: 0.2,
+  });
+  const core = new THREE.Mesh(geo, coreMat);
+  group.add(core);
+
+  const wireMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+  const wire = new THREE.Mesh(geo, wireMat);
+  wire.scale.setScalar(1.12);
+  group.add(wire);
+
+  return { group, core, wire };
+}
+
+function spawnOrb3D(opts) {
+  const o = Object.assign({
+    x: 0, y: 0, r: 24, kind: "static", vx: 0, vy: 0,
+    amp: 0, freq: 0, baseY: 0, phase: 0, worth: 100, hue: 185,
+    life: 0, born: performance.now(),
+  }, opts);
+
+  const meshObj = createTargetMesh(o.kind, o.hue);
+  o.mesh = meshObj.group;
+  rangeTargetGroup.add(o.mesh);
+
+  // Position target in 3D camera frustum space at depth z = -5.0
+  const normX = (o.x / W) * 2 - 1;
+  const normY = -(o.y / H) * 2 + 1;
+  const depth = 5.2;
+  const v = new THREE.Vector3(normX, normY, 0.5).unproject(camera);
+  const dir = v.sub(camera.position).normalize();
+  const dist = depth / -dir.z;
+  o.mesh.position.copy(camera.position).add(dir.multiplyScalar(dist));
+
+  S.orbs.push(o);
+  return o;
+}
+
+function shatterTarget3D(pos, hue) {
+  const count = 16;
+  const col = new THREE.Color(`hsl(${hue}, 100%, 65%)`);
+  const shardMat = new THREE.MeshBasicMaterial({ color: col });
+  for (let i = 0; i < count; i++) {
+    const sGeo = new THREE.TetrahedronGeometry(0.08 + Math.random() * 0.08);
+    const m = new THREE.Mesh(sGeo, shardMat);
+    m.position.copy(pos);
+    const vel = new THREE.Vector3(
+      (Math.random() - 0.5) * 6,
+      (Math.random() - 0.5) * 6 + 1.5,
+      (Math.random() - 0.5) * 6
+    );
+    shardGroup.add(m);
+    S.parts.push({ mesh: m, vel, life: 0.6, age: 0 });
+  }
+}
+
+function addBulletTracer(from, to) {
+  const geo = new THREE.BufferGeometry().setFromPoints([from, to]);
+  const mat = new THREE.LineBasicMaterial({ color: Locker.colors.mintHex, linewidth: 2 });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  tracerLines.push({ line, age: 0, life: 0.065 });
+}
+
+// --- HID Fire Contract & Hitscan ---
+function fire() {
+  if (phase !== "range" && phase !== "bay" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
+  if (!S.desktop && S.smooth) {
+    const now = performance.now();
+    if (now - (S.trackT || 0) > 0) coastTrack(now);
+    updateAim();
+  }
+  // Peek the mailbox. Lift is the trigger. Camera already wrote S.aim.
+  const shot = aimBus.fire();
+  if (!S.desktop && !S.lifted) return;
+
+  bang();
+  S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;
+
+  // Gun recoil animation & muzzle flash in 3D
+  if (gunMuzzleLight) gunMuzzleLight.intensity = 3.5;
+  if (gunGroup) {
+    gunGroup.position.z += 0.07;
+    gunGroup.rotation.x += 0.15;
+  }
+
+  // Hitscan raycast from camera through Aim reticle UV
+  const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouseNorm, camera);
+
+  const muzzleWorld = new THREE.Vector3();
+  gunMuzzleLight.getWorldPosition(muzzleWorld);
+
+  if (phase === "bay") {
+    fireBay3D(raycaster, muzzleWorld);
+    return;
+  }
+
+  if (phase === "calibrate") {
+    S.shots++;
+    const tx = W / 2, ty = H / 2;
+    if (Math.hypot(S.aim.x - tx, S.aim.y - ty) < 48) {
+      hitBlip(1); S.hitstop = 1;
+      if (!S.enteringRange) {
+        S.enteringRange = true;
+        setTimeout(() => { S.enteringRange = false; enterGame(); }, 400);
+      }
+    } else missTick();
+    return;
+  }
+
+  S.shots++;
+  let hit = null;
+  for (const o of S.orbs) {
+    const dist = Math.hypot(S.aim.x - o.x, S.aim.y - o.y);
+    if (dist < o.r + 14) { hit = o; break; }
+  }
+
+  if (hit) {
+    S.combo++;
+    if (S.combo > S.comboMax) S.comboMax = S.combo;
+    const pts = hit.worth * S.combo;
+    S.score += pts; S.hits++;
+    hitBlip(S.combo); S.hitstop = 1;
+
+    const hitPos = hit.mesh.position.clone();
+    addBulletTracer(muzzleWorld, hitPos);
+    shatterTarget3D(hitPos, hit.hue);
+    popup(hit.x, hit.y - hit.r, (S.combo > 1 ? S.combo + "x " : "") + pts, hit.hue);
+
+    rangeTargetGroup.remove(hit.mesh);
+    S.orbs = S.orbs.filter((o) => o !== hit);
+  } else {
+    S.combo = 0;
+    missTick();
+    const farPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(20));
+    addBulletTracer(muzzleWorld, farPoint);
+  }
+}
+
+function fireBay3D(raycaster, muzzleWorld) {
+  if (Bay.frozen || Bay.over) { missTick(); return; }
+
+  const intersects = raycaster.intersectObject(foeMesh, true);
+  if (intersects.length > 0 && Bay.foe.alive) {
+    const hitPt = intersects[0].point;
+    addBulletTracer(muzzleWorld, hitPt);
+    Bay.you++;
+    Bay.foe.alive = false;
+    foeGroup.visible = false;
+    Bay.vo(Locker.operator.vo.hit);
+    hitBlip(Bay.you);
+    S.hitstop = 1;
+    shatterTarget3D(hitPt, 160);
+
+    if (Bay.you >= Bay.toWin) {
+      Bay.over = true;
+      Bay.frozen = true;
+      Bay.vo(Locker.operator.vo.win);
+    } else {
+      Bay.frozen = true;
+      Bay.freezeT = 0;
+    }
+  } else {
+    missTick();
+    Bay.missT = 0.06;
+    const farPt = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(24));
+    addBulletTracer(muzzleWorld, farPt);
+  }
+}
+
+function enterGame() {
+  if (targetGameMode === "bay") setPhase("bay");
+  else setPhase("range");
+}
+
+function goDesktopRange() {
+  if (S.lockAdvance) return;
+  S.lockAdvance = true;
+  S.desktop = true;
+  S.mode = "DESKTOP";
+  enterGame();
+}
+
+function goCalib() {
+  if (S.lockAdvance) return;
+  S.lockAdvance = true;
+  S.desktop = false;
+  S.camPts = [null, null, null, null];
+  S.H = null;
+  setPhase("calibrate");
 }
 
 function resetLockState() {
@@ -960,9 +1209,13 @@ async function play(target = "range") {
   }
   S.lockStart = performance.now();
 }
+
 function setPhase(next) {
   phase = next;
   for (const k of Object.keys(screens)) screens[k].hidden = k !== next;
+  if (rangeTargetGroup) rangeTargetGroup.visible = (next === "range");
+  if (bayGroup) bayGroup.visible = (next === "bay");
+
   if (next === "calibrate") {
     S.calibIndex = S.camPts.every(Boolean) ? 4 : firstMissingCorner();
     updateCalibMsg();
@@ -972,6 +1225,7 @@ function setPhase(next) {
   if (next === "bay") {
     Bay.active = true;
     Bay.resetMatch();
+    foeGroup.visible = true;
   }
   if (next === "results") showResults();
 }
@@ -990,11 +1244,14 @@ function updateCalibMsg() {
 
 function startRange() {
   S.enteringRange = false;
+  while (rangeTargetGroup && rangeTargetGroup.children.length > 0) {
+    rangeTargetGroup.remove(rangeTargetGroup.children[0]);
+  }
   S.orbs = []; S.parts = []; S.pops = [];
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.recoil = 0; S.punch = 0; S.flash = 0;
-  spawnOrb({ x: W / 2, y: H * 0.46, r: 42, kind: "static", worth: 100, hue: 180, first: true });
+  spawnOrb3D({ x: W / 2, y: H * 0.46, r: 38, kind: "static", worth: 100, hue: 180 });
 }
 
 function showResults() {
@@ -1040,36 +1297,27 @@ function tickLock(t) {
     if (st) st.textContent = "SEEKING";
   }
 }
-function spawnOrb(opts) {
-  const o = Object.assign({
-    x: 0, y: 0, r: 24, kind: "static", vx: 0, vy: 0,
-    amp: 0, freq: 0, baseY: 0, phase: 0, worth: 100, hue: 185,
-    life: 0, born: performance.now(), first: false,
-  }, opts);
-  S.orbs.push(o);
-  return o;
-}
 
 function randomOrb(hard) {
   let x, y, r, guard = 0;
   const small = hard || Math.random() < 0.28;
-  r = small ? 12 + Math.random() * 6 : 20 + Math.random() * 14;
+  r = small ? 14 + Math.random() * 6 : 22 + Math.random() * 12;
   do {
-    x = 70 + Math.random() * (W - 140);
-    y = 80 + Math.random() * (H - 160);
+    x = 90 + Math.random() * (W - 180);
+    y = 90 + Math.random() * (H - 180);
     guard++;
-  } while (nearOther(x, y, r + 36) && guard < 40);
+  } while (nearOther(x, y, r + 40) && guard < 40);
   const roll = Math.random();
   let kind = "static";
-  if (roll > 0.72) kind = "sine";
-  else if (roll > 0.42) kind = "drift";
-  const hue = small ? 318 : (Math.random() < 0.5 ? 185 : 162);
+  if (roll > 0.7) kind = "sine";
+  else if (roll > 0.4) kind = "drift";
+  const hue = small ? 320 : (Math.random() < 0.5 ? 185 : 160);
   const worth = small ? 250 : 100;
-  return spawnOrb({
+  return spawnOrb3D({
     x, y, r, kind, worth, hue,
     vx: kind === "drift" ? (Math.random() * 70 + 30) * (Math.random() < 0.5 ? -1 : 1) : 0,
     vy: kind === "drift" ? (Math.random() * 40 - 20) : 0,
-    amp: kind === "sine" ? 18 + Math.random() * 28 : 0,
+    amp: kind === "sine" ? 18 + Math.random() * 26 : 0,
     freq: kind === "sine" ? 1.2 + Math.random() * 1.6 : 0,
     baseY: y, phase: Math.random() * Math.PI * 2,
   });
@@ -1082,18 +1330,6 @@ function nearOther(x, y, minD) {
   return false;
 }
 
-function burst(x, y, hue, n) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const sp = 80 + Math.random() * 280;
-    S.parts.push({
-      x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      life: 0.35 + Math.random() * 0.35, age: 0,
-      r: 1.5 + Math.random() * 2.8, hue,
-    });
-  }
-}
-
 function popup(x, y, text, hue) {
   S.pops.push({ x, y, text, hue, age: 0, life: 0.7 });
 }
@@ -1102,15 +1338,16 @@ function desiredOrbCount(elapsed) {
   if (elapsed < 2000) return 1;
   if (elapsed < 12000) return 3;
   if (elapsed < 28000) return 5;
-  if (elapsed < 45000) return 6;
-  return 8;
+  return 6;
 }
+
 function updateRange(dt, now) {
   const elapsed = now - S.rangeStart;
   if (elapsed >= RANGE_MS) { setPhase("results"); return; }
   const want = desiredOrbCount(elapsed);
   const hard = elapsed > 35000;
   while (S.orbs.length < want && (elapsed >= 2000 || S.orbs.length === 0)) randomOrb(hard);
+
   for (const o of S.orbs) {
     o.life += dt;
     if (o.kind === "drift") {
@@ -1123,341 +1360,28 @@ function updateRange(dt, now) {
       o.phase += o.freq * dt;
       o.y = o.baseY + Math.sin(o.phase) * o.amp;
     }
+
+    if (o.mesh) {
+      const normX = (o.x / W) * 2 - 1;
+      const normY = -(o.y / H) * 2 + 1;
+      const depth = 5.2;
+      const v = new THREE.Vector3(normX, normY, 0.5).unproject(camera);
+      const dir = v.sub(camera.position).normalize();
+      o.mesh.position.copy(camera.position).add(dir.multiplyScalar(depth / -dir.z));
+      o.mesh.rotation.y += 1.4 * dt;
+      o.mesh.rotation.x += 0.8 * dt;
+    }
   }
-  for (const p of S.parts) {
-    p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt;
-    p.vx *= 0.92; p.vy *= 0.92; p.vy += 40 * dt;
-  }
-  S.parts = S.parts.filter((p) => p.age < p.life);
+
   for (const p of S.pops) { p.age += dt; p.y -= 36 * dt; }
   S.pops = S.pops.filter((p) => p.age < p.life);
 }
 
-function fire() {
-  if (phase !== "range" && phase !== "bay" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
-  if (!S.desktop && S.smooth) {
-    const now = performance.now();
-    if (now - (S.trackT || 0) > 0) coastTrack(now);
-    updateAim();
-  }
-  // Peek the mailbox. Lift is the trigger. Camera already wrote S.aim.
-  const shot = aimBus.fire();
-  if (!S.desktop && !S.lifted) return;
-  bang();
-  S.recoil = 2.2; S.flash = 0.04; S.punch = 1.6;
-  if (phase === "bay") {
-    fireBay(shot);
-    return;
-  }
-  if (phase === "calibrate") {
-    S.shots++;
-    const tx = W / 2, ty = H / 2;
-    if (Math.hypot(S.aim.x - tx, S.aim.y - ty) < 46) {
-      burst(tx, ty, 185, 18); hitBlip(1); S.hitstop = 1;
-      if (!S.enteringRange) {
-        S.enteringRange = true;
-        setTimeout(() => { S.enteringRange = false; enterGame(); }, 420);
-      }
-    } else missTick();
-    return;
-  }
-  S.shots++;
-  let hit = null, best = 1e9;
-  for (const o of S.orbs) {
-    const d = Math.hypot(S.aim.x - o.x, S.aim.y - o.y);
-    if (d < o.r + 7 && d < best) { best = d; hit = o; }
-  }
-  if (hit) {
-    S.combo++;
-    if (S.combo > S.comboMax) S.comboMax = S.combo;
-    const pts = hit.worth * S.combo;
-    S.score += pts; S.hits++;
-    burst(hit.x, hit.y, hit.hue, 12 + ((Math.random() * 9) | 0));
-    popup(hit.x, hit.y - hit.r, (S.combo > 1 ? S.combo + "x " : "") + pts, hit.hue);
-    hitBlip(S.combo); S.hitstop = 1;
-    S.orbs = S.orbs.filter((o) => o !== hit);
-  } else { S.combo = 0; missTick(); }
-}
-
-function fireBay(shot) {
-  if (Bay.frozen || Bay.over) {
-    missTick();
-    return;
-  }
-  const p = Bay.pos;
-  const fov = H * 0.9;
-  const screenX = S.aim.x - W * 0.5;
-  const screenY = -(S.aim.y - H * 0.5);
-  let rx = screenX / fov;
-  let ry = screenY / fov;
-  let rz = -1.0;
-  const rlen = Math.hypot(rx, ry, rz);
-  rx /= rlen; ry /= rlen; rz /= rlen;
-
-  const ocX = p.x - Bay.foe.x;
-  const ocY = p.y - Bay.foe.y;
-  const ocZ = p.z - Bay.foe.z;
-  const radius = Bay.foe.radius * 1.35;
-  const b = 2.0 * (ocX * rx + ocY * ry + ocZ * rz);
-  const c = (ocX * ocX + ocY * ocY + ocZ * ocZ) - radius * radius;
-  const disc = b * b - 4.0 * c;
-
-  if (disc >= 0 && Bay.foe.alive) {
-    const t = (-b - Math.sqrt(disc)) * 0.5;
-    if (t > 0) {
-      Bay.you++;
-      Bay.foe.alive = false;
-      Bay.vo(Locker.operator.vo.hit);
-      hitBlip(Bay.you);
-      S.hitstop = 1;
-      burst(S.aim.x, S.aim.y, 160, 24);
-      if (Bay.you >= Bay.toWin) {
-        Bay.over = true;
-        Bay.frozen = true;
-        Bay.vo(Locker.operator.vo.win);
-      } else {
-        Bay.frozen = true;
-        Bay.freezeT = 0;
-      }
-      return;
-    }
-  }
-  missTick();
-  Bay.missT = 0.06;
-}
-
-function captureCorner() {
-  let pt = null;
-  const now = performance.now();
-  const coasting = S.smooth && (now - S.lastDetAt) <= COAST_MS;
-  if (S.smooth && (S.det || S.forceGun || coasting)) pt = { x: S.smooth.x, y: S.smooth.y };
-  else if (S.desktop) {
-    const c = screenCorners()[S.calibIndex];
-    pt = { x: (c.x / W) * PROC_W, y: (c.y / H) * PROC_H };
-  }
-  if (!pt) { S.noLockFlash = 0.5; return; }
-  S.camPts[S.calibIndex] = pt;
-  S.calibFlash = 0.25;
-  computeH();
-  S.calibIndex = firstMissingCorner();
-  if (S.calibIndex >= 4) S.calibIndex = 4;
-  updateCalibMsg();
-}
-function fit() {
-  W = window.innerWidth;
-  H = window.innerHeight;
-  dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.width = Math.round(W * dpr);
-  canvas.height = Math.round(H * dpr);
-  canvas.style.width = W + "px";
-  canvas.style.height = H + "px";
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (S.camPts.every(Boolean)) computeH();
-}
-
-function bg() {
-  ctx.fillStyle = "#050508";
-  ctx.fillRect(0, 0, W, H);
-  const g = ctx.createRadialGradient(W * 0.5, H * 0.42, 40, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
-  g.addColorStop(0, "#0b1522");
-  g.addColorStop(1, "#050508");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-}
-
-function drawGrid() {
-  ctx.save();
-  ctx.strokeStyle = "rgba(0,240,255,0.045)";
-  ctx.lineWidth = 1;
-  const step = 48;
-  for (let x = 0; x < W; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-  ctx.restore();
-}
-
-function drawCrosshair(x, y) {
-  const yy = y + S.recoil;
-  ctx.save();
-  ctx.translate(x, yy);
-  const arms = [[0, -15, 0, -7], [0, 15, 0, 7], [-15, 0, -7, 0], [15, 0, 7, 0]];
-  function stroke(color, w) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = w;
-    ctx.lineCap = "square";
-    ctx.beginPath();
-    for (const a of arms) { ctx.moveTo(a[0], a[1]); ctx.lineTo(a[2], a[3]); }
-    ctx.moveTo(-5, -11); ctx.lineTo(0, -15); ctx.lineTo(5, -11);
-    ctx.moveTo(-5, 11); ctx.lineTo(0, 15); ctx.lineTo(5, 11);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 1.6, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  }
-  stroke("rgba(0,0,0,0.85)", 4.2);
-  stroke("#f4fbff", 1.6);
-  if (S.flash > 0) {
-    const a = S.flash / 0.04;
-    ctx.beginPath();
-    ctx.arc(0, 0, 10 + (1 - a) * 8, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,240,200," + (0.7 * a) + ")";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255,220,160," + (0.22 * a) + ")";
-    ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-function drawOrb(o, now) {
-  const t = (now - o.born) / 1000;
-  const pop = Math.min(1, t / 0.12);
-  const r = o.r * (0.2 + 0.8 * pop);
-  const pulse = 1 + Math.sin(now * 0.007 + o.x) * 0.04;
-  const rr = r * pulse;
-  const core = "hsla(" + o.hue + ",100%,62%,1)";
-  const glow = ctx.createRadialGradient(o.x, o.y, 1, o.x, o.y, rr * 2.1);
-  glow.addColorStop(0, "hsla(" + o.hue + ",100%,70%,0.55)");
-  glow.addColorStop(0.35, "hsla(" + o.hue + ",100%,50%,0.18)");
-  glow.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(o.x, o.y, rr * 2.1, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(o.x, o.y, rr, 0, Math.PI * 2);
-  ctx.fillStyle = "hsla(" + o.hue + ",95%,18%,0.92)";
-  ctx.fill();
-  ctx.strokeStyle = core;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(o.x - rr * 0.18, o.y - rr * 0.2, rr * 0.38, 0, Math.PI * 2);
-  ctx.fillStyle = "hsla(" + o.hue + ",100%,78%,0.95)";
-  ctx.fill();
-}
-
-function drawModeChip() {
-  const label = S.seeking && S.mode !== "DESKTOP" && !S.desktop ? "SEEKING" : S.mode;
-  const col = label === "GUN" ? "#00f0ff" : label === "DESKTOP" ? "#ffd56a" : label === "SEEKING" ? "#ff2bd6" : "#6a7a88";
-  ctx.save();
-  ctx.font = "700 11px system-ui, sans-serif";
-  ctx.letterSpacing = "0.18em";
-  const tw = ctx.measureText(label).width + 22;
-  ctx.fillStyle = "rgba(5,8,14,0.72)";
-  ctx.strokeStyle = col;
-  ctx.lineWidth = 1;
-  ctx.fillRect(16, 16, tw, 22);
-  ctx.strokeRect(16, 16, tw, 22);
-  ctx.fillStyle = col;
-  ctx.textBaseline = "middle";
-  ctx.fillText(label, 27, 28);
-  const q = clamp(Math.round(S.quality), 0, 100);
-  const qLabel = "CONF " + q;
-  ctx.letterSpacing = "0.12em";
-  const qw = ctx.measureText(qLabel).width + 22;
-  const qx = 16 + tw + 8;
-  const qCol = q >= 70 ? "#00f0ff" : q >= 40 ? "#ffd56a" : "#ff2bd6";
-  ctx.fillStyle = "rgba(5,8,14,0.72)";
-  ctx.strokeStyle = qCol;
-  ctx.fillRect(qx, 16, qw, 22);
-  ctx.strokeRect(qx, 16, qw, 22);
-  ctx.fillStyle = qCol;
-  ctx.fillText(qLabel, qx + 11, 26);
-  ctx.letterSpacing = "0";
-  ctx.fillStyle = "rgba(255,255,255,0.12)";
-  ctx.fillRect(qx + 4, 35, qw - 8, 3);
-  ctx.fillStyle = qCol;
-  ctx.fillRect(qx + 4, 35, (qw - 8) * (q / 100), 3);
-  ctx.restore();
-}
-function drawHUD(now) {
-  drawModeChip();
-  if (phase !== "range") return;
-  const left = Math.max(0, RANGE_MS - (now - S.rangeStart));
-  const sec = (left / 1000).toFixed(1);
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillStyle = "#f4fbff";
-  ctx.font = "900 34px Impact, 'Arial Narrow', system-ui, sans-serif";
-  ctx.fillText(String(S.score), W / 2, 16);
-  ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillStyle = "#00f0ff";
-  ctx.fillText("SCORE", W / 2, 52);
-  ctx.fillStyle = "#ff2bd6";
-  ctx.font = "900 22px Impact, 'Arial Narrow', system-ui, sans-serif";
-  if (S.combo > 1) ctx.fillText(S.combo + "x", W / 2, 70);
-  ctx.fillStyle = "#e8f6ff";
-  ctx.font = "700 18px Impact, 'Arial Narrow', system-ui, sans-serif";
-  ctx.textAlign = "right";
-  ctx.fillText(sec, W - HUD_PAD, 16);
-  ctx.font = "700 10px system-ui, sans-serif";
-  ctx.fillStyle = "#00f0ff";
-  ctx.fillText("TIME", W - HUD_PAD, 38);
-  ctx.restore();
-  if (S.mode === "PAD") {
-    S.liftPulse += 0.05;
-    ctx.save();
-    ctx.globalAlpha = 0.45 + Math.sin(S.liftPulse) * 0.2;
-    ctx.textAlign = "center";
-    ctx.font = "700 22px Impact, 'Arial Narrow', system-ui, sans-serif";
-    ctx.fillStyle = "#00f0ff";
-    ctx.letterSpacing = "0.2em";
-    ctx.fillText("LIFT THE MOUSE", W / 2, H * 0.78);
-    ctx.restore();
-  }
-}
-
-function drawCalib(now) {
-  const corners = screenCorners();
-  for (let i = 0; i < 4; i++) {
-    const c = corners[i];
-    const got = !!S.camPts[i];
-    const active = i === S.calibIndex && S.calibIndex < 4;
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, active ? 22 : 10, 0, Math.PI * 2);
-    ctx.strokeStyle = got ? "#00f0ff" : active ? "#ff2bd6" : "rgba(255,255,255,0.2)";
-    ctx.lineWidth = active ? 2.5 : 1.5;
-    ctx.stroke();
-    if (active) {
-      const pulse = 16 + Math.sin(now * 0.008) * 8;
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, 34 + pulse, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,43,214," + (0.35 + Math.sin(now * 0.01) * 0.2) + ")";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = "rgba(255,43,214,0.18)";
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, 14, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    if (got) {
-      ctx.fillStyle = "#00f0ff";
-      ctx.beginPath();
-      ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  if (S.calibIndex >= 4) {
-    drawOrb({ x: W / 2, y: H / 2, r: 38, hue: 185, born: now - 200, first: true }, now);
-  }
-  if (S.noLockFlash > 0) {
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, S.noLockFlash * 2);
-    ctx.fillStyle = "#ff2bd6";
-    ctx.font = "700 16px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("NO LOCK", W / 2, H * 0.18);
-    ctx.restore();
-  }
-}
 function tickBay(dt) {
   if (phase !== "bay") return;
   const sample = aimBus.peek();
 
-  // VO triggers on lift state transition
+  // VO on lift state transition
   if (!Bay.over) {
     if (sample.lifted && !Bay.wasLifted) {
       Bay.vo(Locker.operator.vo.lift);
@@ -1467,26 +1391,19 @@ function tickBay(dt) {
   }
   Bay.wasLifted = sample.lifted;
 
-  // Particle update in Bay
-  for (const p of S.parts) {
-    p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt;
-    p.vx *= 0.92; p.vy *= 0.92; p.vy += 40 * dt;
-  }
-  S.parts = S.parts.filter((p) => p.age < p.life);
-
-  // Freeze ticking
   if (Bay.frozen && !Bay.over) {
     Bay.freezeT += dt;
     if (Bay.freezeT >= Bay.freezePadS && !sample.lifted) {
       Bay.round++;
       Bay.resetRound();
+      foeGroup.visible = true;
     }
     return;
   }
 
   if (Bay.over) return;
 
-  // WASD only on the mat (PAD). Lift locks walk: physical ADS!
+  // WASD only on pad (PAD mode). Lift locks walk for physical ADS aiming!
   if (!sample.lifted) {
     let mx = 0, mz = 0;
     if (Bay.keys.w) mz -= 1;
@@ -1495,10 +1412,24 @@ function tickBay(dt) {
     if (Bay.keys.d) mx += 1;
     if (mx !== 0 && mz !== 0) { mx *= 0.7071; mz *= 0.7071; }
     Bay.pos.x = clamp(Bay.pos.x + mx * Bay.speed * dt, -7.0, 7.0);
-    Bay.pos.z = clamp(Bay.pos.z + mz * Bay.speed * dt, 1.0, 12.0);
+    Bay.pos.z = clamp(Bay.pos.z + mz * Bay.speed * dt, 1.0, 14.0);
+    camera.position.x = Bay.pos.x;
+    camera.position.z = Bay.pos.z;
   }
 
-  // Check Open Middle exposure
+  // Foe bot strafe AI
+  if (Bay.foe.alive) {
+    Bay.foe.strafeT += dt;
+    if (Bay.foe.strafeT > 1.8) {
+      Bay.foe.strafeT = 0;
+      Bay.foe.strafeDir = Math.random() < 0.5 ? 1 : -1;
+    }
+    Bay.foe.x = clamp(Bay.foe.x + Bay.foe.strafeDir * 2.8 * dt, -4.5, 4.5);
+    foeGroup.position.set(Bay.foe.x, Bay.foe.y, Bay.foe.z);
+    foeGroup.lookAt(camera.position.x, foeGroup.position.y, camera.position.z);
+  }
+
+  // Open Middle Danger
   const inWindow = Bay.pos.x < -4.8;
   const inAngle = Bay.pos.x > 4.6;
   const inOpen = !inWindow && !inAngle && Bay.pos.z < 8.0;
@@ -1525,110 +1456,140 @@ function tickBay(dt) {
   if (Bay.missT > 0) Bay.missT = Math.max(0, Bay.missT - dt);
 }
 
-function drawBay(now) {
-  ctx.fillStyle = "#030406";
-  ctx.fillRect(0, 0, W, H);
-
-  const p = Bay.pos;
-  const fov = H * 0.9;
-  function proj(x, y, z) {
-    const dx = x - p.x;
-    const dy = y - p.y;
-    const dz = z - p.z;
-    if (dz >= -0.2) return null;
-    const invZ = 1.0 / -dz;
-    return {
-      x: W * 0.5 + dx * invZ * fov,
-      y: H * 0.5 - dy * invZ * fov,
-      scale: invZ * fov
-    };
+function captureCorner() {
+  let pt = null;
+  const now = performance.now();
+  const coasting = S.smooth && (now - S.lastDetAt) <= COAST_MS;
+  if (S.smooth && (S.det || S.forceGun || coasting)) pt = { x: S.smooth.x, y: S.smooth.y };
+  else if (S.desktop) {
+    const c = screenCorners()[S.calibIndex];
+    pt = { x: (c.x / W) * PROC_W, y: (c.y / H) * PROC_H };
   }
-
-  // Perspective Floor Grid
-  ctx.save();
-  ctx.strokeStyle = "rgba(0, 240, 255, 0.08)";
-  ctx.lineWidth = 1;
-  for (let gx = -8; gx <= 8; gx += 2) {
-    const p1 = proj(gx, 0, -18);
-    const p2 = proj(gx, 0, 14);
-    if (p1 && p2) {
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-    }
-  }
-  for (let gz = -18; gz <= 14; gz += 2) {
-    const p1 = proj(-8, 0, gz);
-    const p2 = proj(8, 0, gz);
-    if (p1 && p2) {
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-    }
-  }
-
-  // Cover Pillars
-  function drawBox(bx, bz, bw, bh, color) {
-    const b1 = proj(bx - bw / 2, 0, bz);
-    const b2 = proj(bx + bw / 2, 0, bz);
-    const t1 = proj(bx - bw / 2, bh, bz);
-    const t2 = proj(bx + bw / 2, bh, bz);
-    if (b1 && b2 && t1 && t2) {
-      ctx.fillStyle = color;
-      ctx.strokeStyle = Locker.colors.mint;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y);
-      ctx.lineTo(t2.x, t2.y); ctx.lineTo(t1.x, t1.y);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-  drawBox(-5.5, 4.0, 2.2, 2.8, "rgba(8, 22, 32, 0.85)");
-  drawBox(5.5, 4.0, 2.2, 2.8, "rgba(8, 22, 32, 0.85)");
-
-  // Opponent Capsule
-  if (Bay.foe.alive) {
-    const fp = proj(Bay.foe.x, Bay.foe.y, Bay.foe.z);
-    if (fp) {
-      const radius = Bay.foe.radius * fp.scale;
-      const height = radius * 2.8;
-      ctx.fillStyle = Locker.equippedStyle === STYLE_NIGHT ? "#0c1015" : "#141c24";
-      ctx.strokeStyle = Locker.colors.mint;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(fp.x, fp.y, radius, height * 0.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      // Mint Visor / Stripe
-      ctx.fillStyle = Locker.colors.mint;
-      ctx.fillRect(fp.x - radius * 0.6, fp.y - height * 0.25, radius * 1.2, height * 0.1);
-
-      // Rust Arm Accent
-      ctx.fillStyle = Locker.colors.rust;
-      ctx.fillRect(fp.x - radius * 0.8, fp.y + height * 0.1, radius * 0.35, height * 0.15);
-      ctx.fillRect(fp.x + radius * 0.45, fp.y + height * 0.1, radius * 0.35, height * 0.15);
-    }
-  }
-
-  // Draw Hit Particles in Bay
-  for (const p of S.parts) {
-    const a = 1 - p.age / p.life;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fillStyle = "hsla(" + p.hue + ",100%,70%," + a + ")";
-    ctx.fill();
-  }
-  ctx.restore();
-
-  drawBayHUD(now);
+  if (!pt) { S.noLockFlash = 0.5; return; }
+  S.camPts[S.calibIndex] = pt;
+  S.calibFlash = 0.25;
+  computeH();
+  S.calibIndex = firstMissingCorner();
+  if (S.calibIndex >= 4) S.calibIndex = 4;
+  updateCalibMsg();
 }
 
-function drawBayHUD(now) {
+function fit() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+
+  canvas3D.width = Math.round(W * dpr);
+  canvas3D.height = Math.round(H * dpr);
+  canvasHUD.width = Math.round(W * dpr);
+  canvasHUD.height = Math.round(H * dpr);
+
+  canvas3D.style.width = W + "px";
+  canvas3D.style.height = H + "px";
+  canvasHUD.style.width = W + "px";
+  canvasHUD.style.height = H + "px";
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  if (renderer && camera) {
+    renderer.setSize(W, H);
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+  }
+  if (S.camPts.every(Boolean)) computeH();
+}
+
+// --- 2D HUD Rendering ---
+function drawCrosshair(x, y) {
+  const yy = y + S.recoil;
+  ctx.save();
+  ctx.translate(x, yy);
+  const arms = [[0, -15, 0, -7], [0, 15, 0, 7], [-15, 0, -7, 0], [15, 0, 7, 0]];
+  ctx.strokeStyle = Locker.colors.mint;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (const a of arms) { ctx.moveTo(a[0], a[1]); ctx.lineTo(a[2], a[3]); }
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+  ctx.fillStyle = Locker.colors.mint;
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawModeChip() {
+  const label = S.seeking && S.mode !== "DESKTOP" && !S.desktop ? "SEEKING" : S.mode;
+  const col = label === "GUN" ? "#00f0ff" : label === "DESKTOP" ? "#ffd56a" : label === "SEEKING" ? "#ff2bd6" : "#6a7a88";
+  ctx.save();
+  ctx.font = "700 11px system-ui, sans-serif";
+  ctx.letterSpacing = "0.18em";
+  const tw = ctx.measureText(label).width + 22;
+  ctx.fillStyle = "rgba(5,8,14,0.78)";
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  ctx.fillRect(16, 16, tw, 22);
+  ctx.strokeRect(16, 16, tw, 22);
+  ctx.fillStyle = col;
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, 27, 28);
+
+  const q = clamp(Math.round(S.quality), 0, 100);
+  const qLabel = "CONF " + q;
+  ctx.letterSpacing = "0.12em";
+  const qw = ctx.measureText(qLabel).width + 22;
+  const qx = 16 + tw + 8;
+  const qCol = q >= 70 ? "#00f0ff" : q >= 40 ? "#ffd56a" : "#ff2bd6";
+  ctx.fillStyle = "rgba(5,8,14,0.78)";
+  ctx.strokeStyle = qCol;
+  ctx.fillRect(qx, 16, qw, 22);
+  ctx.strokeRect(qx, 16, qw, 22);
+  ctx.fillStyle = qCol;
+  ctx.fillText(qLabel, qx + 11, 26);
+  ctx.restore();
+}
+
+function drawHUD(now) {
+  drawModeChip();
+  if (phase !== "range") return;
+  const left = Math.max(0, RANGE_MS - (now - S.rangeStart));
+  const sec = (left / 1000).toFixed(1);
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "#f4fbff";
+  ctx.font = "900 34px Impact, system-ui, sans-serif";
+  ctx.fillText(String(S.score), W / 2, 16);
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.fillStyle = "#00f0ff";
+  ctx.fillText("SCORE", W / 2, 52);
+  if (S.combo > 1) {
+    ctx.fillStyle = "#ff2bd6";
+    ctx.font = "900 22px Impact, system-ui, sans-serif";
+    ctx.fillText(S.combo + "x", W / 2, 70);
+  }
+  ctx.fillStyle = "#e8f6ff";
+  ctx.font = "700 18px Impact, system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(sec, W - HUD_PAD, 16);
+  ctx.font = "700 10px system-ui, sans-serif";
+  ctx.fillStyle = "#00f0ff";
+  ctx.fillText("TIME", W - HUD_PAD, 38);
+  ctx.restore();
+
+  if (S.mode === "PAD") {
+    S.liftPulse += 0.05;
+    ctx.save();
+    ctx.globalAlpha = 0.45 + Math.sin(S.liftPulse) * 0.2;
+    ctx.textAlign = "center";
+    ctx.font = "700 22px Impact, system-ui, sans-serif";
+    ctx.fillStyle = "#00f0ff";
+    ctx.letterSpacing = "0.2em";
+    ctx.fillText("LIFT THE MOUSE", W / 2, H * 0.78);
+    ctx.restore();
+  }
+}
+
+function drawBayHUD() {
   ctx.save();
   const op = Locker.operator;
   ctx.font = "700 22px system-ui, sans-serif";
@@ -1663,8 +1624,7 @@ function drawBayHUD(now) {
     ctx.fillStyle = "rgba(255, 43, 214, 0.2)";
     ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120, 6);
     ctx.fillStyle = "#ff2bd6";
-    const frac = clamp(Bay.expose / Bay.exposeMax, 0, 1);
-    ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120 * frac, 6);
+    ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120 * clamp(Bay.expose / Bay.exposeMax, 0, 1), 6);
   }
 
   drawModeChip();
@@ -1680,82 +1640,153 @@ function drawBayHUD(now) {
   ctx.fillStyle = "rgba(232, 246, 255, 0.55)";
   ctx.textAlign = "center";
   if (Bay.over) {
-    ctx.fillText(`${Bay.you >= Bay.toWin ? "VICTORY" : "DEFEATED"} · ${op.vo.win} · First to 5`, W * 0.5, H - 32);
+    ctx.fillText(`${Bay.you >= Bay.toWin ? "VICTORIA" : "DERROTA"} · ${op.vo.win} · Primer a 5`, W * 0.5, H - 32);
   } else if (Bay.frozen) {
-    ctx.fillText("ROUND FROZEN · DROP TO PAD (LIFT OFF) TO CONTINUE", W * 0.5, H - 32);
+    ctx.fillText("RONDA CONGELADA · BAJA EL RATÓN AL PAD PARA CONTINUAR", W * 0.5, H - 32);
   } else {
-    ctx.fillText(`WASD on pad  ·  LIFT to lock walk & point  ·  CLICK fire  ·  L cycle look (${Locker.equippedStyle})  ·  First to 5`, W * 0.5, H - 32);
+    ctx.fillText(`WASD en pad  ·  LEVANTA para bloquear paso y apuntar  ·  CLIC dispara  ·  L cambia estilo (${Locker.equippedStyle})`, W * 0.5, H - 32);
   }
   ctx.restore();
 }
 
-function draw() {
-  const now = performance.now();
-  ctx.save();
-  if (S.punch > 0.05) {
-    const a = Math.random() * Math.PI * 2;
-    ctx.translate(Math.cos(a) * S.punch, Math.sin(a) * S.punch);
+function drawCalib(now) {
+  const corners = screenCorners();
+  for (let i = 0; i < 4; i++) {
+    const c = corners[i];
+    const got = !!S.camPts[i];
+    const active = i === S.calibIndex && S.calibIndex < 4;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, active ? 22 : 10, 0, Math.PI * 2);
+    ctx.strokeStyle = got ? "#00f0ff" : active ? "#ff2bd6" : "rgba(255,255,255,0.2)";
+    ctx.lineWidth = active ? 2.5 : 1.5;
+    ctx.stroke();
   }
-  if (phase === "bay") {
-    drawBay(now);
+}
+
+// --- Main Render Loop ---
+function draw2D(now) {
+  ctx.clearRect(0, 0, W, H);
+  if (phase === "lock") {
+    drawModeChip();
+  } else if (phase === "calibrate") {
+    drawCalib(now);
     drawCrosshair(S.aim.x, S.aim.y);
-  } else {
-    bg();
-    drawGrid();
-    if (phase === "lock") {
-      drawModeChip();
-    } else if (phase === "calibrate") {
-      drawCalib(now);
-      drawCrosshair(S.aim.x, S.aim.y);
-      drawModeChip();
-    } else if (phase === "range") {
-      for (const o of S.orbs) drawOrb(o, now);
-      for (const p of S.parts) {
-        const a = 1 - p.age / p.life;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "hsla(" + p.hue + ",100%,70%," + a + ")";
-        ctx.fill();
-      }
-      for (const p of S.pops) {
-        const a = 1 - p.age / p.life;
-        ctx.globalAlpha = a;
-        ctx.fillStyle = "hsla(" + p.hue + ",100%,70%,1)";
-        ctx.font = "700 16px system-ui, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(p.text, p.x, p.y);
-        ctx.globalAlpha = 1;
-      }
-      drawCrosshair(S.aim.x, S.aim.y);
-      drawHUD(now);
+    drawModeChip();
+  } else if (phase === "range") {
+    for (const p of S.pops) {
+      const a = 1 - p.age / p.life;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "hsla(" + p.hue + ",100%,70%,1)";
+      ctx.font = "700 16px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.globalAlpha = 1;
     }
+    drawCrosshair(S.aim.x, S.aim.y);
+    drawHUD(now);
+  } else if (phase === "bay") {
+    drawCrosshair(S.aim.x, S.aim.y);
+    drawBayHUD();
   }
-  ctx.restore();
 }
 
 function frame(t) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, lastT ? (t - lastT) / 1000 : 0.016);
   lastT = t;
+
   if (camReady) {
     if (grabFrame()) runTrack(t);
     else coastTrack(t);
     updateMode(t);
     updateAim();
   }
+
   if (phase === "lock") tickLock(t);
-  if (S.hitstop > 0) { S.hitstop--; draw(); return; }
-  S.recoil += (0 - S.recoil) * Math.min(1, dt * 18);
-  S.punch *= Math.max(0, 1 - dt * 14);
-  S.flash = Math.max(0, S.flash - dt);
-  S.noLockFlash = Math.max(0, S.noLockFlash - dt);
-  S.calibFlash = Math.max(0, S.calibFlash - dt);
   if (phase === "range") updateRange(dt, t);
   if (phase === "bay") tickBay(dt);
+
+  // Recoil decay & camera punch
+  S.recoil += (0 - S.recoil) * Math.min(1, dt * 18);
+  S.punch *= Math.max(0, 1 - dt * 14);
+
+  // First-Person Gun 3D Pose: Lowered on pad, Raised in ADS when lifted
+  if (gunGroup) {
+    const targetY = S.lifted ? -0.16 : -0.24;
+    const targetX = S.lifted ? 0.08 : 0.24;
+    const targetZ = S.lifted ? -0.36 : -0.42;
+    gunGroup.position.x += (targetX - gunGroup.position.x) * Math.min(1, dt * 14);
+    gunGroup.position.y += (targetY - gunGroup.position.y) * Math.min(1, dt * 14);
+    gunGroup.position.z += (targetZ - gunGroup.position.z) * Math.min(1, dt * 14);
+    gunGroup.rotation.x += (0 - gunGroup.rotation.x) * Math.min(1, dt * 16);
+  }
+  if (gunMuzzleLight && gunMuzzleLight.intensity > 0) {
+    gunMuzzleLight.intensity = Math.max(0, gunMuzzleLight.intensity - dt * 30);
+  }
+
+  // Decay 3D shards
+  for (const s of S.parts) {
+    s.age += dt;
+    s.mesh.position.addScaledVector(s.vel, dt);
+    s.vel.y -= 9.8 * dt;
+    s.mesh.rotation.x += 4 * dt;
+    s.mesh.rotation.y += 3 * dt;
+  }
+  for (let i = S.parts.length - 1; i >= 0; i--) {
+    if (S.parts[i].age >= S.parts[i].life) {
+      shardGroup.remove(S.parts[i].mesh);
+      S.parts.splice(i, 1);
+    }
+  }
+
+  // Decay bullet tracers
+  for (let i = tracerLines.length - 1; i >= 0; i--) {
+    tracerLines[i].age += dt;
+    if (tracerLines[i].age >= tracerLines[i].life) {
+      scene.remove(tracerLines[i].line);
+      tracerLines.splice(i, 1);
+    }
+  }
+
+  // 3D Scene Render
+  if (renderer && scene && camera) {
+    renderer.render(scene, camera);
+  }
+
+  // 2D Canvas HUD Overlay
+  draw2D(t);
   syncCursor();
-  draw();
 }
-canvas.addEventListener("pointerdown", (e) => {
+
+async function enableCamera() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    cam.srcObject = stream;
+    cam.setAttribute("playsinline", "");
+    cam.muted = true;
+    cam.setAttribute("aria-hidden", "true");
+    if (!cam.videoWidth) {
+      await new Promise((res) => {
+        cam.onloadedmetadata = () => res();
+        setTimeout(() => res(), 1500);
+      });
+    }
+    await cam.play();
+    camReady = true;
+    sizeProc();
+    return true;
+  } catch (err) {
+    camReady = false;
+    return false;
+  }
+}
+
+// --- Event Listeners & Input ---
+canvasHUD.addEventListener("pointerdown", (e) => {
   if (e.button !== 0) return;
   unlockAudio();
   if (phase === "lock") {
@@ -1775,7 +1806,10 @@ canvas.addEventListener("pointerdown", (e) => {
     else fire();
     return;
   }
-  if (phase === "range" || phase === "bay") { e.preventDefault(); fire(); }
+  if (phase === "range" || phase === "bay") {
+    e.preventDefault();
+    fire();
+  }
 });
 
 window.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -1798,7 +1832,7 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyD") Bay.keys.d = true;
   if (e.code === "KeyL") {
     const nextStyle = Locker.cycleStyle();
-    Bay.vo("STYLE: " + nextStyle.toUpperCase());
+    Bay.vo("ESTILO: " + nextStyle.toUpperCase());
   }
 });
 
@@ -1814,13 +1848,11 @@ window.addEventListener("resize", fit);
 
 $("btn-play").addEventListener("click", () => { play("range"); });
 const btnBay = $("btn-bay");
-if (btnBay) {
-  btnBay.addEventListener("click", () => { play("bay"); });
-}
+if (btnBay) btnBay.addEventListener("click", () => { play("bay"); });
+
 const btnGemini = $("btn-gemini-lock");
-if (btnGemini) {
-  btnGemini.addEventListener("click", () => { requestGeminiLock(); });
-}
+if (btnGemini) btnGemini.addEventListener("click", () => { requestGeminiLock(); });
+
 $("btn-redo").addEventListener("click", () => {
   let last = -1;
   for (let i = 0; i < 4; i++) if (S.camPts[i]) last = i;
@@ -1842,13 +1874,16 @@ $("btn-recal").addEventListener("click", () => {
 
 function syncCursor() {
   const hide = phase === "range" || phase === "bay" || phase === "calibrate" || phase === "lock";
-  canvas.classList.toggle("nocursor", hide);
+  canvas3D.classList.toggle("nocursor", hide);
+  canvasHUD.classList.toggle("nocursor", hide);
   const v = hide ? "none" : "";
   document.body.style.cursor = v;
   document.documentElement.style.cursor = v;
 }
 
+// --- Initialize Engine ---
 fit();
+init3D();
 S.aim.x = W / 2;
 S.aim.y = H / 2;
 requestAnimationFrame(frame);

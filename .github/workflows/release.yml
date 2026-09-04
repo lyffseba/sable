@@ -57,11 +57,12 @@ jobs:
           test -f proto/game.js
           test -f proto/style.css
           test -f proto/README.md
+          test -f proto/package.json
+          test -f proto/vendor/three.module.js
           test -f tools/serve_proto.py
           test -f tools/gemini_muzzle_tracker.py
-          zip -j "sable-proto-${TAG}.zip" \
-            proto/index.html proto/game.js proto/style.css proto/README.md \
-            tools/serve_proto.py tools/gemini_muzzle_tracker.py
+          (cd proto && zip -r "../sable-proto-${TAG}.zip" index.html game.js style.css README.md package.json vendor/)
+          zip -u "sable-proto-${TAG}.zip" -j tools/serve_proto.py tools/gemini_muzzle_tracker.py
           sha256sum "sable-proto-${TAG}.zip" | tee "sable-proto-${TAG}.zip.sha256"
           ls -l "sable-proto-${TAG}.zip"
 

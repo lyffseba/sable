@@ -1,0 +1,7 @@
+{
+  "name": "sable-client",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "SABLE WebGL physical-aim arena FPS"
+}
