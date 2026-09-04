@@ -27,6 +27,8 @@ TEXT_SUFFIX = {
     ".html",
     ".css",
     ".json",
+    ".mojo",
+    ".toml",
     ".hpp",
     ".h",
     ".hh",

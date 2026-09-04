@@ -43,23 +43,19 @@ Return strictly valid JSON with keys:
 
 
 def get_api_key() -> str:
-    # 1. Environment variable
-    key = os.environ.get("GEMINI_API_KEY")
-    if key and not key.startswith("AIzaSyCQD_F0DJxGuS"):
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if key:
         return key
-
-    # 2. Check ~/.pi/agent/auth.json
     auth_file = pathlib.Path.home() / ".pi/agent/auth.json"
     if auth_file.is_file():
         try:
             data = json.loads(auth_file.read_text())
             gkey = data.get("google", {}).get("key")
             if gkey:
-                return gkey
+                return str(gkey)
         except Exception:
             pass
-
-    return key or ""
+    return ""
 
 
 def detect_mouse_in_image(image_bytes: bytes, mime_type: str = "image/jpeg", key: str = "") -> dict:

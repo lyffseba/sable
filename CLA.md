@@ -1,14 +1,47 @@
-# Contributor License Agreement (sketch)
+# Developer Certificate of Origin
 
-By submitting a contribution to SABLE you assign (or, where assignment is
-not possible, irrevocably license) to the studio all right, title, and
-interest in that contribution, including the right to relicense it as
-**proprietary** game content and to ship binaries without granting
-recipients source rights.
+SABLE is Apache-2.0. Contributions are inbound under the same license.
 
-You represent that the contribution is your original work, that it contains
-**no third-party game IP**, and that it is not licensed under the GPL or
-any other copyleft term that would infect the client or dedicated server.
+By submitting a contribution you certify the Developer Certificate of Origin
+(DCO 1.1):
 
-This is an inbound CLA sketch so the studio can ship a proprietary title.
-A countersigned copy may replace this file.
+```
+Developer Certificate of Origin
+Version 1.1
+
+Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and acknowledge that this project and the
+    contribution are public and that a record of the contribution
+    (including all personal information I submit with it,
+    including my sign-off) is maintained indefinitely and may be
+    redistributed consistent with this project or the open source
+    license(s) involved.
+```
+
+Sign-off: include `Signed-off-by: Name <email>` in the commit message.
+
+No GPL / AGPL / SSPL in client or server. Third-party game IP is still out.

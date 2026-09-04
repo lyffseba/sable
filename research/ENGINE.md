@@ -9,4 +9,5 @@
   - **Range**: 60s physical ADS arcade target practice loop.
   - **Bay 1v1**: CANCHO duel arena with 3D perspective projection, WASD pad movement, physical lift ADS, window/angle cover vs open middle exposure, and operator styles (`default`, `ranked`, `night`).
 - **Floor**: 1080p60 on integrated graphics / GTX 1650; 1080p120 on modern GPUs. Zero install required.
-- **Repo**: https://github.com/lyffseba/sable (private)
+- **Native kernels**: Mojo 1.0 via Pixi (`native/mojo`) — One Euro, spatial moments, 3D hitscan.
+- **License**: Apache-2.0. Repo: https://github.com/lyffseba/sable

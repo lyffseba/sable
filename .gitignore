@@ -23,6 +23,9 @@ mono_crash.*.json
 __pycache__/
 *.py[cod]
 
+# Pixi
+.pixi/
+
 # Secrets
 .env
 .env.*
