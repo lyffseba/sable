@@ -19,6 +19,10 @@ export_credentials.cfg
 data_*/
 mono_crash.*.json
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Secrets
 .env
 .env.*
