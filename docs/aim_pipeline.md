@@ -2,12 +2,12 @@
 
 SABLE is a physical-aim FPS. The unique verb is **raise your hand, point the fingertip at the monitor, click**. A MacBook webcam is enough. Everything else in this repo exists to serve that pose.
 
-This document is the contract. The live tracker is `proto/game.js` (`findHand` + fingertip NCC + One Euro). `native/cv_input` holds the filter / AimSample tests. Fire is HID.
+This document is the contract. The live tracker is `proto/game.js`: MediaPipe Hands (`mpTrack`, landmark 8) then `fallbackSkin` (`findHand` + NCC) + One Euro. `native/cv_input` holds the filter / AimSample tests. Fire is HID. See `research/HANDS.md`.
 
 ## Hardware
 
 - Built-in laptop webcam (lid camera). No mouse in the air. No sleeve. No marker.
-- Point the index finger / finger-gun at the screen. Trackpad or HID click fires.
+- Point the index finger at the screen. Trackpad click or pinch (thumb↔index) fires.
 - Target camera: cheap laptop modules. **720p30, MJPEG, auto-exposure, noisy, rolling shutter.** Immaculate aim must still work here.
 
 Turn **auto-exposure and auto-white-balance off** when the driver allows it (V4L2: `V4L2_CID_EXPOSURE_AUTO` manual, `V4L2_CID_AUTO_WHITE_BALANCE` = 0). If the platform ignores the lock, the pipeline **adapts thresholds every N frames** instead of fighting AE.
