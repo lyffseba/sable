@@ -79,6 +79,10 @@ def main() -> int:
         report_at = fire.find("reportSharedFire")
         if hid_at < 0 or report_at < 0 or hid_at > report_at:
             _fail("shared report must run after local hitscan, never instead of it")
+        begin_at = fire.find("SablePerf.begin")
+        bang_at = fire.find("bang();")
+        if begin_at < 0 or bang_at < 0 or begin_at > bang_at:
+            _fail("SablePerf t0 must be before bang — HID→hitscan bar is unordered")
         if "sharedMatch()" not in fire:
             _fail("shared report must be gated — Offline/WARM UP must shoot without a room")
 

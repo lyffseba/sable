@@ -97,7 +97,7 @@ Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns G
 | HID click → hitscan           | **< 8 ms**    |
 | Filter-only lag (pointing)    | 8–20 ms       |
 
-The shot reads `AimBus` on the click. It does not wait for the next 30 Hz sample. It does not recompute aim. `?sableperf=1` (or `localStorage.SablePerf=1`) records HID→hitscan samples; `SablePerf.stats()` reports p50/p99 against this 8 ms bar.
+The shot reads `AimBus` on the click. It does not wait for the next 30 Hz sample, the Hands worker, or net. It does not recompute aim. `?sableperf=1` (or `localStorage.SablePerf=1`) records HID→hitscan samples (`t0` before `bang()`); `SablePerf.stats()` reports p50/p99 against this 8 ms bar.
 
 ## Desktop fallback
 
@@ -111,4 +111,4 @@ If `cv_input` is not loaded, or the operator presses **T**, UV is the OS cursor 
 - Two-frame dropout: UV continues, does not jump to the origin.
 - HID fire uses the last sample while frames are missing.
 
-`tools/test_hid_fire.py` repeats the fire contract against the GDScript input module.
+`tools/test_hid_fire.py` repeats the fire contract against the proto mailbox. `tools/test_sableperf.py` fails loud if Worker `detectForVideo` sneaks back onto main rAF, if `SablePerf` `t0` is not before `bang()`, or if fire waits on the worker.

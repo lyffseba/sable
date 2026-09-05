@@ -58,6 +58,10 @@ def main() -> int:
             _fail("mpTrack must kick the worker, not detect on main")
         if "detectForVideo" in mp:
             _fail("mpTrack happy path called detectForVideo on main")
+        for name in ("frame", "runTrack", "armVideoTrack"):
+            body = _js_fn(js, name)
+            if "detectForVideo" in body or "mpTrackMain" in body:
+                _fail(f"{name} ran HandLandmarker.detect on main rAF")
 
         fire = _js_fn(js, "fire")
         if re.search(r"await\s+", fire):
