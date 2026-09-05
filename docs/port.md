@@ -22,11 +22,11 @@ Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissiv
 
 ### Modes
 
-Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM UP**, **ENTER RANGE** on the Yard. **BAY** is parked (not player-facing). Internal house phase stays `range`. Contract: `docs/modes.md`.
+Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM UP**, **ENTER RANGE**, **BAY** / **ENTER BAY**. Gallery is never the only gun. **BAY** / **ENTER BAY** are playlist / port architecture seams — not a live gun. Player chrome is Yard-only. Internal house phase stays `range`. Contract: `docs/modes.md`.
 
 ## Soft-lock (do not touch on this path)
 
-Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery; parked Bay first-to-5 chips stay in code). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Bay stays off boot / lobby chrome. Shared Bay (parked) is rewind, not a lobby friend tick. Behavior unchanged.
+Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local as a seam. Shared Bay is rewind, not a lobby friend tick. Behavior unchanged. Player-facing boot **BAY** / lobby **ENTER BAY** stay off chrome (`docs/modes.md`).
 
 ## What a later port may take
 
@@ -38,7 +38,7 @@ Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off th
 
 - Names, maps, guns, audio, UI chrome, or silhouettes from Valve or Epic titles.
 - `de_*` halls, `.vmf` / `.bsp` / `.vmap`, Marketplace / Fab packs, published Creative / UEFN islands, league bunker catalogs.
-- Changing `AimSample`, gating fire on cam / worker / tick, blooming the reticle, or offering Bay from player chrome.
+- Changing `AimSample`, gating fire on cam / worker / tick, blooming the reticle, or making gallery the only gun.
 
 ## Runtime vs notes
 
