@@ -325,7 +325,9 @@ def test_gallery_readability() -> None:
         raise AssertionError("ribs need charcoal stroke + rust edge")
     if "mintHex" not in hall:
         raise AssertionError("mint centerline must stay the ground tell")
-    if "BoxGeometry(7.2, 2.4, 1.35)" not in hall:
+    if "CylinderGeometry" not in hall:
+        raise AssertionError("charcoal barrel vault must close the hall silhouette")
+    if "BoxGeometry" not in hall or "ribRust" not in hall:
         raise AssertionError("rust backstop must be a solid mass, not a net")
     if "mintHex" in yard:
         raise AssertionError("yard mint must not compete with the centerline / plates")
