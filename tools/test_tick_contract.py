@@ -63,6 +63,8 @@ def test_named_rate_is_128() -> None:
         _fail("docs/tick.md must keep HID fire outside both clocks")
     if "rewind" not in docs.lower():
         _fail("docs/tick.md must keep shared house as rewind, not a friend tick")
+    if "markHid" not in docs or "Look" not in docs:
+        _fail("docs/tick.md must keep Look off the HID→hitscan bar")
     budget = (ROOT / "docs/perf_budget.md").read_text(encoding="utf-8")
     if "128 Hz" not in budget:
         _fail("docs/perf_budget.md must budget 128 Hz")
@@ -75,6 +77,8 @@ def test_named_rate_is_128() -> None:
         _fail("PRODUCTION.md still says docs disagree — contract was not picked")
     if "128 Hz" not in bible:
         _fail("PRODUCTION.md must name the 128 Hz contract")
+    if "gun kick" not in bible.lower() and "getWorldPosition" not in bible:
+        _fail("PRODUCTION.md must fail loud if Look lands inside the HID→hitscan probe")
 
 
 def test_client_steps_local_sim_at_128() -> None:
@@ -155,6 +159,13 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("fire() must peek the house sphere")
     if "intersectObjects" in fire:
         _fail("fire() mesh-tested the hex — hitscan left the house")
+    intersect = fire.find("hitscanRange(")
+    mark_range = fire.find("SablePerf.markHid", intersect) if intersect >= 0 else -1
+    if intersect < 0 or mark_range < 0 or mark_range < intersect:
+        _fail("HID→hitscan must mark at the house sphere")
+    probe = fire[intersect:mark_range]
+    if "applyGunKick" in probe or "peekMuzzleWorld" in probe or "getWorldPosition" in probe:
+        _fail("Look (gun kick / muzzle world) landed inside the 8 ms HID bar")
     html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
     if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
         _fail("OFFLINE one-click died while unifying the tick")

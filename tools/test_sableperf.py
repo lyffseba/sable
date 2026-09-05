@@ -160,6 +160,12 @@ def test_sableperf_probe_order() -> None:
         _fail("SablePerf must stay flag-gated (?sableperf=1)")
     if "globalThis.SablePerf" not in js and "window.SablePerf" not in js:
         _fail("window.SablePerf / globalThis.SablePerf probe missing")
+    aim = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
+    if "after" not in aim or "markHid" not in aim or "Look" not in aim:
+        _fail("docs/aim_pipeline.md must keep Look after markHid")
+    bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
+    if "gun kick" not in bible.lower() and "getWorldPosition" not in bible:
+        _fail("PRODUCTION.md must fail loud if Look lands inside the HID→hitscan probe")
 
     fire = _fn(js, "fire")
     gate = fire.find("if (!S.desktop && !S.lifted")
@@ -173,13 +179,29 @@ def test_sableperf_probe_order() -> None:
     first_mark = fire.find("SablePerf.markHid")
     if first_mark < 0 or first_mark < bang_at:
         _fail("SablePerf.markHid must stay after bang(), at first hitscan")
-    intersect = fire.find("hitscanRange")
+    intersect = fire.find("hitscanRange(")
     mark_range = fire.find("SablePerf.markHid", intersect) if intersect >= 0 else -1
     report_at = fire.find("reportSharedFire")
     if intersect < 0 or mark_range < 0:
         _fail("Range hitscan lost SablePerf.markHid")
     if mark_range < intersect:
         _fail("SablePerf.markHid must stay at first hitscan sphere")
+    probe = fire[intersect:mark_range]
+    if "applyGunKick" in probe or "peekMuzzleWorld" in probe or "getWorldPosition" in probe:
+        _fail("Look (gun kick / muzzle world) landed inside the HID→hitscan probe")
+    if "gunGroup" in probe or "gunMuzzleLight" in probe:
+        _fail("gun Look mutated inside the 8 ms bar — peel it after markHid")
+    kick_after = fire.find("applyGunKick", mark_range)
+    muzzle_after = fire.find("peekMuzzleWorld", mark_range)
+    if kick_after < 0 or muzzle_after < 0:
+        _fail("Range Look (gun kick / muzzle) must run after markHid, not vanish")
+    if kick_after > report_at >= 0:
+        _fail("Range gun kick must stay after the sphere and before shared report")
+    peek = _fn(js, "peekMuzzleWorld")
+    if "if (gunMuzzleLight)" not in peek:
+        _fail("peekMuzzleWorld must be null-safe — a missing cuff must not throw on the click")
+    if "getWorldPosition" not in peek:
+        _fail("peekMuzzleWorld lost the Look tracer origin")
     if "intersectObjects" in fire:
         _fail("Range hitscan must be the house sphere — mesh traverse taxes the 8 ms bar")
     if report_at < 0 or mark_range > report_at:

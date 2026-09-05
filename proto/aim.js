@@ -55,6 +55,7 @@ const aimBus = new AimBus();
 
 // HID→hitscan probe. Off unless ?sableperf=1 or localStorage SablePerf=1.
 // Not a HUD. window.SablePerf.stats() → { n, p50, p99, ok } vs 8 ms budget.
+// Look (gun kick / muzzle world) stays after markHid — never inside this bar.
 // Shared Bay report / pose / lobby poll stay after markHid — never inside this bar.
 const SablePerf = {
   on: false,
@@ -280,6 +281,23 @@ function updateAim() {
   }
 }
 // --- HID Fire Contract & Hitscan ---
+function applyGunKick() {
+  // Look only. Not a fire gate. Not inside the HID→hitscan bar.
+  S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;
+  if (gunMuzzleLight) gunMuzzleLight.intensity = 3.5;
+  if (gunGroup) {
+    gunGroup.position.z += 0.07;
+    gunGroup.rotation.x += 0.15;
+  }
+}
+
+function peekMuzzleWorld() {
+  // Look tracer origin. Null-safe — a missing cuff must not throw on the click.
+  const p = new THREE.Vector3();
+  if (gunMuzzleLight) gunMuzzleLight.getWorldPosition(p);
+  return p;
+}
+
 function fire() {
   if (phase !== "range" && phase !== "bay" && phase !== "lobby" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
   // Peek first. Never wait on a camera frame. Never recompute aim on click.
@@ -290,31 +308,22 @@ function fire() {
   const busLift = !!(shot && shot.lifted);
   if (!S.desktop && !S.lifted && !busLift && !recent && !S.forceGun) return;
 
-  // Probe HID→hitscan from post-gate, including bang path + gun FX, to first intersect.
+  // Probe HID→hitscan: peek UV → house sphere. bang() is a silent hook.
+  // Look (gun kick, muzzle world, tracers) stays after markHid.
   const t0 = SablePerf.begin();
   bang();
-  S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;
-
-  // Gun recoil animation & muzzle flash in 3D
-  if (gunMuzzleLight) gunMuzzleLight.intensity = 3.5;
-  if (gunGroup) {
-    gunGroup.position.z += 0.07;
-    gunGroup.rotation.x += 0.15;
-  }
 
   // Hitscan peeks last committed AimBus UV. Track loop already published.
-  // Range uses the house sphere (hitscanRange) — not the spun hex mesh.
   const uv = shot && shot.uv ? shot.uv : { x: S.aim.x / W, y: S.aim.y / H };
 
-  const muzzleWorld = new THREE.Vector3();
-  gunMuzzleLight.getWorldPosition(muzzleWorld);
-
   if (phase === "bay") {
+    // Parked booth. Sphere first, then the 8 ms mark. Gun kick after.
     const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouseNorm, camera);
-    fireBay3D(raycaster, muzzleWorld);
+    fireBay3D(raycaster, peekMuzzleWorld());
     SablePerf.markHid(t0);
+    applyGunKick();
     // Shared Bay POST is after the 8 ms HID→hitscan mark — fire-and-forget.
     if (sharedBay()) {
       try { reportSharedBayFire(shot); } catch (e) { /* local already resolved */ }
@@ -333,12 +342,16 @@ function fire() {
       }
     } else missTick();
     SablePerf.markHid(t0);
+    applyGunKick();
     return;
   }
 
   S.shots++;
+  // Range uses the house sphere — not the spun hex mesh.
   const scan = hitscanRange(uv.x, uv.y, W / H);
   SablePerf.markHid(t0);
+  applyGunKick();
+  const muzzleWorld = peekMuzzleWorld();
   const hit = scan.hit;
 
   if (hit && hit.mesh) {

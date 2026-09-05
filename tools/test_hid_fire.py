@@ -109,6 +109,13 @@ def test_client_does_not_wait() -> None:
         )
     if mark_at >= 0 and mark_at < bang_at:
         raise AssertionError("SablePerf.markHid must stay at first hitscan intersect")
+    intersect = fire_src.find("hitscanRange(")
+    mark_range = fire_src.find("SablePerf.markHid", intersect) if intersect >= 0 else -1
+    if intersect < 0 or mark_range < 0:
+        raise AssertionError("Range HID→hitscan must mark at the house sphere")
+    probe = fire_src[intersect:mark_range]
+    if "applyGunKick" in probe or "peekMuzzleWorld" in probe or "getWorldPosition" in probe:
+        raise AssertionError("Look (gun kick / muzzle world) landed inside the HID→hitscan probe")
 
 
 def _pct(samples: list[float], p: float) -> float:

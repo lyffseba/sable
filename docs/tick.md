@@ -11,11 +11,11 @@ Render stays `requestAnimationFrame`. Shared house is **not** this stepper.
 ## Soft-lock bars
 
 - **Fixed sim Hz owns plates / hitscan.** `S.simTick` advances only in `stepSim`. Local plates and Bay pose integrate at `SIM_DT`. Hitscan peeks that last committed pose. Render (rAF) is a consumer — paint, recoil, shards, HUD. It does not choose plate time.
-- **HID fire outside both.** `fire()` peeks `AimBus` only. It never waits on rAF, the next sim step, the Hands worker, or a camera frame. Range hitscan peeks that UV against the last committed plate pose with the same sphere as lobby rewind (`hitscanRange` / `plateRadius`) — not the spun hex mesh.
+- **HID fire outside both.** `fire()` peeks `AimBus` only. It never waits on rAF, the next sim step, the Hands worker, or a camera frame. Range hitscan peeks that UV against the last committed plate pose with the same sphere as lobby rewind (`hitscanRange` / `plateRadius`) — not the spun hex mesh. Look (gun kick / muzzle world) is after `markHid`, not inside the 8 ms bar.
 - **`fire_ms` speaks sim Hz, not rAF.** Shared rewind snaps to the 128 Hz grid (`quantize_fire_ms`). Local Bay stamps `Bay.fireMs = committedSimMs()` on the HID peek. Shared Bay uses the same stamp plus a pose mailbox — not a 128 Hz friend loop. The lobby snapshot stays a view. Room hangar is that view (`wait`→`wait_practice`, `range`→`match_live`) — not a tick.
 - **Fail loud** if sim steps hitch to frame time (`updateRange(dt)` / rAF `now`) or fire couples to present (`performance.now() - S.rangeStart`).
 - **Offline one-click stays.** No warm-up tax. Fire at tick 0 is legal — the first plate is already on the pad.
-- **HID→hitscan p99 ≤ 8 ms** still holds (`SablePerf`) with Shared Bay present. `reportSharedBayFire` / `reportSharedBayPose` / lobby poll stay fire-and-forget after `markHid` — never on the click critical path.
+- **HID→hitscan p99 ≤ 8 ms** still holds (`SablePerf`) with Shared Bay present. Look (gun kick / `getWorldPosition`) and `reportSharedBayFire` / `reportSharedBayPose` / lobby poll stay after `markHid` — never on the click critical path.
 
 ## Three clocks
 

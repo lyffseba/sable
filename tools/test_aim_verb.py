@@ -256,6 +256,15 @@ def test_proto_mailbox() -> None:
         raise AssertionError("fire must not wait on a camera frame")
     if re.search(r"postMessage|createImageBitmap|detectForVideo|hands_worker", fire):
         raise AssertionError("fire must not wait on the Hands worker")
+    intersect = fire.find("hitscanRange(")
+    mark_range = fire.find("SablePerf.markHid", intersect) if intersect >= 0 else -1
+    if intersect < 0 or mark_range < 0:
+        raise AssertionError("fire must mark HID→hitscan at the house sphere")
+    probe = fire[intersect:mark_range]
+    if "applyGunKick" in probe or "peekMuzzleWorld" in probe or "getWorldPosition" in probe:
+        raise AssertionError("Look (gun kick / muzzle world) is not a fire gate")
+    if "applyGunKick" not in fire or "peekMuzzleWorld" not in fire:
+        raise AssertionError("gun kick / muzzle world must stay Look after the sphere")
 
     move = re.search(r"pointermove[\s\S]{0,280}", src)
     if not move or "if (S.desktop)" not in move.group(0):
