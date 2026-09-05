@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420">
+  <rect width="900" height="420" fill="#0a0c10"/>
+  <text x="32" y="36" fill="#59F2C7" font-family="Impact, sans-serif" font-size="18" letter-spacing="6">SABLE  -  THE YARD</text>
+  <text x="32" y="58" fill="#E6E0D1" font-family="system-ui" font-size="12">Charcoal / rust bunkers, few and low. Bone plates stay readable. Not a league field.</text>
+  <rect x="80" y="318" width="740" height="14" fill="#10141a"/>
+  <rect x="430" y="318" width="8" height="14" fill="#59F2C7"/>
+  <rect x="120" y="286" width="118" height="32" rx="16" fill="#1a222c"/>
+  <circle cx="126" cy="302" r="16" fill="#8C472E"/>
+  <circle cx="232" cy="302" r="16" fill="#8C472E"/>
+  <rect x="300" y="268" width="92" height="50" fill="#8C472E"/>
+  <polygon points="520,214 572,318 468,318" fill="#1a222c"/>
+  <rect x="478" y="310" width="84" height="8" fill="#8C472E"/>
+  <rect x="640" y="300" width="110" height="18" fill="#8C472E"/>
+  <polygon points="450,150 486,171 486,213 450,234 414,213 414,171" fill="#E6E0D1"/>
+  <polygon points="450,174 468,185 468,207 450,218 432,207 432,185" fill="#59F2C7"/>
+  <text x="32" y="390" fill="#8aa0b8" font-size="12">Pad rust. Beams charcoal + rust caps. Drum rust. Peak charcoal + rust rim. Plate bone / mint.</text>
+</svg>

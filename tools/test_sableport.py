@@ -212,6 +212,8 @@ def test_bible_and_ci() -> None:
     ci = (ROOT / "tools" / "ci.sh").read_text(encoding="utf-8")
     if "test_sableport.py" not in ci:
         _fail("ci.sh must run the SablePort DNA / seam gate")
+    if "test_sablelook.py" not in ci or "test_sableyard.py" not in ci:
+        _fail("ci.sh must keep SableLook / SableYard on the Look bible")
     if "proto/port.js" not in ci:
         _fail("ci.sh must syntax-check proto/port.js")
     src_list = (ROOT / "tools" / "proto_src.py").read_text(encoding="utf-8")

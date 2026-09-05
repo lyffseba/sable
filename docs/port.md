@@ -18,7 +18,7 @@ Named sim is **128 Hz** (`server/tick.py`, client `stepSim` / `S.simTick`). Rend
 
 ### Look bible
 
-Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissive bloom over the reticle. Original silhouettes — cuff, bone plates, Salt House ribs. Paint sheets: `art/concepts/`. Runtime meshes: `proto/house.js`. A later host does not import Marketplace packs, scans, or third-party guns to “look right.”
+Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissive bloom over the reticle. Original silhouettes — cuff, bone plates, Salt House ribs, charcoal / rust Yard bunkers (few, low) so plates stay readable. Paint sheets: `art/concepts/`. Runtime meshes: `proto/house.js`. A later host does not import Marketplace packs, scans, or third-party guns to “look right.”
 
 ### Modes
 

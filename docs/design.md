@@ -14,7 +14,7 @@ First-person mesh is CANCHO’s **cuff** (mint rail = muzzle). AimSample is stil
 
 ## Visual bar
 
-Flat / unshaded charcoal–bone–mint–rust. No realtime GI. No hardware RT. No glow bloom on the reticle or the world. 1080p 60 on a GTX 1650 4 GB class floor; 1080p 120 on an RTX 3060 laptop class. Paint sheets: `art/concepts/`. Literature: `research/LITERATURE.md`.
+Flat / unshaded charcoal–bone–mint–rust. Yard bunkers stay charcoal / rust (few, low) so bone plates read. No realtime GI. No hardware RT. No glow bloom on the reticle or the world. 1080p 60 on a GTX 1650 4 GB class floor; 1080p 120 on an RTX 3060 laptop class. Paint sheets: `art/concepts/`. Literature: `research/LITERATURE.md`.
 
 ## What this pass is not
 

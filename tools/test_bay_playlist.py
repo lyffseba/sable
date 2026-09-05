@@ -331,6 +331,10 @@ def test_gallery_readability() -> None:
         raise AssertionError("rust backstop must be a solid mass, not a net")
     if "mintHex" in yard:
         raise AssertionError("yard mint must not compete with the centerline / plates")
+    if "boneHex" in yard:
+        raise AssertionError("yard bunker fill must stay charcoal/rust — bone is for plates")
+    if "0x1a222c" not in yard or "rustHex" not in yard:
+        raise AssertionError("yard bunkers must stay charcoal mass + rust rim")
     if "ConeGeometry(0.92, 1.85" in yard or "z: -11.0" in yard:
         raise AssertionError("tall clutter bunkers must stay culled")
     if "hsl(" in shatter:

@@ -45,7 +45,7 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 
 - Do not offer Bay from boot or lobby. The Yard is the sole active map.
 - Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire.
-- Do not bloom the reticle. Charcoal / bone / mint / rust only.
+- Do not bloom the reticle. Charcoal / bone / mint / rust only. Yard bunkers stay charcoal / rust (few, low) so bone plates read.
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
 - Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin `WAIT` + `ROOM` chips from `S.hangar` / `S.room` — not a match-start screen. Do not paint hangar chips from screen phase; read `S.hangar` only. Do not hide the gun with a ROOM chip.
 - Do not force calib/lock on ENTER RANGE when the Yard is already live. Promote is SableNet phase-preserve (`enterRangePreserve`) — lift/HID never waits on the lobby POST.
