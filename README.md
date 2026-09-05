@@ -5,7 +5,7 @@
 
 Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no third-party game assets, names, maps, audio, or code. Codename only.
 
-Mouse on the pad = move. **Lift** it, point at the monitor, click. Webcam tracks the muzzle (Gemini 3.8 Flash lock + One Euro). Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
+**Your hand is the gun.** Raise it in front of a MacBook (or any laptop) webcam, point the index finger at the screen, click the trackpad. Skin + fingertip lock at camera rate, One Euro, Gemini only to seed. Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
 
 Stack: WebGL (Three.js) client, Mojo 1.0 SIMD kernels via Pixi, C++17 aim tests.
 
@@ -14,7 +14,7 @@ Stack: WebGL (Three.js) client, Mojo 1.0 SIMD kernels via Pixi, C++17 aim tests.
 - Modern web browser (Chrome, Edge, Safari, Firefox).
 - Python 3 to serve the client locally (`python3 tools/serve_proto.py`).
 - C++17 toolchain for `native/cv_input` standalone tests (`./tools/run_cv_tests.sh`).
-- A clip-on webcam is optional. The game is always testable with desktop aim (**T** key).
+- Built-in laptop webcam is enough. Desktop aim (**T** key) still works without a camera.
 
 ## Run SABLE
 
@@ -25,13 +25,13 @@ Open **http://127.0.0.1:8080** in your browser.
 
 - **OFFLINE**: Straight into the Range — one iconic shooting ground.
 - **ONLINE**: Waiting-arena lobby. Enter the **same** Range, or **Host 5v5** (ten slots, then the same Range).
-- **AI MUZZLE LOCK**: Gemini 3.8 Flash on the lock screen.
+- **AI HAND LOCK**: Gemini seeds the fingertip; the browser tracks it at 60–120 FPS.
 
 ### Keys
 
 | Key | Action |
 |-----|--------|
-| Mouse click | Fire at the **latest** `AimSample.uv` (HID click, never waits on camera) |
+| Trackpad / click | Fire at the **latest** `AimSample.uv` (HID click, never waits on camera) |
 | **WASD** | Move on the pad (Bay 1v1 mode only, locked during lift) |
 | **L** | Cycle CANCHO outfit style (`default`, `ranked`, `night`) |
 | **T** | Desktop aim toggle (OS cursor fallback) |
@@ -62,7 +62,7 @@ unzip sable-proto-*.zip -d sable-proto && cd sable-proto
 python3 serve_proto.py
 ```
 
-Open http://127.0.0.1:8080 — allow camera, tilt down at hands, lift.
+Open http://127.0.0.1:8080 — allow camera, raise a hand, point, click the pad.
 
 Or clone `main` and `cd proto` with the same server command. Tag `v*.*.*` publishes a new zip.
 
