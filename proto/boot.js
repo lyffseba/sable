@@ -765,6 +765,7 @@ function hangarHudChip() {
 }
 
 function drawHUD(now) {
+  // PAD/GUN/DESKTOP stay live. Hangar chip is additive — no wipe on promote.
   drawModeChip();
   if (phase !== "range" && phase !== "lobby") return;
   const hangarChip = hangarHudChip();

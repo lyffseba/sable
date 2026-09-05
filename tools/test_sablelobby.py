@@ -147,6 +147,12 @@ def test_waiting_arena_always_practice() -> None:
         _fail("SableHUD must not thicken the waiting arena with gallery chips")
     if "hangarHudChip" not in hud:
         _fail("waiting arena lost hangar chips from S.hangar")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    if mode_at < 0 or hangar_at < 0 or mode_at > hangar_at:
+        _fail("hangar chips wiped PAD/GUN — mode chip must stay live")
+    if '"SCORE "' not in hud or ('"ROUND "' not in hud and '"ROUND"' not in hud):
+        _fail("RANGE clock/score left drawHUD — hangar chips must not unpin gallery")
     if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud or "Impact" in hud:
         _fail("hangar chips hide the gun")
     if "RAISE YOUR HAND" in hud or "ESC = miss" in hud:
@@ -189,6 +195,8 @@ def test_enter_range_stays_shared() -> None:
     if "lobbyPost(\"/api/lobby/start\")" not in start and "lobbyPost('/api/lobby/start')" not in start:
         _fail("host ENTER RANGE must fire-and-forget /api/lobby/start")
     preserve = _js_fn(js, "enterRangePreserve")
+    if "clearRect" in preserve or "drawHUD" in preserve:
+        _fail("promote WAIT→LIVE wiped the HUD")
     if "alreadyLifted()" not in preserve:
         _fail("phase-preserve must skip calib when already lifted")
     if 'phase === "lobby"' not in preserve or 'phase === "range"' not in preserve:

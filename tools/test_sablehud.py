@@ -177,8 +177,16 @@ def test_hangar_chips_from_s_hangar() -> None:
         _fail("SableHUD lost hangar chips")
     if "drawSableChip" not in hud:
         _fail("hangar chips left the thin SableHUD bar")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    if mode_at < 0 or hangar_at < 0 or mode_at > hangar_at:
+        _fail("hangar chips wiped PAD/GUN — mode chip must stay live")
     if 'phase === "range"' not in hud or '"SCORE "' not in hud:
         _fail("gallery SCORE must stay gated on range — hangar chips must not thicken lobby")
+    if '"ROUND "' not in hud and '"ROUND"' not in hud:
+        _fail("RANGE clock left the bar — hangar chips must not unpin gallery ROUND")
+    if '"60s GALLERY"' not in hud:
+        _fail("RANGE gallery chip left the bar")
     if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud:
         _fail("hangar chips hide the gun or the reticle")
     if "RAISE YOUR HAND" in hud or "ESC = miss" in hud or "Impact" in hud:
@@ -193,6 +201,13 @@ def test_hangar_chips_from_s_hangar() -> None:
     chips = lobby.find("drawHUD")
     if xh < 0 or chips < 0 or xh > chips:
         _fail("waiting-arena hangar chips must paint over live aim — crosshair then chips")
+    preserve = _js_fn(js, "enterRangePreserve")
+    if 'assignHangar("match_live")' not in preserve:
+        _fail("promote WAIT→LIVE must write match_live")
+    if "clearRect" in preserve or "drawHUD" in preserve or "drawModeChip" in preserve:
+        _fail("promote WAIT→LIVE wiped the HUD")
+    if re.search(r"await\s+", preserve) or "fetch(" in preserve:
+        _fail("promote awaits — WAIT→LIVE trapped HID")
     fire = _js_fn(js, "fire")
     if "hangarHudChip" in fire or "S.hangar" in fire:
         _fail("fire() gated on hangar — Fire = AimBus HID peek")
