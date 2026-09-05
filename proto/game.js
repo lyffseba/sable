@@ -912,6 +912,22 @@ function missTick() {
   osc.stop(t + 0.04);
 }
 
+function pullWhistle() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(740, t);
+  osc.frequency.exponentialRampToValueAtTime(1480, t + 0.11);
+  gain.gain.setValueAtTime(0.12, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  osc.start(t);
+  osc.stop(t + 0.15);
+}
+
 // ==========================================
 // --- Three.js 3D Engine Architecture ---
 // ==========================================
@@ -953,49 +969,61 @@ function init3D() {
   buildBay3D();
 }
 
+function sableStd(hex, extra) {
+  return new THREE.MeshStandardMaterial(Object.assign({
+    color: hex, roughness: 0.64, metalness: 0.14, flatShading: true,
+  }, extra || {}));
+}
+
+function hexPlateGeo(r, thick) {
+  const sh = new THREE.Shape();
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+    const x = Math.cos(a) * r, y = Math.sin(a) * r;
+    if (i === 0) sh.moveTo(x, y); else sh.lineTo(x, y);
+  }
+  sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth: thick, bevelEnabled: false });
+  g.rotateX(-Math.PI / 2);
+  g.center();
+  return g;
+}
+
 function buildFirstPersonGun() {
   gunGroup = new THREE.Group();
+  const bone = sableStd(Locker.colors.boneHex, { roughness: 0.5 });
+  const rust = sableStd(Locker.colors.rustHex, { roughness: 0.72 });
+  const char = sableStd(0x141a22, { metalness: 0.35, roughness: 0.4 });
+  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
 
-  // Cybernetic Mouse-Gun body
-  const bodyGeo = new THREE.BoxGeometry(0.08, 0.06, 0.22);
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x11161d,
-    roughness: 0.35,
-    metalness: 0.8,
-  });
-  gunBody = new THREE.Mesh(bodyGeo, bodyMat);
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.05, 0.07, 8), rust);
+  cuff.rotation.x = Math.PI / 2;
+  cuff.position.set(0, -0.01, 0.1);
+  gunGroup.add(cuff);
+
+  gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.045, 0.12), bone);
+  gunBody.position.set(0, 0.012, 0.02);
   gunGroup.add(gunBody);
 
-  // Mint Capacitor Stripe
-  const stripeGeo = new THREE.BoxGeometry(0.084, 0.012, 0.16);
-  const stripeMat = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
-  gunStripe = new THREE.Mesh(stripeGeo, stripeMat);
-  gunStripe.position.set(0, 0.026, 0.01);
+  gunStripe = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.012, 0.22), mint);
+  gunStripe.position.set(0.012, 0.036, -0.06);
   gunGroup.add(gunStripe);
 
-  // Rust Wrist Accent
-  const rustGeo = new THREE.BoxGeometry(0.082, 0.04, 0.04);
-  const rustMat = new THREE.MeshStandardMaterial({
-    color: Locker.colors.rustHex,
-    roughness: 0.6,
-  });
-  const rustMesh = new THREE.Mesh(rustGeo, rustMat);
-  rustMesh.position.set(0, -0.01, 0.1);
-  gunGroup.add(rustMesh);
-
-  const barrel = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.012, 0.014, 0.16, 10),
-    new THREE.MeshStandardMaterial({ color: 0x1a222c, metalness: 0.9, roughness: 0.2 })
-  );
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.008, -0.16);
-  gunGroup.add(barrel);
+  const index = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.11), char);
+  index.position.set(0.012, 0.018, -0.1);
+  gunGroup.add(index);
+  const mid = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, 0.08), char);
+  mid.position.set(-0.012, 0.016, -0.08);
+  gunGroup.add(mid);
+  const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.016, 0.05), char);
+  thumb.position.set(-0.05, 0.0, 0.02);
+  thumb.rotation.y = 0.5;
+  gunGroup.add(thumb);
 
   gunMuzzleLight = new THREE.PointLight(Locker.colors.mintHex, 0, 5);
-  gunMuzzleLight.position.set(0, 0.008, -0.24);
+  gunMuzzleLight.position.set(0.012, 0.03, -0.22);
   gunGroup.add(gunMuzzleLight);
 
-  // Default rest pose (lowered on pad)
   gunGroup.position.set(0.24, -0.22, -0.42);
   camera.add(gunGroup);
   scene.add(camera);
@@ -1009,27 +1037,46 @@ function buildRange3D() {
   scene.add(rangeTargetGroup);
   scene.add(shardGroup);
 
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(28, 28),
-    new THREE.MeshStandardMaterial({ color: 0x07090e, roughness: 0.92, metalness: 0.12 })
-  );
+  const char = sableStd(0x0a0c10, { roughness: 0.92, metalness: 0.08 });
+  const rust = sableStd(Locker.colors.rustHex, { roughness: 0.78 });
+  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 40), char);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -1.64;
   rangeHallGroup.add(floor);
-  const hallGrid = new THREE.GridHelper(28, 28, 0x0a3a44, 0x0a1820);
-  hallGrid.position.y = -1.63;
-  rangeHallGroup.add(hallGrid);
 
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a1018, roughness: 0.88 });
-  const back = new THREE.Mesh(new THREE.BoxGeometry(28, 10, 0.4), wallMat);
-  back.position.set(0, 3.2, -14);
+  const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 36), mint);
+  line.position.set(0, -1.62, -6);
+  rangeHallGroup.add(line);
+
+  for (let i = 0; i < 7; i++) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(8.4, 0.08, 5, 18, Math.PI), rust);
+    rib.rotation.y = Math.PI / 2;
+    rib.position.set(0, -1.5, -1.2 - i * 2.3);
+    rangeHallGroup.add(rib);
+  }
+
+  const back = new THREE.Mesh(new THREE.BoxGeometry(18, 6.2, 0.35), rust);
+  back.position.set(0, 1.4, -16);
   rangeHallGroup.add(back);
-  const strip = new THREE.Mesh(
-    new THREE.BoxGeometry(18, 0.08, 0.12),
-    new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex })
-  );
-  strip.position.set(0, 6.4, -13.7);
-  rangeHallGroup.add(strip);
+  for (let k = -2; k <= 2; k++) {
+    const plate = new THREE.Mesh(hexPlateGeo(0.7, 0.08), sableStd(Locker.colors.boneHex));
+    plate.position.set(k * 2.2, 1.6, -15.7);
+    plate.rotation.x = Math.PI / 2;
+    rangeHallGroup.add(plate);
+  }
+
+  const lumen = new THREE.Mesh(new THREE.BoxGeometry(16, 0.06, 0.1), mint);
+  lumen.position.set(0, 6.2, -15.4);
+  rangeHallGroup.add(lumen);
+
+  const stall = sableStd(0x141a22, { roughness: 0.85 });
+  for (const x of [-6.2, 6.2]) {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(0.28, 2.4, 8), stall);
+    w.position.set(x, -0.4, -4);
+    rangeHallGroup.add(w);
+  }
 }
 
 function buildBay3D() {
@@ -1103,25 +1150,15 @@ function buildBay3D() {
 // --- 3D Target Spawn & Shatter ---
 function createTargetMesh(kind, hue) {
   const group = new THREE.Group();
-  const geo = kind === "sine"
-    ? new THREE.OctahedronGeometry(0.55, 1)
-    : new THREE.IcosahedronGeometry(0.52, 0);
-
-  const col = new THREE.Color(`hsl(${hue}, 100%, 65%)`);
-  const coreMat = new THREE.MeshStandardMaterial({
-    color: col,
-    emissive: col,
-    emissiveIntensity: 0.65,
-    roughness: 0.2,
-  });
-  const core = new THREE.Mesh(geo, coreMat);
+  const bone = sableStd(Locker.colors.boneHex, { roughness: 0.42 });
+  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  const fly = kind === "clay" || kind === "rise";
+  const plate = new THREE.Mesh(hexPlateGeo(fly ? 0.46 : 0.55, 0.07), bone);
+  group.add(plate);
+  const core = new THREE.Mesh(hexPlateGeo(fly ? 0.2 : 0.24, 0.09), mint);
+  core.position.y = 0.01;
   group.add(core);
-
-  const wireMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-  const wire = new THREE.Mesh(geo, wireMat);
-  wire.scale.setScalar(1.12);
-  group.add(wire);
-
+  const wire = plate;
   return { group, core, wire };
 }
 
@@ -1152,9 +1189,11 @@ function spawnOrb3D(opts) {
 function shatterTarget3D(pos, hue) {
   const count = 16;
   const col = new THREE.Color(`hsl(${hue}, 100%, 65%)`);
-  const shardMat = new THREE.MeshBasicMaterial({ color: col });
+  const shardMat = new THREE.MeshBasicMaterial({
+    color: Math.random() < 0.35 ? Locker.colors.mintHex : Locker.colors.boneHex,
+  });
   for (let i = 0; i < count; i++) {
-    const sGeo = new THREE.TetrahedronGeometry(0.08 + Math.random() * 0.08);
+    const sGeo = new THREE.TetrahedronGeometry(0.07 + Math.random() * 0.07);
     const m = new THREE.Mesh(sGeo, shardMat);
     m.position.copy(pos);
     const vel = new THREE.Vector3(
@@ -1575,28 +1614,37 @@ function tickLock(t) {
 }
 
 function randomOrb(hard) {
-  let x, y, r, guard = 0;
-  const small = hard || Math.random() < 0.28;
-  r = small ? 14 + Math.random() * 6 : 22 + Math.random() * 12;
-  do {
-    x = 90 + Math.random() * (W - 180);
-    y = 90 + Math.random() * (H - 180);
-    guard++;
-  } while (nearOther(x, y, r + 40) && guard < 40);
   const roll = Math.random();
-  let kind = "static";
-  if (roll > 0.7) kind = "sine";
-  else if (roll > 0.4) kind = "drift";
-  const hue = small ? 320 : (Math.random() < 0.5 ? 185 : 160);
-  const worth = small ? 250 : 100;
-  return spawnOrb3D({
-    x, y, r, kind, worth, hue,
-    vx: kind === "drift" ? (Math.random() * 70 + 30) * (Math.random() < 0.5 ? -1 : 1) : 0,
-    vy: kind === "drift" ? (Math.random() * 40 - 20) : 0,
-    amp: kind === "sine" ? 18 + Math.random() * 26 : 0,
-    freq: kind === "sine" ? 1.2 + Math.random() * 1.6 : 0,
-    baseY: y, phase: Math.random() * Math.PI * 2,
-  });
+  let kind = "sit";
+  if (roll > 0.42) kind = "clay";
+  else if (roll > 0.22) kind = "rise";
+  const small = hard || kind === "clay";
+  const r = small ? 16 + Math.random() * 6 : 24 + Math.random() * 10;
+  const hue = kind === "clay" ? 165 : 48;
+  const worth = kind === "clay" ? 250 : (kind === "rise" ? 180 : 100);
+  let x, y, vx = 0, vy = 0;
+  if (kind === "clay") {
+    const fromLeft = Math.random() < 0.5;
+    x = fromLeft ? -30 : W + 30;
+    y = 70 + Math.random() * (H * 0.42);
+    vx = (fromLeft ? 1 : -1) * (240 + Math.random() * (hard ? 200 : 90));
+    vy = -(50 + Math.random() * 90);
+    pullWhistle();
+  } else if (kind === "rise") {
+    x = 100 + Math.random() * (W - 200);
+    y = H + 24;
+    vy = -(110 + Math.random() * 90);
+    vx = (Math.random() - 0.5) * 70;
+    pullWhistle();
+  } else {
+    let guard = 0;
+    do {
+      x = 90 + Math.random() * (W - 180);
+      y = 90 + Math.random() * (H - 220);
+      guard++;
+    } while (nearOther(x, y, r + 40) && guard < 40);
+  }
+  return spawnOrb3D({ x, y, r, kind, worth, hue, vx, vy, amp: 0, freq: 0, baseY: y, phase: 0 });
 }
 
 function nearOther(x, y, minD) {
@@ -1611,10 +1659,10 @@ function popup(x, y, text, hue) {
 }
 
 function desiredOrbCount(elapsed) {
-  if (elapsed < 2000) return 1;
-  if (elapsed < 12000) return 3;
-  if (elapsed < 28000) return 5;
-  return 6;
+  if (elapsed < 1800) return 1;
+  if (elapsed < 14000) return 2;
+  if (elapsed < 32000) return 3;
+  return 4;
 }
 
 function updateRange(dt, now) {
@@ -1624,30 +1672,32 @@ function updateRange(dt, now) {
   const hard = elapsed > 35000;
   while (S.orbs.length < want && (elapsed >= 2000 || S.orbs.length === 0)) randomOrb(hard);
 
+  const gone = [];
   for (const o of S.orbs) {
     o.life += dt;
-    if (o.kind === "drift") {
-      o.x += o.vx * dt; o.y += o.vy * dt;
-      if (o.x < o.r + 40 || o.x > W - o.r - 40) o.vx *= -1;
-      if (o.y < o.r + 60 || o.y > H - o.r - 90) o.vy *= -1;
-      o.x = clamp(o.x, o.r + 40, W - o.r - 40);
-      o.y = clamp(o.y, o.r + 60, H - o.r - 90);
-    } else if (o.kind === "sine") {
-      o.phase += o.freq * dt;
-      o.y = o.baseY + Math.sin(o.phase) * o.amp;
+    if (o.kind === "clay" || o.kind === "rise") {
+      o.x += o.vx * dt;
+      o.y += o.vy * dt;
+      o.vy += 55 * dt;
+      if (o.x < -80 || o.x > W + 80 || o.y < -80 || o.y > H + 80) gone.push(o);
     }
-
-    if (o.mesh) {
+    if (o.mesh && gone.indexOf(o) < 0) {
       const normX = (o.x / W) * 2 - 1;
       const normY = -(o.y / H) * 2 + 1;
       const depth = 5.2;
       const v = new THREE.Vector3(normX, normY, 0.5).unproject(camera);
       const dir = v.sub(camera.position).normalize();
       o.mesh.position.copy(camera.position).add(dir.multiplyScalar(depth / -dir.z));
-      o.mesh.rotation.y += 1.4 * dt;
-      o.mesh.rotation.x += 0.8 * dt;
+      o.mesh.lookAt(camera.position);
+      if (o.kind === "clay") o.mesh.rotation.z += 4 * dt;
     }
   }
+  for (const o of gone) {
+    missTick();
+    S.combo = 0;
+    if (o.mesh) rangeTargetGroup.remove(o.mesh);
+  }
+  if (gone.length) S.orbs = S.orbs.filter((o) => gone.indexOf(o) < 0);
 
   for (const p of S.pops) { p.age += dt; p.y -= 36 * dt; }
   S.pops = S.pops.filter((p) => p.age < p.life);

@@ -5,7 +5,7 @@
 
 Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no third-party game assets, names, maps, audio, or code. Codename only.
 
-**Your hand is the gun.** Raise it in front of a MacBook (or any laptop) webcam, point the index finger at the screen, click the trackpad. Skin + fingertip lock at camera rate, One Euro, Gemini only to seed. Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
+**Your hand is the gun.** Raise the cuff in the **Salt House**, point, click the trackpad. Original hall, original plates, original CANCHO gauntlet (paint sheets in `art/concepts/`). Fingertip lock at camera rate, One Euro, Gemini only to seed. Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
 
 Stack: WebGL (Three.js) client, Mojo 1.0 SIMD kernels via Pixi, C++17 aim tests.
 
