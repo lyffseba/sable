@@ -8,6 +8,8 @@ Do **not** add, generate, or import names, assets, maps, audio, code, UI chrome,
 
 Do not write an eventual public title into this repo. Codename only: **SABLE**.
 
+A later migrate toward another host *feel* is documented in `docs/port.md` (SablePort). Architecture notes may name destinations as refuse / literacy. Runtime art (`proto/` minus vendor, `art/`) must not carry Valve / Epic DNA — `tools/test_sableport.py` fails loud.
+
 ## Licensing posture
 
 - First-party code, design, and original content: Apache-2.0. See `LICENSE` and `CLA.md`.

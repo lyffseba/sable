@@ -32,3 +32,7 @@ Camera capture is asynchronous. It publishes `AimSample` whenever a frame finish
 Gameplay motion belongs in the 128 Hz step (or the closed-form rewind). Hitscan resolution belongs in the input event that already carries the sample, against the last committed sim pose.
 
 Dedicated server boots headless at the same 128 Hz rate. Browser fire stays HID-local; that process is the sim peek, not a gate on the shot.
+
+## Port path
+
+SablePort (`docs/port.md`) may later swap a host *feel*. The named 128 Hz stepper, rAF consumer, and HID-outside-both bars do not move. `proto/port.js` `SABLE_PORT_SIM_HZ` is a label, not a second clock.

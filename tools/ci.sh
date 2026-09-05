@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if command -v node >/dev/null 2>&1; then
-  for f in proto/aim.js proto/hands.js proto/hands_worker.js proto/house.js proto/boot.js proto/audio.js proto/game.js; do
+  for f in proto/aim.js proto/hands.js proto/hands_worker.js proto/house.js proto/boot.js proto/audio.js proto/port.js proto/game.js; do
     if [[ -f "$f" ]]; then
       node --check "$f"
     fi
@@ -37,6 +37,8 @@ python3 tools/test_bay_playlist.py
 python3 tools/test_gallery_mode.py
 python3 tools/test_sablehud.py
 python3 tools/test_sableaudio.py
+# SablePort: fail loud if Valve/Epic DNA lands in runtime art.
+python3 tools/test_sableport.py
 ./tools/run_cv_tests.sh
 
 python3 tools/test_mojo_python.py

@@ -69,7 +69,7 @@ Or clone `main` and `cd proto` with the same server command. Tag `v*.*.*` publis
 
 ## Legal
 
-Apache-2.0. No GPL/AGPL/SSPL in client/server. Notices: `docs/THIRD_PARTY_NOTICES.md`. Details: `docs/legal.md`.
+Apache-2.0. No GPL/AGPL/SSPL in client/server. Notices: `docs/THIRD_PARTY_NOTICES.md`. Details: `docs/legal.md`. Later-migrate seams (feeling / architecture, original IP): `docs/port.md`.
 
 ## Mojo 1.0 (Pixi)
 

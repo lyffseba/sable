@@ -11,7 +11,7 @@ Apache-2.0. Original IP only. Sign off every commit (`Signed-off-by:`) per `CLA.
 
 ## Don't
 
-- Third-party game names, maps, guns, audio, or code.
+- Third-party game names, maps, guns, audio, or code in runtime art (`proto/` minus vendor, `art/`). Architecture notes in `docs/port.md` / `research/` may name destinations as refuse only.
 - Aim-assist, bloom, or RNG covering tracker noise.
 - Kernel anti-cheat or vendored Steamworks SDK.
 

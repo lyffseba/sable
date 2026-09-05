@@ -13,6 +13,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
+from foreign_dna import FOREIGN_DNA  # noqa: E402
 from proto_src import proto_js  # noqa: E402
 
 
@@ -215,6 +216,7 @@ def test_original_geometry() -> None:
         _fail("design-lessons must keep the refuse-third-party-IP lock")
     files = (
         ROOT / "proto/house.js",
+        ROOT / "proto/port.js",
         ROOT / "docs/yard.md",
         ROOT / "docs/maps/bay.md",
         ROOT / "art/concepts/hall.svg",
@@ -222,22 +224,10 @@ def test_original_geometry() -> None:
         ROOT / "art/concepts/plate.svg",
         ROOT / "art/blender/build_sable_kit.py",
     )
-    needles = (
-        "de_dust",
-        "de_mirage",
-        "dust2",
-        "Tilted Towers",
-        "Valve",
-        "Epic Games",
-        "Fortnite",
-        "Counter-Strike",
-        ".vmf",
-        ".bsp",
-    )
     for path in files:
         text = path.read_text(encoding="utf-8")
         low = text.lower()
-        for needle in needles:
+        for needle in FOREIGN_DNA:
             if needle.lower() in low:
                 _fail(f"Valve/Epic asset DNA in {path.relative_to(ROOT)} ({needle})")
     house = (ROOT / "proto/house.js").read_text(encoding="utf-8")
@@ -258,6 +248,8 @@ def test_modes_doc() -> None:
         _fail("PRODUCTION.md must name Salt House as gallery mode")
     if "SableHUD" not in modes:
         _fail("docs/modes.md must name the thin SableHUD bar")
+    if "SablePort" not in modes and "docs/port.md" not in modes:
+        _fail("docs/modes.md must point at the SablePort path")
     if "v0.20.0" not in bible:
         _fail("PRODUCTION.md must stand v0.20.0 until Build tags this gallery HUD tip")
 

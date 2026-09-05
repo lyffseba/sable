@@ -39,6 +39,8 @@ Click is **always** HID / Raw Input against the **latest** AimSample.
 
 `AimBus.fire()` / `AimPipeline.fire()` are peek, not poll.
 
+SablePort (`docs/port.md`) may later swap a host *feel*. The verb does not move: click still peeks `AimBus`. `proto/port.js` labels that seam `aimbus-hid-peek`. Do not grow a second fire path for a later migrate.
+
 ## Pipeline (camera space, then map)
 
 Capture runs on a **worker thread**. Queue depth is effectively **1**: always the newest frame, drop stale. Prefer **YUY2 / raw**; MJPEG is a fallback (decode when OpenCV is linked).

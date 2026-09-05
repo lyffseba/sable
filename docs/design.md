@@ -4,7 +4,7 @@
 
 Pad-strafe (mouse on the pad, later) → **lift** → point at the monitor → **click** → drop back to the pad. Physical ADS is the verb. This is not a flick-assist shooter and it is not a bloom-the-reticle toy.
 
-v1 modes: offline **Gallery** (Salt House 60s), **Bay** 1v1, waiting-arena **WARM UP** / **ENTER RANGE**. Playlist: `docs/modes.md`.
+v1 modes: offline **Gallery** (Salt House 60s), **Bay** 1v1, waiting-arena **WARM UP** / **ENTER RANGE**. Playlist: `docs/modes.md`. Later-migrate seams (feeling / architecture only): `docs/port.md`.
 
 ## Gallery (now)
 

@@ -23,7 +23,11 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 
 ## Geometry
 
-CS / Fortnite layout literacy is **architecture notes only** (`research/`). Runtime Salt House / Yard / Bay is original SABLE geometry. Zero Valve / Epic asset DNA — no `de_*` halls, no Marketplace packs, no third-party map files.
+CS / Fortnite layout literacy is **architecture notes only** (`docs/port.md`, `research/`). Runtime Salt House / Yard / Bay is original SABLE geometry. Zero Valve / Epic asset DNA — no `de_*` halls, no Marketplace packs, no third-party map files.
+
+## Port path
+
+SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 Hz with fire outside. Look bible stays charcoal / bone / mint / rust. Playlist stays this file. Runtime host is SABLE — `proto/port.js` is identity only. Destinations named in `docs/port.md` are feeling / architecture, not content.
 
 ## Do not
 
