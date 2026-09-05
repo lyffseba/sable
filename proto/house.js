@@ -316,6 +316,22 @@ function buildFirstPersonGun() {
   scene.add(camera);
 }
 
+function addBarrelRib(group, z, charMat, rustMat) {
+  const curve = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-10.6, -1.64, z),
+    new THREE.Vector3(0, 4.5, z),
+    new THREE.Vector3(10.6, -1.64, z)
+  );
+  const rib = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.11, 8, false), charMat);
+  group.add(rib);
+  const edge = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-10.6, -1.64, z + 0.05),
+    new THREE.Vector3(0, 4.5, z + 0.05),
+    new THREE.Vector3(10.6, -1.64, z + 0.05)
+  );
+  group.add(new THREE.Mesh(new THREE.TubeGeometry(edge, 28, 0.034, 6, false), rustMat));
+}
+
 function buildRange3D() {
   rangeHallGroup = new THREE.Group();
   rangeTargetGroup = new THREE.Group();
@@ -324,37 +340,40 @@ function buildRange3D() {
   scene.add(rangeTargetGroup);
   scene.add(shardGroup);
 
-  for (let i = 0; i < 10; i++) {
-    const g = bayUnshaded(i % 2 ? 0x101214 : Locker.colors.bodyHex);
-    const strip = new THREE.Mesh(new THREE.PlaneGeometry(26, 2.2), g);
-    strip.rotation.x = -Math.PI / 2;
-    strip.position.set(0, -1.64, 3.2 - i * 2.2);
-    rangeHallGroup.add(strip);
-  }
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(26, 22),
+    bayUnshaded(0x10141a)
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, -1.64, -7);
+  rangeHallGroup.add(floor);
 
   const mint = bayUnshaded(Locker.colors.mintHex);
-  const lane = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 20), mint);
+  const lane = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 20), mint);
   lane.position.set(0, -1.62, -7);
   rangeHallGroup.add(lane);
 
-  const post = bayUnshaded(Locker.colors.rustHex);
-  for (const x of [-8.2, 8.2]) {
-    for (let i = 0; i < 6; i++) {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 2.6, 6), post);
-      p.position.set(x, -0.34, 1.5 - i * 3.4);
+  const ribChar = bayUnshaded(0x1a222c);
+  const ribRust = bayUnshaded(Locker.colors.rustHex);
+  const ribZ = [1.2, -2.8, -6.8, -10.8, -14.8];
+  for (const z of ribZ) addBarrelRib(rangeHallGroup, z, ribChar, ribRust);
+
+  const post = bayUnshaded(Locker.colors.bodyHex);
+  for (const z of [1.2, -14.8]) {
+    for (const x of [-10.4, 10.4]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.4, 0.16), post);
+      p.position.set(x, -0.44, z);
       rangeHallGroup.add(p);
     }
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 18), post);
-    rail.position.set(x, 0.72, -7);
-    rangeHallGroup.add(rail);
   }
 
-  const net = new THREE.Mesh(
-    new THREE.PlaneGeometry(18, 5.2, 16, 5),
-    new THREE.MeshBasicMaterial({ color: 0x2a2c28, transparent: true, opacity: 0.28, wireframe: true })
-  );
-  net.position.set(0, 0.9, -17.1);
-  rangeHallGroup.add(net);
+  const crown = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 16.4), mint);
+  crown.position.set(0, 4.48, -6.8);
+  rangeHallGroup.add(crown);
+
+  const backstop = new THREE.Mesh(new THREE.BoxGeometry(7.2, 2.4, 1.35), ribRust);
+  backstop.position.set(0, -0.44, -16.8);
+  rangeHallGroup.add(backstop);
 
   buildYardBunkers(rangeHallGroup);
 }
@@ -389,52 +408,23 @@ function capEnds(group, x, y, z, alongX, radius, capMat) {
 function buildYardBunkers(group) {
   const bone = inflateMat(Locker.colors.boneHex);
   const rust = inflateMat(Locker.colors.rustHex);
-  const mint = inflateMat(Locker.colors.mintHex);
   const floorY = -1.64;
 
-  const pad = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.1, 1.3), rust);
-  addYard(group, pad, 0, floorY + 0.05, 1.35, 0);
-  const padLip = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.03, 1.34), mint);
-  addYard(group, padLip, 0, floorY + 0.11, 1.35, 0);
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 1.3), rust);
+  addYard(group, pad, 0, floorY + 0.06, 1.35, 0);
 
-  const tape = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.06, 0.12), mint);
-  addYard(group, tape, 0, floorY + 0.04, -16.5, 0);
+  const beamL = sausageX(0.38, 2.8, bone);
+  addYard(group, beamL, -3.4, floorY + 0.38, -4.2, 0);
+  capEnds(group, -3.4, floorY + 0.38, -4.2, 1.2, 0.38, rust);
+  const beamR = sausageX(0.38, 2.8, bone);
+  addYard(group, beamR, 3.4, floorY + 0.38, -4.2, 0);
+  capEnds(group, 3.4, floorY + 0.38, -4.2, 1.2, 0.38, rust);
 
-  const beamL = sausageX(0.32, 2.6, bone);
-  addYard(group, beamL, -3.4, floorY + 0.32, -4.2, 0);
-  capEnds(group, -3.4, floorY + 0.32, -4.2, 1.15, 0.32, rust);
-  const beamR = sausageX(0.32, 2.6, bone);
-  addYard(group, beamR, 3.4, floorY + 0.32, -4.2, 0);
-  capEnds(group, 3.4, floorY + 0.32, -4.2, 1.15, 0.32, rust);
+  const drum = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 1.2), rust);
+  addYard(group, drum, -1.6, floorY + 0.35, -7.0, 0);
 
-  const drum = new THREE.Mesh(new THREE.CapsuleGeometry(0.58, 0.7, 6, 16), rust);
-  addYard(group, drum, -1.6, floorY + 0.93, -7.0, 0);
-  const drumRing = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.05, 8, 18), mint);
-  drumRing.rotation.x = Math.PI / 2;
-  addYard(group, drumRing, -1.6, floorY + 1.55, -7.0, 0);
-
-  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.92, 1.85, 5), bone);
-  addYard(group, peak, 2.2, floorY + 0.92, -8.5, 0.35);
-  const peakBase = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), rust);
-  addYard(group, peakBase, 2.2, floorY + 0.28, -8.5, 0);
-
-  const stack = new THREE.Mesh(new THREE.CapsuleGeometry(0.72, 0.35, 4, 12), rust);
-  stack.scale.set(1.15, 1, 1.15);
-  addYard(group, stack, -2.8, floorY + 0.72, -11.0, 0.12);
-
-  const wing = sausageX(0.28, 2.7, bone);
-  addYard(group, wing, 0, floorY + 0.3, -12.5, 0);
-  const wingStem = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 4, 12), bone);
-  addYard(group, wingStem, 0, floorY + 0.7, -12.5, 0);
-
-  const crossA = sausageX(0.28, 2.0, mint);
-  addYard(group, crossA, 3.0, floorY + 0.42, -14.0, 0);
-  const crossB = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.44, 5, 14), mint);
-  crossB.rotation.x = Math.PI / 2;
-  addYard(group, crossB, 3.0, floorY + 0.42, -14.0, 0);
-
-  const drumFar = new THREE.Mesh(new THREE.CapsuleGeometry(0.52, 0.55, 5, 14), bone);
-  addYard(group, drumFar, -3.2, floorY + 0.8, -14.5, 0);
+  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.98, 0.92, 5), bone);
+  addYard(group, peak, 2.2, floorY + 0.46, -8.5, 0.35);
 }
 
 const YARD_PEEKS = [
@@ -590,8 +580,8 @@ function worldToHud(pos) {
 }
 
 function shatterTarget3D(pos, hue) {
+  void hue;
   const count = 16;
-  const col = new THREE.Color(`hsl(${hue}, 100%, 65%)`);
   const shardMat = new THREE.MeshBasicMaterial({
     color: Math.random() < 0.35 ? Locker.colors.mintHex : Locker.colors.boneHex,
   });

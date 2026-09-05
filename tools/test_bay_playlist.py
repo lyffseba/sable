@@ -307,6 +307,49 @@ def test_shared_look_bible() -> None:
         raise AssertionError("CANCHO tell (charcoal / mint / rust) must stay on applyLockerLook")
 
 
+def test_gallery_readability() -> None:
+    """Range hall matches the paint sheet. Cheap source contract — no flaky render."""
+    house = (ROOT / "proto/house.js").read_text(encoding="utf-8")
+    hall = house[house.find("function addBarrelRib") : house.find("function inflateMat")]
+    yard = house[house.find("function buildYardBunkers") : house.find("const YARD_PEEKS")]
+    shatter = _js_fn(house, "shatterTarget3D")
+    if "function buildRange3D" not in hall or "function buildYardBunkers" not in yard:
+        raise AssertionError("gallery builders must stay in house.js")
+    if "wireframe" in hall or "wireframe" in yard:
+        raise AssertionError("wireframe net muddies plate silhouettes")
+    if "0x2a2c28" in hall or "0x2a2c28" in yard:
+        raise AssertionError("mud green must not paint the Range")
+    if "QuadraticBezierCurve3" not in hall or "TubeGeometry" not in hall:
+        raise AssertionError("barrel ribs must follow the hall sheet")
+    if "0x1a222c" not in hall or "rustHex" not in hall:
+        raise AssertionError("ribs need charcoal stroke + rust edge")
+    if "mintHex" not in hall:
+        raise AssertionError("mint centerline must stay the ground tell")
+    if "BoxGeometry(7.2, 2.4, 1.35)" not in hall:
+        raise AssertionError("rust backstop must be a solid mass, not a net")
+    if "mintHex" in yard:
+        raise AssertionError("yard mint must not compete with the centerline / plates")
+    if "ConeGeometry(0.92, 1.85" in yard or "z: -11.0" in yard:
+        raise AssertionError("tall clutter bunkers must stay culled")
+    if "hsl(" in shatter:
+        raise AssertionError("shards must stay bone/mint, not neon hsl")
+    if "boneHex" not in shatter or "mintHex" not in shatter:
+        raise AssertionError("shatter shards must stay readable bone/mint")
+    peeks = house[house.find("const YARD_PEEKS") : house.find("function applyLockerLook")]
+    for coord in (
+        "[-3.4, -0.7, -3.9]",
+        "[3.4, -0.7, -3.9]",
+        "[-0.5, 0.35, -6.6]",
+        "[2.4, 0.55, -8.1]",
+        "[-2.6, 0.05, -10.5]",
+        "[0.8, -0.15, -12.0]",
+        "[3.1, 0.15, -13.5]",
+        "[-3.0, 0.25, -14.1]",
+    ):
+        if coord not in peeks:
+            raise AssertionError(f"YARD_PEEKS moved — playlist coords must stay ({coord})")
+
+
 def test_aimsample_untouched() -> None:
     js = proto_js()
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
@@ -331,6 +374,7 @@ def main() -> int:
         test_open_middle_volumes()
         test_foe_sphere_is_honest()
         test_shared_look_bible()
+        test_gallery_readability()
         test_aimsample_untouched()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
