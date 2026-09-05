@@ -118,6 +118,8 @@ def test_pointing_filter() -> None:
         raise AssertionError("One Euro mincutoff must be pointing-fast, not 1Hz soup")
     if "function adaptTpl" not in src:
         raise AssertionError("strong lock must refresh the template")
+    if "function findHand" not in src:
+        raise AssertionError("hand is the gun: findHand must exist")
     lost = _js_fn(src, "nccTrack")
     if "age > COAST_MS && S.euroX" in lost:
         raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")

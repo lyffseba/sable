@@ -1,7 +1,6 @@
 /* SABLE — WebGL Physical-Aim Arena FPS
-   Powered by Gemini 3.8 Flash Spatial Vision & Three.js 3D Engine.
-   Inverted Light-Gun Geometry: webcam on monitor top, player points mouse nose at screen.
-   HID left-click fires atomically from the AimBus mailbox. Physical ADS verb. */
+   Hand is the gun. Webcam tracks the pointing fingertip.
+   Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
 
@@ -122,7 +121,7 @@ const S = {
   orbs: [], parts: [], pops: [], score: 0, hits: 0, shots: 0, combo: 0, comboMax: 0,
   rangeStart: 0, lockSince: 0, locked: false, lockStart: 0, lockAdvance: false,
   noLockFlash: 0, liftPulse: 0, enteringRange: false,
-  tpl: null, ncc: 0, gray: null,
+  tpl: null, ncc: 0, gray: null, skin: null, frame: null, lockHand: null,
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false },
@@ -306,6 +305,21 @@ function predictedCam(now) {
   if (!S.smooth) return null;
   const dt = Math.max(0, (now - (S.trackT || now)) * 0.001);
   return { x: S.smooth.x + S.vel.x * dt, y: S.smooth.y + S.vel.y * dt };
+}
+
+function isSkinByte(r, g, b) {
+  const max = r > g ? (r > b ? r : b) : (g > b ? g : b);
+  const min = r < g ? (r < b ? r : b) : (g < b ? g : b);
+  const diff = max - min;
+  if (max < 45 || max > 252 || diff < 16) return 0;
+  if (r + 8 < g || r + 4 < b) return 0;
+  const s = (diff * 255) / max;
+  if (s < 28 || s > 220) return 0;
+  let h = 0;
+  if (max === r) h = ((g - b) * 60 / diff + 360) % 360;
+  else if (max === g) h = (b - r) * 60 / diff + 120;
+  else h = (r - g) * 60 / diff + 240;
+  return (h <= 52 || h >= 335) ? 1 : 0;
 }
 
 function isSkinHSV(r, g, b) {
@@ -539,56 +553,103 @@ function commitTpl(gray, iw, ih, tlx, tly, now) {
   return true;
 }
 
-function sampleLock(img, now) {
-  const gray = S.gray;
+function findHand() {
+  const skin = S.skin;
+  if (!skin) return null;
   const iw = PROC_W, ih = PROC_H;
-  if (iw < TPL + 4 || ih < TPL + 4) return;
-  const cols = Math.max(1, Math.floor((iw - TPL) / FIND_STEP));
-  const rows = Math.max(1, Math.floor((ih - TPL) / FIND_STEP));
-  if (!S.lockAcc || S.lockAccCols !== cols || S.lockAccRows !== rows) {
-    S.lockAcc = new Float32Array(cols * rows);
-    S.lockAccCols = cols;
-    S.lockAccRows = rows;
-  }
-  const acc = S.lockAcc;
-  for (let i = 0; i < acc.length; i++) acc[i] *= 0.96;
-  for (let gy = 0; gy < rows; gy++) {
-    const tly = gy * FIND_STEP;
-    for (let gx = 0; gx < cols; gx++) {
-      const tlx = gx * FIND_STEP;
-      acc[gy * cols + gx] += patchScore(img, gray, iw, ih, tlx, tly);
-    }
-  }
-  const elapsed = now - (S.lockStart || now);
-  if (elapsed < LOCK_SAMPLE_MS) return;
-  if (S.tpl) return;
-
-  let best = -1, bx = 0, by = 0;
-  for (let i = 0; i < acc.length; i++) {
-    if (acc[i] > best) { best = acc[i]; bx = i % cols; by = (i / cols) | 0; }
-  }
-  const sorted = Array.from(acc);
-  sorted.sort((a, b) => a - b);
-  const med = sorted[(sorted.length / 2) | 0];
-  if (best < 12 || best < med * 2.2 + 6) return;
-
-  let high = 0, minx = cols, maxx = 0, miny = rows, maxy = 0;
-  const thresh = best * 0.72;
-  for (let gy = 0; gy < rows; gy++) {
-    for (let gx = 0; gx < cols; gx++) {
-      if (acc[gy * cols + gx] >= thresh) {
-        high++;
-        if (gx < minx) minx = gx; if (gx > maxx) maxx = gx;
-        if (gy < miny) miny = gy; if (gy > maxy) maxy = gy;
+  const step = 2;
+  const sw = (iw / step) | 0;
+  const sh = (ih / step) | 0;
+  const seen = new Uint8Array(sw * sh);
+  const qx = new Int16Array(sw * sh);
+  const qy = new Int16Array(sw * sh);
+  const fx0 = (sw * 0.28) | 0, fx1 = (sw * 0.72) | 0, fy1 = (sh * 0.36) | 0;
+  let best = null;
+  for (let sy = 0; sy < sh; sy++) {
+    for (let sx = 0; sx < sw; sx++) {
+      const si = sy * sw + sx;
+      if (seen[si] || !skin[(sy * step) * iw + (sx * step)]) continue;
+      let head = 0, tail = 0;
+      qx[tail] = sx; qy[tail] = sy; tail++;
+      seen[si] = 1;
+      let area = 0, sumx = 0, sumy = 0, faceHits = 0;
+      let minx = sx, maxx = sx, miny = sy, maxy = sy;
+      while (head < tail) {
+        const cx = qx[head], cy = qy[head];
+        head++;
+        area++;
+        sumx += cx; sumy += cy;
+        if (cx < minx) minx = cx; if (cx > maxx) maxx = cx;
+        if (cy < miny) miny = cy; if (cy > maxy) maxy = cy;
+        if (cx >= fx0 && cx <= fx1 && cy <= fy1) faceHits++;
+        const nbs = [cx - 1, cy, cx + 1, cy, cx, cy - 1, cx, cy + 1];
+        for (let k = 0; k < 8; k += 2) {
+          const nx = nbs[k], ny = nbs[k + 1];
+          if (nx < 0 || ny < 0 || nx >= sw || ny >= sh) continue;
+          const ni = ny * sw + nx;
+          if (seen[ni] || !skin[(ny * step) * iw + (nx * step)]) continue;
+          seen[ni] = 1;
+          qx[tail] = nx; qy[tail] = ny; tail++;
+        }
+      }
+      if (area < 55) continue;
+      const bw = maxx - minx + 1, bh = maxy - miny + 1;
+      const elong = Math.max(bw, bh) / Math.max(1, Math.min(bw, bh));
+      const faceFrac = faceHits / area;
+      if (faceFrac > 0.55 && elong < 1.4 && area > sw * sh * 0.07) continue;
+      const score = area * (1.15 + elong) * (1 - faceFrac * 0.75);
+      if (!best || score > best.score) {
+        best = { area, score, elong, minx, maxx, miny, maxy, cx: sumx / area, cy: sumy / area };
       }
     }
   }
-  const bboxW = (maxx - minx + 1) * FIND_STEP;
-  const bboxH = (maxy - miny + 1) * FIND_STEP;
-  if (high > acc.length * 0.32) return;
-  if (bboxW > iw * 0.62 && bboxH > ih * 0.62) return;
+  if (!best) return null;
+  const ccx = best.cx * step, ccy = best.cy * step;
+  const x0 = Math.max(0, best.minx * step);
+  const y0 = Math.max(0, best.miny * step);
+  const x1 = Math.min(iw - 1, (best.maxx + 1) * step);
+  const y1 = Math.min(ih - 1, (best.maxy + 1) * step);
+  let tipx = ccx, tipy = ccy, bestD = -1;
+  for (let y = y0; y <= y1; y += 2) {
+    const row = y * iw;
+    for (let x = x0; x <= x1; x += 2) {
+      if (!skin[row + x]) continue;
+      const dx = x - ccx, dy = y - ccy;
+      const dist = dx * dx + dy * dy;
+      if (dist > bestD) { bestD = dist; tipx = x; tipy = y; }
+    }
+  }
+  let rx = tipx, ry = tipy, rd = bestD;
+  for (let y = Math.max(0, tipy - 4); y <= Math.min(ih - 1, tipy + 4); y++) {
+    const row = y * iw;
+    for (let x = Math.max(0, tipx - 4); x <= Math.min(iw - 1, tipx + 4); x++) {
+      if (!skin[row + x]) continue;
+      const dx = x - ccx, dy = y - ccy;
+      const dist = dx * dx + dy * dy;
+      if (dist > rd) { rd = dist; rx = x; ry = y; }
+    }
+  }
+  return {
+    x: rx, y: ry, cx: ccx, cy: ccy,
+    conf: clamp(best.score / 3800, 0.35, 1),
+    area: best.area,
+  };
+}
 
-  commitTpl(gray, iw, ih, bx * FIND_STEP, by * FIND_STEP, now);
+function sampleLock(img, now) {
+  const hand = findHand();
+  if (!hand || hand.conf < 0.4) return;
+  if (!S.lockHand) S.lockHand = { n: 0, x: 0, y: 0 };
+  S.lockHand.n++;
+  S.lockHand.x += hand.x;
+  S.lockHand.y += hand.y;
+  const elapsed = now - (S.lockStart || now);
+  if (elapsed < LOCK_SAMPLE_MS) return;
+  if (S.tpl) return;
+  if (S.lockHand.n < 6) return;
+  const cx = S.lockHand.x / S.lockHand.n;
+  const cy = S.lockHand.y / S.lockHand.n;
+  commitTpl(S.gray, PROC_W, PROC_H, Math.round(cx - TPL * 0.5), Math.round(cy - TPL * 0.5), now);
 }
 
 function applyEuroPoint(now, x, y) {
@@ -659,8 +720,15 @@ function runTrack(now) {
   if (S.tpl) {
     nccTrack(now);
   } else {
-    const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
-    sampleLock(img, now);
+    sampleLock(S.frame, now);
+  }
+  if (!S.det && S.tpl) {
+    const hand = findHand();
+    if (hand && hand.conf >= 0.42) {
+      S.det = { x: hand.x, y: hand.y, conf: hand.conf };
+      S.lastDetAt = now;
+      applyEuroPoint(now, hand.x, hand.y);
+    }
   }
   updateQuality(now, S.det);
 }
@@ -673,6 +741,7 @@ function sizeProc() {
   proc.width = PROC_W;
   proc.height = PROC_H;
   S.gray = new Uint8Array(PROC_W * PROC_H);
+  S.skin = new Uint8Array(PROC_W * PROC_H);
 }
 
 function grabFrame() {
@@ -680,10 +749,14 @@ function grabFrame() {
   if (proc.width !== PROC_W) sizeProc();
   pctx.drawImage(cam, 0, 0, PROC_W, PROC_H);
   const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
+  S.frame = img;
   const d = img.data;
   const gray = S.gray;
+  const skin = S.skin;
   for (let i = 0, j = 0; i < d.length; i += 4, j++) {
-    gray[j] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    gray[j] = (r * 77 + g * 150 + b * 29) >> 8;
+    skin[j] = isSkinByte(r, g, b);
   }
   return true;
 }
@@ -761,22 +834,23 @@ async function requestGeminiLock() {
     });
     if (!resp.ok) throw new Error("API " + resp.status);
     const data = await resp.json();
-    if (data.detected && data.muzzle_point && phase === "lock") {
-      const mx = clamp((data.muzzle_point[1] / 1000) * PROC_W, 0, PROC_W - 1);
-      const my = clamp((data.muzzle_point[0] / 1000) * PROC_H, 0, PROC_H - 1);
+    const tip = data.fingertip || data.muzzle_point;
+    if (data.detected && tip && phase === "lock") {
+      const mx = clamp((tip[1] / 1000) * PROC_W, 0, PROC_W - 1);
+      const my = clamp((tip[0] / 1000) * PROC_H, 0, PROC_H - 1);
       const now = performance.now();
       commitTpl(S.gray, PROC_W, PROC_H, Math.round(mx - TPL * 0.5), Math.round(my - TPL * 0.5), now);
       S.quality = clamp((data.confidence || 0.95) * 100, 0, 100);
       S.locked = true;
-      if (st) st.textContent = "AI LOCKED: " + (data.label || "MOUSE").toUpperCase();
+      if (st) st.textContent = "HAND LOCKED";
       hitBlip(2);
-      speak(data.label ? "Fijado: " + data.label : "Fijado.");
+      speak(data.gesture ? "Mano: " + data.gesture : "Mano fijada.");
       setTimeout(() => { if (phase === "lock") goCalib(); }, 500);
       geminiLockPending = false;
       return true;
     }
   } catch (err) {
-    console.warn("Gemini Muzzle Lock fallback:", err);
+    console.warn("Gemini hand lock fallback:", err);
   }
   geminiLockPending = false;
   if (st && phase === "lock" && !S.locked) st.textContent = "SEEKING";
@@ -1233,7 +1307,7 @@ function goCalib() {
 function resetLockState() {
   geminiLockPending = false;
   geminiAutoTried = false;
-  S.tpl = null; S.ncc = 0; S.det = null;
+  S.tpl = null; S.ncc = 0; S.det = null; S.lockHand = null;
   S.lockAcc = null; S.lockBestScore = 0; S.lockBestPatch = null; S.lockBestTL = null;
   S.lockTplAt = 0; S.lockSince = 0; S.locked = false; S.lockAdvance = false;
   S.desktop = false; S.mode = "SEEKING"; S.smooth = null;
@@ -1489,7 +1563,7 @@ function tickLock(t) {
   }
   const coasting = !!S.smooth && (t - S.lastDetAt) <= COAST_MS;
   if (detGood() || coasting) {
-    if (st) st.textContent = "MOUSE LOCKED";
+    if (st) st.textContent = "HAND LOCKED";
     if (!S.lockSince) S.lockSince = t;
     S.locked = t - S.lockSince >= LOCK_CONFIRM_MS;
     if (S.locked) goCalib();
@@ -1807,7 +1881,7 @@ function drawHUD(now) {
     ctx.font = "700 22px Impact, system-ui, sans-serif";
     ctx.fillStyle = "#00f0ff";
     ctx.letterSpacing = "0.2em";
-    ctx.fillText("LIFT THE MOUSE", W / 2, H * 0.78);
+    ctx.fillText("RAISE YOUR HAND", W / 2, H * 0.78);
     ctx.restore();
   }
 }
