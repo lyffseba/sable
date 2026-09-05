@@ -4,13 +4,13 @@
 
 Pad-strafe (mouse on the pad, later) → **lift** → point at the monitor → **click** → drop back to the pad. Physical ADS is the verb. This is not a flick-assist shooter and it is not a bloom-the-reticle toy.
 
-v1 modes (later): offline **Range**, **1v1**, **2v2**. This repository ships the engine skeleton and a dark Range so aim can be felt.
+v1 modes: offline **Gallery** (Salt House 60s), **Bay** 1v1, waiting-arena **WARM UP** / **ENTER RANGE**. Playlist: `docs/modes.md`.
 
-## Range (now)
+## Gallery (now)
 
-**Salt House** — original hall: rust ribs, mint centerline, bone plates. Crosshair follows `AimSample.uv`. Click fires the **latest** sample. Hits shatter a plate and spawn another. Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`.
+**Salt House** — original hall: rust ribs, mint centerline, bone plates. 60s scored round. Escape = miss. End state: GALLERY CLEAR. Crosshair follows `AimSample.uv`. Click fires the **latest** sample. Hits shatter a plate and spawn another. Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. HUD chips `60s GALLERY`.
 
-First-person mesh is CANCHO’s **cuff** (mint rail = muzzle). AimSample is still the gun. WASD unused on Range.
+First-person mesh is CANCHO’s **cuff** (mint rail = muzzle). AimSample is still the gun. WASD unused on gallery.
 
 ## Visual bar
 

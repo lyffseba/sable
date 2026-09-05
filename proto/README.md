@@ -22,10 +22,10 @@ python3 tools/serve_proto.py
 
 ## Play
 
-1. **OFFLINE** (Range) or **BAY** (first-to-5 booth), or **ONLINE** → **ENTER RANGE** / **ENTER BAY**
+1. **OFFLINE** (60s gallery) or **BAY** (first-to-5 booth), or **ONLINE** → **ENTER RANGE** / **ENTER BAY**
 2. Hold the mouse up to the webcam until it locks. Stay on SEEKING until a template exists — no OS-mouse fallback.
 3. Four corners — aim the mouse-gun, click each, then one center shot.
-4. Range: 60-second arcade wave. Bay: pad-strafe to cover, lift, first to 5.
+4. Gallery: 60-second scored plates/clays. Escape = miss. Bay: pad-strafe to cover, lift, first to 5.
 
 ## Keys
 

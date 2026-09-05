@@ -130,6 +130,21 @@ def main() -> int:
         if 'play("bay")' in play.group(0):
             _fail_only_gun("OFFLINE was rerouted into Bay")
 
+        if "GALLERY CLEAR" not in html:
+            _fail("gallery lost its end state — Salt House is leftover Range again")
+        if "gallerySessionLabel" not in js or "galleryOver" not in js:
+            _fail("gallery mode rules left house.js")
+        sess = _js_fn(js, "gallerySessionLabel")
+        if 'return "GALLERY"' not in sess:
+            _fail("OFFLINE gallery session label died")
+        if "WARM UP" not in sess:
+            _fail("WARM UP must stay a practice label")
+        hud = _js_fn(js, "drawHUD")
+        if "shadowBlur" in hud or "shadowBlur" in _js_fn(js, "drawCrosshair"):
+            _fail("Look bloomed over the reticle")
+        if "ACESFilmicToneMapping" in js:
+            _fail("Look trapped aim noise with ACES")
+
         to_win = re.search(r"const BAY_TO_WIN = ([0-9.]+)", js)
         if not to_win or float(to_win.group(1)) != 5:
             _fail("Bay first-to-5 peek rule left the booth")
