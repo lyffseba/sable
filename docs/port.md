@@ -22,7 +22,7 @@ Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissiv
 
 ### Modes
 
-Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM UP**, **ENTER RANGE** on the Yard. Bay is parked (not player-facing). Internal house phase stays `range`. Contract: `docs/modes.md`.
+Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM UP**, **ENTER RANGE** on the Yard. **BAY** is parked (not player-facing). Internal house phase stays `range`. Contract: `docs/modes.md`.
 
 ## Soft-lock (do not touch on this path)
 

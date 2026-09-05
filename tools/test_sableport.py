@@ -56,6 +56,8 @@ def test_port_doc_boundaries() -> None:
         _fail("docs/port.md must keep the Look palette")
     if "GALLERY" not in text or "BAY" not in text or "WARM UP" not in text:
         _fail("docs/port.md must keep the SABLE playlist")
+    if "parked" not in text.lower() and "sole active" not in text.lower():
+        _fail("docs/port.md must park BAY — Yard is the sole active map")
     if 'play("range")' not in text:
         _fail("docs/port.md must keep play(range) as gallery entry")
     if "AimSample" not in text:
