@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""128 Hz dedicated tick. Mojo hitscan is authoritative for the sim peek."""
+"""128 Hz dedicated tick. Mojo hitscan is authoritative for the sim peek.
+
+Named sim rate for the discrete stepper. Render stays rAF. HID fire peeks
+AimBus and does not wait on this clock. Shared house is rewind, not this loop.
+See docs/tick.md.
+"""
 
 from __future__ import annotations
 

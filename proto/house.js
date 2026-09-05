@@ -856,6 +856,7 @@ function desiredOrbCount(elapsed) {
 }
 
 function updateRange(dt, now) {
+  // dt is SIM_DT from boot.stepSim (128 Hz). Shared house skips local spawn.
   const elapsed = now - S.rangeStart;
   if (elapsed >= RANGE_MS) { setPhase("results"); return; }
   const shared = sharedMatch();

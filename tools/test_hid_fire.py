@@ -71,6 +71,11 @@ def test_client_does_not_wait() -> None:
         r"wait_for",
         r"poll_capture",
         r"requestVideoFrameCallback",
+        r"requestAnimationFrame",
+        r"stepSim\s*\(",
+        r"simAcc",
+        r"SIM_DT",
+        r"SIM_HZ",
     )
     for pat in banned:
         if re.search(pat, fire_src):

@@ -73,6 +73,8 @@ def main() -> int:
             _fail("fire() recomputes aim")
         if re.search(r"postMessage|createImageBitmap|detectForVideo|hands_worker|new Worker", fire):
             _fail("fire() waits on the Hands worker")
+        if re.search(r"requestAnimationFrame|stepSim\s*\(|simAcc|SIM_DT|SIM_HZ", fire):
+            _fail("fire() waits on the sim/rAF tick")
         if "intersectObjects" not in fire:
             _fail("local hitscan gone")
         hid_at = fire.find("SablePerf.markHid")

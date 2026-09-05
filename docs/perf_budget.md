@@ -5,8 +5,8 @@ Stretch: **1080p 120** on an RTX 3060 laptop class.
 
 | System        | Budget                         |
 |---------------|--------------------------------|
-| Sim           | 64 Hz, Jolt                    |
-| Render        | Forward+, no glow, no SDFGI    |
+| Sim           | 128 Hz named tick (dedicated + local Range/Bay). Shared house is closed-form rewind, not this loop. |
+| Render        | rAF WebGL, no glow, no bloom   |
 | Shadows       | baked / few; no virtual geo    |
 | Post          | off (no bloom)                 |
 | Aim capture   | 1–3 ms CPU on the worker       |

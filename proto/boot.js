@@ -90,6 +90,9 @@ const screens = {
 const CORNER_NAMES = ["TOP LEFT", "TOP RIGHT", "BOTTOM RIGHT", "BOTTOM LEFT"];
 
 export let stream = null, camReady = false, lastT = 0;
+const SIM_HZ = 128;
+const SIM_DT = 1 / SIM_HZ;
+let simAcc = 0;
 let targetGameMode = "range";
 let geminiLockPending = false;
 let geminiAutoTried = false;
@@ -791,6 +794,12 @@ function draw2D(now) {
   }
 }
 
+function stepSim(now) {
+  // Peek-only fire stays on the HID click. This clock never shoots.
+  if (phase === "range") updateRange(SIM_DT, now);
+  if (phase === "bay") tickBay(SIM_DT);
+}
+
 function frame(t) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, lastT ? (t - lastT) / 1000 : 0.016);
@@ -805,8 +814,16 @@ function frame(t) {
   }
 
   if (phase === "lock") tickLock(t);
-  if (phase === "range") updateRange(dt, t);
-  if (phase === "bay") tickBay(dt);
+  if (phase === "range" || phase === "bay") {
+    simAcc += dt;
+    if (simAcc > 0.25) simAcc = 0.25;
+    while (simAcc >= SIM_DT) {
+      stepSim(t);
+      simAcc -= SIM_DT;
+    }
+  } else {
+    simAcc = 0;
+  }
 
   // Recoil decay & camera punch
   S.recoil += (0 - S.recoil) * Math.min(1, dt * 18);
@@ -1059,4 +1076,7 @@ export {
   lobbyStartBay,
   leaveBay,
   requestGeminiLock,
+  SIM_HZ,
+  SIM_DT,
+  stepSim,
 };
