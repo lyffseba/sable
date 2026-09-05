@@ -44,6 +44,7 @@ void AimPipeline::reset() {
 	rejects_ = 0;
 	frame_i_ = 0;
 	last_blob_t_ = 0;
+	last_lift_t_ = 0;
 	last_t_ = 0;
 	have_filt_ = false;
 	debug_ = {};
@@ -119,10 +120,20 @@ void AimPipeline::apply_lift(AimSample& sample, const Blob& blob, float dt_s) {
 		}
 		cam_lift = blob.mass > pad_area_ * kLiftAreaScale;
 	}
-	const bool want = hid_idle_ && cam_lift;
-	if (want) {
+	if (cam_lift) {
+		last_lift_t_ = sample.t_hw > 0 ? sample.t_hw : last_t_;
+	}
+	const float since_lift_ms =
+		(last_lift_t_ > 0 && sample.t_hw > last_lift_t_)
+			? static_cast<float>(sample.t_hw - last_lift_t_) * 1e-3f
+			: (cam_lift ? 0.0f : 1e9f);
+	const bool recent = cam_lift || (last_lift_t_ > 0 && since_lift_ms <= kLiftStickyMs);
+	const bool hold_click = lift_ms_ >= kLiftHysteresisMs && !hid_idle_ &&
+							since_lift_ms <= (kLiftStickyMs + kLiftHidHoldMs);
+	// Hand-visible / recent cam-lift owns lift. HID motion does not demote.
+	if (cam_lift || recent) {
 		lift_ms_ += dt_ms;
-	} else {
+	} else if (!hold_click) {
 		lift_ms_ -= dt_ms;
 	}
 	lift_ms_ = clampf(lift_ms_, 0.0f, kLiftHysteresisMs * 2.0f);

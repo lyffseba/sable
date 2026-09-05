@@ -97,6 +97,7 @@ private:
 	int rejects_ = 0;
 	int frame_i_ = 0;
 	std::int64_t last_blob_t_ = 0;
+	std::int64_t last_lift_t_ = 0;
 	std::int64_t last_t_ = 0;
 	bool have_filt_ = false;
 	PipelineDebug debug_{};

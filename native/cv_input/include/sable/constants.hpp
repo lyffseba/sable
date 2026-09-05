@@ -32,9 +32,12 @@ constexpr float kMinSat = 0.28f;
 constexpr float kMinVal = 0.28f;
 constexpr float kLowSatFallback = 0.18f;
 
-// Lift: blob area jump vs pad baseline, plus HID idle from the caller.
+// Lift: blob area jump vs pad baseline. HID motion does not demote.
+// Recent cam-lift holds through a trackpad reach (UV coast stays kCoastMs).
 constexpr float kLiftAreaScale = 1.45f;
 constexpr float kLiftHysteresisMs = 110.0f;
+constexpr float kLiftStickyMs = 550.0f;
+constexpr float kLiftHidHoldMs = 180.0f;
 
 // HID idle window used with the camera lift signal.
 constexpr float kHidIdleMsMin = 15.0f;

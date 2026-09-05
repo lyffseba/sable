@@ -10,34 +10,96 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
-def mode(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> str:
+def _js_const(src: str, name: str) -> float:
+    m = re.search(rf"const {name} = ([0-9.]+)", src)
+    if not m:
+        raise AssertionError(f"missing const {name}")
+    return float(m.group(1))
+
+
+def mode(
+    desktop: bool,
+    force: bool,
+    hid_moving: bool,
+    det: bool,
+    coasting: bool,
+    recent: bool = False,
+    lifted: bool = False,
+) -> str:
     """Chip only. Camera still writes the mailbox on PAD.
-    Hand lock beats trackpad HID so a MacBook click can fire."""
+    Hand / recent sample owns GUN. Trackpad HID does not demote lift."""
     if desktop:
         return "DESKTOP"
     if force:
         return "GUN"
-    if det or coasting:
+    if lifted or det or coasting or recent:
         return "GUN"
     if hid_moving:
         return "PAD"
     return "SEEKING"
 
 
-def lifted(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> bool:
+def lifted(
+    desktop: bool,
+    force: bool,
+    hid_moving: bool,
+    det: bool,
+    coasting: bool,
+    recent: bool = False,
+) -> bool:
     if desktop or force:
         return True
-    return det or coasting
+    return det or coasting or recent
 
 
-def can_fire(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> bool:
-    return desktop or lifted(desktop, force, hid_moving, det, coasting)
+def can_fire(
+    desktop: bool,
+    force: bool,
+    hid_moving: bool,
+    det: bool,
+    coasting: bool,
+    recent: bool = False,
+    bus_lifted: bool = False,
+) -> bool:
+    # fire() peeks AimBus.lifted and recent sample — not only S.lifted.
+    return desktop or force or lifted(
+        desktop, force, hid_moving, det, coasting, recent
+    ) or bus_lifted
+
+
+def step_lift(
+    lift_ms: float,
+    dt: float,
+    *,
+    det: bool,
+    coasting: bool,
+    recent: bool,
+    hid_moving: bool,
+    force: bool = False,
+    desktop: bool = False,
+    lift_on_ms: float = 50.0,
+    sticky_ms: float = 550.0,
+    hid_hold_ms: float = 180.0,
+    since_ms: float = 0.0,
+) -> tuple[float, bool]:
+    """Discrete updateMode lift bank. HID click freezes decay, never charges down."""
+    if desktop or force:
+        return lift_on_ms, True
+    hand_owns = det or recent
+    want = force or hand_owns
+    hold_click = lift_ms >= lift_on_ms and hid_moving and since_ms <= sticky_ms + hid_hold_ms
+    if want:
+        lift_ms = min(160.0, lift_ms + dt)
+    elif not hold_click:
+        lift_ms = max(0.0, lift_ms - dt)
+    return lift_ms, force or lift_ms >= lift_on_ms
 
 
 def test_mode_table() -> None:
     assert mode(False, False, True, True, False) == "GUN"
     assert mode(False, False, False, True, False) == "GUN"
     assert mode(False, False, False, False, True) == "GUN"
+    assert mode(False, False, True, False, False, recent=True) == "GUN"
     assert mode(False, False, True, False, False) == "PAD"
     assert mode(False, False, False, False, False) == "SEEKING"
     assert mode(False, True, True, False, False) == "GUN"
@@ -57,6 +119,74 @@ def test_lift_and_fire() -> None:
     assert can_fire(False, True, True, False, False) is True
     # T debug always shoots.
     assert can_fire(True, False, True, False, False) is True
+
+
+def test_pad_click_while_lift_coasts() -> None:
+    """Regression: point, hand leaves the lid cam, click the pad. Plates must die."""
+    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    lift_on = _js_const(src, "LIFT_ON_MS")
+    sticky = _js_const(src, "LIFT_STICKY_MS")
+    hid_hold = _js_const(src, "LIFT_HID_HOLD_MS")
+    coast = _js_const(src, "COAST_MS")
+    if sticky < 400:
+        raise AssertionError("LIFT_STICKY_MS must cover a MacBook pad reach (>= 400 ms)")
+    if coast > 150:
+        raise AssertionError("UV coast must stay short — do not invent pose")
+
+    # Boolean table: coast UV expired, recent sample + HID click.
+    assert lifted(False, False, True, False, False, recent=True) is True
+    assert can_fire(False, False, True, False, False, recent=True) is True
+    assert mode(False, False, True, False, False, recent=True, lifted=True) == "GUN"
+    # Mailbox still armed even if S.lifted flickered this frame.
+    assert can_fire(False, False, True, False, False, recent=False, bus_lifted=True) is True
+    # Sticky expired, no bus lift, pad moving: rest, do not shoot.
+    assert can_fire(False, False, True, False, False, recent=False, bus_lifted=False) is False
+
+    # Time series: lifted, then 120 ms hole (past UV coast), HID click at 400 ms.
+    lift_ms = 160.0
+    armed = True
+    t = 0.0
+    dt = 16.0
+    while t < 400.0:
+        t += dt
+        recent = t <= sticky
+        coasting = t <= coast
+        hid = t >= 280.0
+        lift_ms, armed = step_lift(
+            lift_ms,
+            dt,
+            det=False,
+            coasting=coasting,
+            recent=recent,
+            hid_moving=hid,
+            lift_on_ms=lift_on,
+            sticky_ms=sticky,
+            hid_hold_ms=hid_hold,
+            since_ms=t,
+        )
+        if t <= sticky + hid_hold:
+            if not armed:
+                raise AssertionError(f"lift died at {t:.0f} ms during pad reach")
+    if not can_fire(False, False, True, False, False, recent=t <= sticky):
+        raise AssertionError("pad click while lift coasts must fire")
+
+    # Long rest on the pad after the window: drop.
+    while t < sticky + hid_hold + lift_on + 80:
+        t += dt
+        lift_ms, armed = step_lift(
+            lift_ms,
+            dt,
+            det=False,
+            coasting=False,
+            recent=False,
+            hid_moving=False,
+            lift_on_ms=lift_on,
+            sticky_ms=sticky,
+            hid_hold_ms=hid_hold,
+            since_ms=t,
+        )
+    if armed:
+        raise AssertionError("lift must drop after sticky + hid-hold, not stick forever")
 
 
 def test_ruled_out() -> None:
@@ -83,11 +213,17 @@ def test_proto_mailbox() -> None:
     src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
     mode_body = _js_fn(src, "updateMode")
     hid = mode_body.find("if (S.hidMoving)")
-    locked = mode_body.find("if (locked)")
-    if hid < 0 or locked < 0 or locked > hid:
-        raise AssertionError("chip: hand lock must beat trackpad HID")
+    owns = mode_body.find("handOwns")
+    if "LIFT_STICKY_MS" not in mode_body:
+        raise AssertionError("updateMode must sticky-lift on a recent sample")
+    if "holdClick" not in mode_body:
+        raise AssertionError("HID click must hold lift, not demote it")
+    if owns < 0 or hid < 0 or owns > hid:
+        raise AssertionError("chip: hand / recent sample must beat trackpad HID")
     if "S.lifted" not in mode_body:
         raise AssertionError("updateMode must write lifted")
+    if "want = S.forceGun || (!S.hidMoving" in mode_body:
+        raise AssertionError("HID idle must not be required to charge lift")
 
     aim = _js_fn(src, "updateAim")
     if "S.mode" in aim:
@@ -100,8 +236,14 @@ def test_proto_mailbox() -> None:
     fire = _js_fn(src, "fire")
     if 'S.mode === "PAD"' in fire:
         raise AssertionError("fire gates on lifted, not the chip")
-    if "!S.lifted" not in fire:
-        raise AssertionError("fire peeks lifted")
+    if "aimBus.fire" not in fire:
+        raise AssertionError("fire must peek the AimBus mailbox")
+    if "shot.lifted" not in fire:
+        raise AssertionError("fire peeks AimSample.lifted from the bus")
+    if "LIFT_STICKY_MS" not in fire:
+        raise AssertionError("fire must honor sticky / recent lift, not only S.lifted")
+    if re.search(r"await\s+|requestVideoFrameCallback", fire):
+        raise AssertionError("fire must not wait on a camera frame")
 
     move = re.search(r"pointermove[\s\S]{0,280}", src)
     if not move or "if (S.desktop)" not in move.group(0):
@@ -150,18 +292,36 @@ def test_range_gate() -> None:
     fire_body = _js_fn(src, "fire")
     if "lifted" not in fire_body:
         raise AssertionError("Range fire must gate on AimSample.lifted")
+    if "shot.lifted" not in fire_body:
+        raise AssertionError("Range fire must peek mailbox lift, not only S.lifted")
     if "!S.desktop && !S.lifted" not in fire_body:
-        raise AssertionError("Range fire must gate on lifted unless desktop")
+        raise AssertionError("Range fire must still consult S.lifted unless desktop")
+
+
+def test_native_sticky_constants() -> None:
+    src = (ROOT / "native/cv_input/include/sable/constants.hpp").read_text(encoding="utf-8")
+    if "kLiftStickyMs" not in src:
+        raise AssertionError("native lift must sticky through a pad reach")
+    if "kLiftHidHoldMs" not in src:
+        raise AssertionError("native lift must hold through the HID click gesture")
+    pipe = (ROOT / "native/cv_input/src/pipeline.cpp").read_text(encoding="utf-8")
+    if "hid_idle_ && cam_lift" in pipe:
+        raise AssertionError("native apply_lift must not require HID idle to own lift")
+    tests = (ROOT / "native/cv_input/tests/test_aim.cpp").read_text(encoding="utf-8")
+    if "test_pad_click_while_lift_coasts" not in tests:
+        raise AssertionError("C++ suite must regress pad click while lift coasts")
 
 
 def main() -> int:
     try:
         test_mode_table()
         test_lift_and_fire()
+        test_pad_click_while_lift_coasts()
         test_ruled_out()
         test_proto_mailbox()
         test_pointing_filter()
         test_range_gate()
+        test_native_sticky_constants()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
