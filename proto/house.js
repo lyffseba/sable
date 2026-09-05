@@ -317,19 +317,20 @@ function buildFirstPersonGun() {
 }
 
 function addBarrelRib(group, z, charMat, rustMat) {
-  const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(-10.6, -1.64, z),
-    new THREE.Vector3(0, 4.5, z),
-    new THREE.Vector3(10.6, -1.64, z)
+  const r = 5.45;
+  const rustR = 5.12;
+  const rib = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-r, -1.64, z),
+    new THREE.Vector3(0, -1.64 + r, z),
+    new THREE.Vector3(r, -1.64, z)
   );
-  const rib = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.11, 8, false), charMat);
-  group.add(rib);
-  const edge = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(-10.6, -1.64, z + 0.05),
-    new THREE.Vector3(0, 4.5, z + 0.05),
-    new THREE.Vector3(10.6, -1.64, z + 0.05)
+  const rustEdge = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-rustR, -1.64, z),
+    new THREE.Vector3(0, -1.64 + rustR, z),
+    new THREE.Vector3(rustR, -1.64, z)
   );
-  group.add(new THREE.Mesh(new THREE.TubeGeometry(edge, 28, 0.034, 6, false), rustMat));
+  group.add(new THREE.Mesh(new THREE.TubeGeometry(rib, 28, 0.16, 8, false), charMat));
+  group.add(new THREE.Mesh(new THREE.TubeGeometry(rustEdge, 28, 0.055, 6, false), rustMat));
 }
 
 function buildRange3D() {
@@ -341,7 +342,7 @@ function buildRange3D() {
   scene.add(shardGroup);
 
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(26, 22),
+    new THREE.PlaneGeometry(14, 22),
     bayUnshaded(0x10141a)
   );
   floor.rotation.x = -Math.PI / 2;
@@ -353,25 +354,31 @@ function buildRange3D() {
   lane.position.set(0, -1.62, -7);
   rangeHallGroup.add(lane);
 
+  const vaultMat = bayUnshaded(Locker.colors.bodyHex);
+  vaultMat.side = THREE.DoubleSide;
+  const vault = new THREE.Mesh(
+    new THREE.CylinderGeometry(5.6, 5.6, 21, 32, 1, true, Math.PI * 0.5, Math.PI),
+    vaultMat
+  );
+  vault.rotation.x = Math.PI / 2;
+  vault.position.set(0, -1.64, -7);
+  rangeHallGroup.add(vault);
+
   const ribChar = bayUnshaded(0x1a222c);
   const ribRust = bayUnshaded(Locker.colors.rustHex);
-  const ribZ = [1.2, -2.8, -6.8, -10.8, -14.8];
+  const ribZ = [-0.4, -4.2, -8.0, -11.8, -15.4];
   for (const z of ribZ) addBarrelRib(rangeHallGroup, z, ribChar, ribRust);
 
   const post = bayUnshaded(Locker.colors.bodyHex);
-  for (const z of [1.2, -14.8]) {
-    for (const x of [-10.4, 10.4]) {
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.4, 0.16), post);
-      p.position.set(x, -0.44, z);
+  for (const z of [-0.4, -15.4]) {
+    for (const x of [-5.5, 5.5]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.2, 0.22), post);
+      p.position.set(x, -0.54, z);
       rangeHallGroup.add(p);
     }
   }
 
-  const crown = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 16.4), mint);
-  crown.position.set(0, 4.48, -6.8);
-  rangeHallGroup.add(crown);
-
-  const backstop = new THREE.Mesh(new THREE.BoxGeometry(7.2, 2.4, 1.35), ribRust);
+  const backstop = new THREE.Mesh(new THREE.BoxGeometry(6.4, 2.4, 1.35), ribRust);
   backstop.position.set(0, -0.44, -16.8);
   rangeHallGroup.add(backstop);
 

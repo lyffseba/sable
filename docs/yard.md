@@ -26,7 +26,7 @@ Camera / player at `(0, 1.64, 0)` looking −Z. Floor y = −1.64.
 | Beam R | 3.4 | −4.2 | 2.8 × 0.76 × 0.76 | low bone crawler |
 | Drum | −1.6 | −7.0 | 1.7 × 0.7 × 1.2 | short rust mass |
 | Peak | 2.2 | −8.5 | Ø 2.0 × H 0.92 | low bone pyramid |
-| Backstop | 0 | −16.8 | 7.2 × 2.4 × 1.35 | solid rust block |
+| Backstop | 0 | −16.8 | 6.4 × 2.4 × 1.35 | solid rust block |
 
 180° stadium symmetry is **later**. The range faces one way on purpose.
 
