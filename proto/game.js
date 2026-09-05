@@ -126,7 +126,7 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false, hands: false },
-  handsOn: false, hands: null, handsTried: false, mpTs: 0, pinchHeld: false,
+  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null,
   online: false,
   playlist: "range",
   room: "",
@@ -740,26 +740,43 @@ function mpTrack(now) {
   S.tpl = { w: TPL, h: TPL, fromHands: true };
   S.lockTplAt = now;
   S.ncc = S.det.conf;
-  maybePinchFire(lms[0]);
+  S.handLm = lms[0];
+  if (!indexExtended(lms[0])) S.det.conf = 0.4;
   return true;
 }
 
+function indexExtended(lm) {
+  const w = lm[0], pip = lm[6], tip = lm[8];
+  if (!w || !pip || !tip) return false;
+  const dTip = Math.hypot(tip.x - w.x, tip.y - w.y);
+  const dPip = Math.hypot(pip.x - w.x, pip.y - w.y);
+  return dTip > dPip * 1.06;
+}
+
 function maybePinchFire(lm) {
-  const thumb = lm[4], index = lm[8];
+  if (!lm) { S.pinchHeld = false; return; }
+  const thumb = lm[4], index = lm[8], wrist = lm[0], palm = lm[9];
   if (!thumb || !index) return;
-  const d = Math.hypot(thumb.x - index.x, thumb.y - index.y);
-  if (d < 0.052 && !S.pinchHeld) {
+  const scale = (wrist && palm)
+    ? Math.hypot(wrist.x - palm.x, wrist.y - palm.y)
+    : 0.2;
+  const d = Math.hypot(thumb.x - index.x, thumb.y - index.y) / Math.max(0.08, scale);
+  if (d < 0.38 && !S.pinchHeld) {
     S.pinchHeld = true;
     if (phase === "range" || phase === "bay") fire();
     else if (phase === "calibrate" && S.calibIndex >= 4) fire();
-  } else if (d > 0.09) {
+  } else if (d > 0.58) {
     S.pinchHeld = false;
   }
 }
 
+let handsPromise = null;
 async function initHands() {
-  if (S.handsTried) return S.handsOn;
-  S.handsTried = true;
+  if (handsPromise) return handsPromise;
+  handsPromise = initHandsInner();
+  return handsPromise;
+}
+async function initHandsInner() {
   const cdn = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
   const tries = [
     {
@@ -807,6 +824,8 @@ function runTrack(now) {
   if (S.handsOn) {
     if (!mpTrack(now)) {
       S.det = null;
+      S.handLm = null;
+      S.pinchHeld = false;
       coastTrack(now);
       if (now - (S.lastDetAt || 0) > QUALITY_LOST_MS) resetTrackFilters();
     }
@@ -2235,6 +2254,7 @@ function frame(t) {
     else coastTrack(t);
     updateMode(t);
     updateAim();
+    maybePinchFire(S.handLm);
   }
 
   if (phase === "lock") tickLock(t);

@@ -126,6 +126,13 @@ def test_pointing_filter() -> None:
         raise AssertionError("MediaPipe Hands (landmark 8) must be the primary tracker")
     if "function maybePinchFire" not in src:
         raise AssertionError("pinch thumb-index must be able to fire")
+    if "handsPromise" not in src:
+        raise AssertionError("initHands must wait for the model, not return early")
+    if "function indexExtended" not in src:
+        raise AssertionError("muzzle requires an extended index, not a fist")
+    frame = _js_fn(src, "frame")
+    if frame.find("updateMode") > frame.find("maybePinchFire"):
+        raise AssertionError("pinch must run after updateMode so lifted is current")
     lost = _js_fn(src, "nccTrack")
     if "age > COAST_MS && S.euroX" in lost:
         raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")
