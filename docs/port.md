@@ -22,11 +22,11 @@ Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissiv
 
 ### Modes
 
-Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM UP**, **ENTER RANGE**, **BAY** / **ENTER BAY**. Gallery is never the only gun. Internal house phase stays `range`. Contract: `docs/modes.md`.
+Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM UP**, **ENTER RANGE**, **BAY** / **ENTER BAY**. Gallery is never the only gun. **BAY** / **ENTER BAY** are playlist / port architecture seams — not a live gun. Player chrome is Yard-only. Internal house phase stays `range`. Contract: `docs/modes.md`.
 
 ## Soft-lock (do not touch on this path)
 
-Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local. Shared Bay is rewind, not a lobby friend tick. Behavior unchanged.
+Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local as a seam. Shared Bay is rewind, not a lobby friend tick. Behavior unchanged. Player-facing boot **BAY** / lobby **ENTER BAY** stay off chrome (`docs/modes.md`).
 
 ## What a later port may take
 

@@ -196,8 +196,8 @@ function paintLobby(data) {
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
-      ? "WARM UP is practice. ENTER RANGE shares the gallery. ENTER BAY shares first-to-5."
-      : "WARM UP anytime. Host ENTER RANGE / ENTER BAY shares the house or booth.";
+      ? "WARM UP is practice. ENTER RANGE shares the Yard gallery."
+      : "WARM UP anytime. Host ENTER RANGE shares the Yard.";
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
@@ -216,6 +216,8 @@ function paintLobby(data) {
   if (enter) enter.hidden = !S.host && data.phase === "wait";
   const warm = $("btn-lobby-warmup");
   if (warm) warm.hidden = data.phase !== "wait";
+  const lobbyBay = $("btn-lobby-bay");
+  if (lobbyBay) lobbyBay.hidden = true;
   syncWarmupChrome();
 }
 
@@ -467,8 +469,8 @@ function syncBootButtons(busy) {
   if (onBtn) onBtn.disabled = !!busy;
   const bayBtn = $("btn-bay");
   if (bayBtn) {
-    bayBtn.disabled = !!busy;
-    if (!busy) bayBtn.textContent = "BAY";
+    bayBtn.hidden = true;
+    bayBtn.disabled = true;
   }
 }
 
@@ -1003,21 +1005,10 @@ $("btn-play").addEventListener("click", () => {
   S.playlist = "gallery";
   play("range");
 });
-const btnBay = $("btn-bay");
-if (btnBay) {
-  btnBay.addEventListener("click", () => {
-    S.online = false;
-    S.warmup = false;
-    S.playlist = "bay";
-    play("bay");
-  });
-}
 const btnOnline = $("btn-online");
 if (btnOnline) btnOnline.addEventListener("click", () => openLobby());
 const btnLobbyRange = $("btn-lobby-range");
 if (btnLobbyRange) btnLobbyRange.addEventListener("click", () => lobbyStartRange());
-const btnLobbyBay = $("btn-lobby-bay");
-if (btnLobbyBay) btnLobbyBay.addEventListener("click", () => lobbyStartBay());
 const btnBayBoot = $("btn-bay-boot");
 if (btnBayBoot) btnBayBoot.addEventListener("click", () => leaveBay());
 const btnLobbyWarmup = $("btn-lobby-warmup");

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Shared Bay 1v1: room owns score / pose / fire_ms rewind.
 
-Fail loud if ENTER BAY cannot share first-to-5, if the room invents a
-128 Hz friend loop, if local BAY / Offline / WARM UP die, if HID waits
-on net, or if Bay becomes the only gun.
+Fail loud if parked shared Bay cannot share first-to-5, if the room invents a
+128 Hz friend loop, if Offline / WARM UP die, if HID waits
+on net, or if Bay reappears on player chrome.
 """
 
 from __future__ import annotations
@@ -278,32 +278,30 @@ def test_client_keeps_local_and_hid() -> None:
         _fail("OFFLINE must stay local one-click")
     if 'play("bay")' in offline.group(0):
         _fail_only_gun("OFFLINE was rerouted into Bay")
-    if 'id="btn-bay"' not in html or ">BAY<" not in html:
-        _fail_only_gun("boot lost BAY")
+    if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+        _fail("boot still offers BAY — Yard is the sole active map")
     if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
         _fail_only_gun("lobby lost WARM UP")
     if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
         _fail_only_gun("lobby lost ENTER RANGE")
-    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-        _fail_only_gun("lobby lost ENTER BAY")
+    if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+        _fail("lobby still offers ENTER BAY — Bay is parked")
 
     boot_bay = re.search(r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)', js)
-    if not boot_bay or "S.online = false" not in boot_bay.group(0):
-        _fail("boot BAY trapped HID behind a room")
-    if "/api/lobby" in boot_bay.group(0):
-        _fail("boot BAY must stay free of /api/lobby/*")
+    if boot_bay:
+        _fail("boot still wires BAY — soft-park must hide the player entry")
 
     start_bay = _js_fn(js, "lobbyStartBay")
     if "/api/lobby/start\"" in start_bay or "/api/lobby/start'" in start_bay:
-        _fail("ENTER BAY started the shared house")
+        _fail("parked lobbyStartBay started the shared house")
     if "/api/lobby/bay" not in start_bay:
-        _fail("host ENTER BAY must fire-and-forget /api/lobby/bay")
+        _fail("parked lobbyStartBay must fire-and-forget /api/lobby/bay")
     if re.search(r"await\s+", start_bay) or "async function lobbyStartBay" in js:
-        _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
+        _fail("parked lobbyStartBay awaits net — lift/HID is behind the lobby")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
-        _fail_only_gun("ENTER BAY no longer drops into the booth")
+        _fail("parked lobbyStartBay lost the booth drop")
     if "stepSim" in start_bay or "simAcc" in start_bay or re.search(r"setTimeout", start_bay):
-        _fail("ENTER BAY grew a tick tax")
+        _fail("parked lobbyStartBay grew a tick tax")
 
     fire = _js_fn(js, "fire")
     if "aimBus.fire" not in fire:
@@ -398,8 +396,8 @@ def test_docs_and_ci() -> None:
         _fail("docs/modes.md must keep ENTER BAY off the shared house start")
     if "FIRST TO 5" not in modes or "SableHUD" not in modes:
         _fail("docs/modes.md must keep thin Bay chips")
-    if "never the only gun" not in modes.lower() and "never replaces gallery" not in modes:
-        _fail("docs/modes.md must keep Bay from replacing gallery")
+    if "parked" not in modes.lower() and "sole active" not in modes.lower():
+        _fail("docs/modes.md must park Bay — Yard is the sole active map")
     if "128 Hz friend" not in tick.lower() and "friend loop" not in tick.lower():
         _fail("docs/tick.md must keep shared Bay off a 128 Hz friend loop")
     if "fire_ms" not in bay.lower() and "committedSimMs" not in bay:

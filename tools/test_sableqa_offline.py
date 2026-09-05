@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SableQA product gate: fail LOUD if Offline one-click dies, or Salt House/gallery is the only gun."""
+"""SableQA product gate: fail LOUD if Offline one-click dies, or Bay reappears on player chrome."""
 
 from __future__ import annotations
 
@@ -163,18 +163,16 @@ def main() -> int:
         if "/api/lobby/start" not in start_room:
             _fail_only_gun("host ENTER RANGE no longer shares the house")
 
-        if 'id="btn-bay"' not in html or ">BAY<" not in html:
-            _fail_only_gun("boot lost BAY")
-        if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-            _fail_only_gun("lobby lost ENTER BAY")
+        if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+            _fail("boot still offers BAY — Yard is the sole active map")
+        if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+            _fail("lobby still offers ENTER BAY — Bay is parked")
         boot_bay = re.search(
             r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)',
             js,
         )
-        if not boot_bay:
-            _fail_only_gun("boot BAY no longer calls play(bay)")
-        if "S.online = false" not in boot_bay.group(0):
-            _fail("boot BAY trapped HID behind a room")
+        if boot_bay:
+            _fail("boot still wires BAY — soft-park must hide the player entry")
         if 'play("bay")' in play.group(0):
             _fail_only_gun("OFFLINE was rerouted into Bay")
 
@@ -219,11 +217,11 @@ def main() -> int:
             _fail("Bay fire talks to net — lift/HID is behind the lobby")
         start_bay = _js_fn(js, "lobbyStartBay")
         if "/api/lobby/start" in start_bay:
-            _fail("ENTER BAY started the shared house")
+            _fail("parked lobbyStartBay started the shared house")
         if re.search(r"await\s+", start_bay):
-            _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
+            _fail("parked lobbyStartBay awaits net — lift/HID is behind the lobby")
         if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
-            _fail_only_gun("ENTER BAY no longer drops into the booth")
+            _fail("parked lobbyStartBay lost the booth drop")
 
         _assert_original_geometry()
     except AssertionError as exc:

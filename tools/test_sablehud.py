@@ -125,14 +125,14 @@ def test_offline_never_only_gun() -> None:
         _fail("OFFLINE must clear WARM UP")
     if 'play("bay")' in offline.group(0):
         _fail_only_gun("OFFLINE was rerouted into Bay")
-    if 'id="btn-bay"' not in html or ">BAY<" not in html:
-        _fail_only_gun("boot lost BAY")
+    if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+        _fail("boot still offers BAY — Yard is the sole active map")
     if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
         _fail_only_gun("lobby lost WARM UP")
     if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
         _fail_only_gun("lobby lost ENTER RANGE")
-    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-        _fail_only_gun("lobby lost ENTER BAY")
+    if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+        _fail("lobby still offers ENTER BAY — Bay is parked")
     warm = _js_fn(js, "lobbyWarmup")
     if "/api/lobby/start" in warm:
         _fail_only_gun("WARM UP started the shared house")
@@ -143,9 +143,9 @@ def test_offline_never_only_gun() -> None:
         _fail_only_gun("ENTER RANGE no longer shares the Salt House")
     start_bay = _js_fn(js, "lobbyStartBay")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
-        _fail_only_gun("ENTER BAY no longer drops into the booth")
+        _fail("parked lobbyStartBay lost the booth drop")
     if "/api/lobby/start" in start_bay:
-        _fail("ENTER BAY started the shared gallery")
+        _fail("parked lobbyStartBay started the shared gallery")
 
 
 def test_lobby_stays_thin() -> None:
@@ -169,8 +169,10 @@ def test_lobby_stays_thin() -> None:
     body = inner.group(1)
     if "SCORE" in body or "ROUND" in body or "SableHUD" in body:
         _fail("lobby grew gallery HUD chips")
-    if "WARM UP" not in body or "ENTER RANGE" not in body or "ENTER BAY" not in body:
-        _fail_only_gun("lobby chrome lost a practice / Bay path")
+    if "WARM UP" not in body or "ENTER RANGE" not in body:
+        _fail_only_gun("lobby chrome lost a Yard path")
+    if "ENTER BAY" in body or 'id="btn-lobby-bay"' in body:
+        _fail("lobby chrome still offers ENTER BAY — Bay is parked")
 
 
 def test_docs_lock() -> None:

@@ -2,8 +2,8 @@
 """Bay competitive 1v1 on the R6 contract.
 
 Fail loud if local first-to-5 leaves 128 Hz / HID-outside / fire_ms,
-if ENTER BAY awaits net, if Offline / WARM UP die, if Bay becomes the
-only gun, or if Bay HUD grows a tutorial wall over the cuff.
+if parked lobbyStartBay awaits net, if Offline / WARM UP die, if Bay
+reappears on player chrome, or if Bay HUD grows a tutorial wall over the cuff.
 """
 
 from __future__ import annotations
@@ -150,28 +150,26 @@ def test_enter_bay_soft_lock() -> None:
         _fail("OFFLINE must stay local")
     if 'play("bay")' in offline.group(0):
         _fail_only_gun("OFFLINE was rerouted into Bay")
-    if 'id="btn-bay"' not in html or ">BAY<" not in html:
-        _fail_only_gun("boot lost BAY")
+    if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+        _fail("boot still offers BAY — Yard is the sole active map")
     if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
         _fail_only_gun("lobby lost WARM UP")
     if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
         _fail_only_gun("lobby lost ENTER RANGE")
-    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-        _fail_only_gun("lobby lost ENTER BAY")
+    if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+        _fail("lobby still offers ENTER BAY — Bay is parked")
     boot_bay = re.search(r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)', js)
-    if not boot_bay:
-        _fail_only_gun("boot BAY no longer calls play(bay)")
-    if "S.online = false" not in boot_bay.group(0):
-        _fail("boot BAY trapped HID behind a room")
+    if boot_bay:
+        _fail("boot still wires BAY — soft-park must hide the player entry")
     start_bay = _js_fn(js, "lobbyStartBay")
     if "/api/lobby/start" in start_bay:
-        _fail("ENTER BAY started the shared house")
+        _fail("parked lobbyStartBay started the shared house")
     if re.search(r"await\s+", start_bay) or "async function lobbyStartBay" in js:
-        _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
+        _fail("parked lobbyStartBay awaits net — lift/HID is behind the lobby")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
-        _fail_only_gun("ENTER BAY no longer drops into the booth")
+        _fail("parked lobbyStartBay lost the booth drop")
     if "stepSim" in start_bay or "simAcc" in start_bay or re.search(r"setTimeout", start_bay):
-        _fail("ENTER BAY grew a tick tax")
+        _fail("parked lobbyStartBay grew a tick tax")
     warm = _js_fn(js, "lobbyWarmup")
     if "/api/lobby/start" in warm or re.search(r"await\s+", warm):
         _fail("WARM UP soft-locked behind net")
@@ -250,8 +248,8 @@ def test_docs_and_ci() -> None:
         _fail("docs/modes.md must keep thin Bay chips")
     if "tutorial wall" not in modes.lower():
         _fail("docs/modes.md must refuse a Bay tutorial wall")
-    if "never the only gun" not in modes.lower() and "never replaces gallery" not in modes:
-        _fail("docs/modes.md must keep Bay from replacing gallery")
+    if "parked" not in modes.lower() and "sole active" not in modes.lower():
+        _fail("docs/modes.md must park Bay — Yard is the sole active map")
     if "128 Hz" not in tick or "Bay.fireMs" not in tick:
         _fail("docs/tick.md must lock Bay fire_ms on the 128 Hz grid")
     if "SableHUD" not in bay or "tutorial wall" not in bay.lower():

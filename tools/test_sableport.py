@@ -3,8 +3,10 @@
 
 Fail loud if the port notes drift off the locked bars (verb = AimBus/HID
 peek, 128 Hz tick, Look bible, modes), if runtime art grows Valve/Epic
-DNA, or if Offline / AimSample / fire peek / R6 / Worker / HUD / audio
-soft-locks move. Gallery already scans a subset; this owns the full walk.
+DNA, or if Offline / WARM UP trap, player-facing Bay chrome, AimSample /
+fire peek / R6 / Worker / HUD / audio soft-locks move. Port docs may
+name BAY / ENTER BAY as playlist seams — that is architecture, not a
+live gun. Gallery already scans a subset; this owns the full walk.
 """
 
 from __future__ import annotations
@@ -56,12 +58,14 @@ def test_port_doc_boundaries() -> None:
         _fail("docs/port.md must keep the Look palette")
     if "GALLERY" not in text or "BAY" not in text or "WARM UP" not in text:
         _fail("docs/port.md must keep the SABLE playlist")
+    if "ENTER BAY" not in text:
+        _fail("docs/port.md must keep ENTER BAY as a playlist / port architecture seam")
+    if "architecture" not in text.lower():
+        _fail("foreign-title literacy must stay architecture notes")
     if 'play("range")' not in text:
         _fail("docs/port.md must keep play(range) as gallery entry")
     if "AimSample" not in text:
         _fail("docs/port.md must keep AimSample locked")
-    if "architecture" not in text.lower():
-        _fail("foreign-title literacy must stay architecture notes")
     if "Valve" not in text or "Epic" not in text:
         _fail("docs/port.md must refuse Valve / Epic asset DNA")
     if "Mint. Lift." not in text:
@@ -127,6 +131,15 @@ def test_soft_locks_hold() -> None:
         _fail("OFFLINE must still call play(range) in one click")
     if "S.online = false" not in offline.group(0):
         _fail("OFFLINE must stay local")
+    if 'play("bay")' in offline.group(0):
+        _fail("OFFLINE was rerouted into Bay")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or re.search(r"await\s+", warm):
+        _fail("WARM UP trapped behind net")
+    if 'setPhase("range")' not in warm and 'play("range")' not in warm:
+        _fail("WARM UP no longer drops into the Yard gallery")
+    if 'play("bay")' in warm or 'setPhase("bay")' in warm:
+        _fail("WARM UP dropped into Bay")
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
     if not sample:
         _fail("AimSample class missing")
@@ -162,8 +175,10 @@ def test_soft_locks_hold() -> None:
     audio = (ROOT / "proto" / "audio.js").read_text(encoding="utf-8")
     if '"Mint. Lift."' not in audio or "function liftMint" not in audio:
         _fail("mint-tell / SableAudio behavior left audio.js")
-    if 'id="btn-bay"' not in html or "WARM UP" not in html or "ENTER RANGE" not in html:
-        _fail("playlist lost a practice / Bay path")
+    if "WARM UP" not in html or "ENTER RANGE" not in html:
+        _fail("playlist lost a Yard path")
+    if 'id="btn-bay"' in html or "ENTER BAY" in html:
+        _fail("playlist still offers Bay — Yard is the sole active map")
 
 
 def test_bible_and_ci() -> None:

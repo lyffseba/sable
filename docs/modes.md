@@ -1,6 +1,6 @@
 # Modes / playlist
 
-Salt House is a **gallery mode**. Bay is a booth. WARM UP is practice. None of them is the only gun.
+**The Yard** (original paintball range, `docs/yard.md`) is the **sole active map**. Salt House gallery runs on the Yard. Bay booth is **parked** — code and scenes stay; player chrome does not offer it.
 
 Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The player-facing mode name is **GALLERY**. Do not rename the phase to trap lift/HID or kill Offline.
 
@@ -8,9 +8,9 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 |-------|----------|-------|-----------|
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
-| **ENTER RANGE** | shared Salt House | same 60 s gallery, room owns plates | host starts the house |
-| **BAY** | local first-to-5 | cover vs open middle, R6 128 Hz / HID outside / `fire_ms` stamp | one-click local; no room |
-| **ENTER BAY** | shared first-to-5 | same booth, room owns score / pose / `fire_ms` rewind | host starts the booth; never `/api/lobby/start` |
+| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates | host starts the house |
+
+Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / `house.js` booth may remain; boot `btn-bay` and lobby **ENTER BAY** stay off player chrome.
 
 ## Gallery rules (Salt House)
 
@@ -20,15 +20,16 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
 - Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby.
 - Sparse **SableAudio**: dry-tick miss (escape / dry fire) and hit punch on shatter. Quiet mint-tell lift cue (`Mint. Lift.` — oscillator this cut) after GUN. Audio only — do not paint VO over the cuff. Feedback after resolve / lift state, never a fire gate. No bed, no ambience.
-- Stand still. WASD is Bay only.
+- Stand still. WASD is Bay only (parked booth).
 
-## Bay rules (1v1 booth)
+## Bay rules (parked 1v1 booth)
+
+Parked. Not playable from boot or the waiting arena. Specs stay so the booth can return later.
 
 - First to 5 (`BAY_TO_WIN`). Pose / expose / freeze live on the 128 Hz sim (`tickBay(SIM_DT)` from `stepSim`). Hitscan peeks the last committed pose.
-- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs = committedSimMs()`. Boot **BAY** has no `/api/lobby/*`. Lobby **ENTER BAY** fire-and-forgets `/api/lobby/bay` — never `/api/lobby/start` (that starts the house). Shared resolve is a lazy snapshot + fire-tick rewind. `reportSharedBayFire` / pose / lobby poll stay after `SablePerf.markHid` — HID→hitscan p99 < 8 ms still holds. No 128 Hz friend loop.
-- Room-owned shared Bay: last committed pose mailbox + peeked UV + `fire_ms` on the 128 Hz grid. The room ray-tests that UV against the foe capsule at that tick. A miss stays a miss. Open-middle death is an expose intent the room verifies.
+- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs = committedSimMs()`. Soft-parked `lobbyStartBay` fire-and-forgets `/api/lobby/bay` — never `/api/lobby/start` (that starts the house). Shared resolve is a lazy snapshot + fire-tick rewind. `reportSharedBayFire` / pose / lobby poll stay after `SablePerf.markHid` — HID→hitscan p99 < 8 ms still holds. No 128 Hz friend loop.
+- Room-owned shared Bay (parked): last committed pose mailbox + peeked UV + `fire_ms` on the 128 Hz grid. The room ray-tests that UV against the foe capsule at that tick. A miss stays a miss. Open-middle death is an expose intent the room verifies.
 - Arcade feedback is the same thin **SableHUD** bar: `YOU` / `THEM` / `ROUND` + cover chip + `FIRST TO 5` / `MATCH`. Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff.
-- Boot **BAY** stays one-click local without a room. Lobby **ENTER BAY** drops into the booth immediately — if the lobby POST hangs, local BAY still fires. Offline **GALLERY**, **WARM UP**, and **ENTER RANGE** stay. Bay is never the only gun.
 
 ## Geometry
 
@@ -40,9 +41,9 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 
 ## Do not
 
-- Do not make gallery the only gun. Bay, WARM UP, and ENTER RANGE stay.
+- Do not offer Bay from boot or lobby. The Yard is the sole active map.
 - Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire.
 - Do not bloom the reticle. Charcoal / bone / mint / rust only.
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
-- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE / ENTER BAY.
+- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.
