@@ -1,6 +1,6 @@
 /* SABLE — hands.js
-   MediaPipe Hands / skin+NCC tracker, One Euro, publish to the aim mailbox.
-   Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
+   MediaPipe Hands / skin+NCC tracker. detectForVideo lives in hands_worker.js.
+   One Euro on UV, then the aim mailbox. Fire never waits on camera or the worker. */
 
 import { S, W, H, phase, fire, clamp } from "./aim.js";
 import { cam, proc, pctx, camReady } from "./boot.js";
@@ -510,18 +510,7 @@ function pinchStrength(lm) {
   return clamp(1 - (d - 0.28) / 0.4, 0, 1);
 }
 
-function mpTrack(now) {
-  if (!S.handsOn || !S.hands || !cam.videoWidth) return false;
-  if (proc.width !== PROC_W) sizeProc();
-  const ts = Math.max((S.mpTs || 0) + 1, now);
-  S.mpTs = ts;
-  let res;
-  try {
-    res = S.hands.detectForVideo(cam, ts);
-  } catch (e) {
-    return false;
-  }
-  const lms = res && res.landmarks;
+function applyMpLandmarks(lms, now) {
   if (!lms || !lms.length) return false;
   const lm = bestHand(lms);
   if (!lm || !lm[8] || !lm[6]) return false;
@@ -534,6 +523,80 @@ function mpTrack(now) {
   S.ncc = S.det.conf;
   S.handLm = lm;
   return true;
+}
+
+function onHandsWorkerMsg(ev) {
+  const msg = ev.data || {};
+  if (msg.type === "result") {
+    S.mpBusy = false;
+    if (msg.delegate) S.mpDelegate = msg.delegate;
+    applyMpLandmarks(msg.landmarks, performance.now());
+    return;
+  }
+  if (msg.type === "fail") {
+    S.mpBusy = false;
+    console.warn("HandLandmarker worker fail", msg.error);
+  }
+}
+
+function onHandsWorkerErr(ev) {
+  S.mpBusy = false;
+  console.warn("HandLandmarker worker error", ev && ev.message);
+}
+
+function kickWorkerDetect(now) {
+  if (!S.hands || !S.hands.worker || S.mpBusy || !cam.videoWidth) return;
+  if (proc.width !== PROC_W) sizeProc();
+  const ts = Math.max((S.mpTs || 0) + 1, now);
+  S.mpTs = ts;
+  S.mpBusy = true;
+  const w = PROC_W;
+  const h = PROC_H || Math.max(1, Math.round(PROC_W * cam.videoHeight / cam.videoWidth));
+  const post = (bmp) => {
+    if (!S.hands || !S.hands.worker) {
+      if (bmp && bmp.close) bmp.close();
+      S.mpBusy = false;
+      return;
+    }
+    try {
+      S.hands.worker.postMessage({ type: "frame", bitmap: bmp, ts }, [bmp]);
+    } catch (e) {
+      try { if (bmp && bmp.close) bmp.close(); } catch (e2) { /* closed */ }
+      S.mpBusy = false;
+    }
+  };
+  if (typeof createImageBitmap !== "function") {
+    S.mpBusy = false;
+    return;
+  }
+  createImageBitmap(cam, { resizeWidth: w, resizeHeight: h, resizeQuality: "low" }).then(post).catch(() => {
+    S.mpBusy = false;
+  });
+}
+
+function mpTrackMain(now) {
+  if (!S.hands || typeof S.hands.detectForVideo !== "function" || !cam.videoWidth) return false;
+  if (proc.width !== PROC_W) sizeProc();
+  const ts = Math.max((S.mpTs || 0) + 1, now);
+  S.mpTs = ts;
+  let res;
+  try {
+    res = S.hands.detectForVideo(cam, ts);
+  } catch (e) {
+    return false;
+  }
+  return applyMpLandmarks(res && res.landmarks, now);
+}
+
+function mpTrack(now) {
+  if (!S.handsOn || !S.hands || !cam.videoWidth) return false;
+  if (S.hands.worker) return kickAndFresh(now);
+  return mpTrackMain(now);
+}
+
+function kickAndFresh(now) {
+  kickWorkerDetect(now);
+  return !!(S.det && (now - (S.lastDetAt || 0) < 80));
 }
 
 function maybePinchFire(lm) {
@@ -559,19 +622,14 @@ function armVideoTrack() {
   cam.requestVideoFrameCallback(tick);
 }
 
-let handsPromise = null;
-async function initHands() {
-  if (handsPromise) return handsPromise;
-  handsPromise = initHandsInner();
-  return handsPromise;
-}
-async function initHandsInner() {
+function handsModelTries() {
   const cdn = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
-  const tries = [
+  const here = new URL("./", import.meta.url);
+  return [
     {
-      js: "./vendor/mediapipe/vision_bundle.mjs",
-      wasm: "./vendor/mediapipe/wasm",
-      model: "./vendor/mediapipe/hand_landmarker.task",
+      js: new URL("./vendor/mediapipe/vision_bundle.mjs", here).href,
+      wasm: new URL("./vendor/mediapipe/wasm", here).href,
+      model: new URL("./vendor/mediapipe/hand_landmarker.task", here).href,
     },
     {
       js: cdn + "/vision_bundle.mjs",
@@ -579,15 +637,64 @@ async function initHandsInner() {
       model: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
     },
   ];
+}
+
+function startHandsWorker() {
+  return new Promise((resolve, reject) => {
+    let worker;
+    try {
+      worker = new Worker(new URL("./hands_worker.js", import.meta.url), { type: "module" });
+    } catch (e) {
+      reject(e);
+      return;
+    }
+    const timer = setTimeout(() => {
+      try { worker.terminate(); } catch (e) { /* already dead */ }
+      reject(new Error("hands worker init timeout"));
+    }, 20000);
+    const fail = (err) => {
+      clearTimeout(timer);
+      try { worker.terminate(); } catch (e) { /* already dead */ }
+      reject(err);
+    };
+    worker.onerror = (ev) => {
+      fail(ev.error || new Error(ev.message || "hands worker error"));
+    };
+    worker.onmessage = (ev) => {
+      const msg = ev.data || {};
+      if (msg.type === "ready") {
+        clearTimeout(timer);
+        S.hands = { worker };
+        S.mpDelegate = msg.delegate || "GPU";
+        S.mpBusy = false;
+        S.handsOn = true;
+        S.engine.hands = true;
+        worker.onmessage = onHandsWorkerMsg;
+        worker.onerror = onHandsWorkerErr;
+        resolve(true);
+        return;
+      }
+      if (msg.type === "fail") {
+        fail(new Error(msg.error || "hands worker fail"));
+      }
+    };
+    worker.postMessage({ type: "init", tries: handsModelTries() });
+  });
+}
+
+async function initHandsMain() {
+  const tries = handsModelTries();
+  const base = { runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.45, minHandPresenceConfidence: 0.45, minTrackingConfidence: 0.45 };
   for (const t of tries) {
     try {
       const mod = await import(t.js);
       const vision = await mod.FilesetResolver.forVisionTasks(t.wasm);
-      const base = { runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.45, minHandPresenceConfidence: 0.45, minTrackingConfidence: 0.45 };
       try {
         S.hands = await mod.HandLandmarker.createFromOptions(vision, Object.assign({ baseOptions: { modelAssetPath: t.model, delegate: "GPU" } }, base));
+        S.mpDelegate = "GPU";
       } catch (e) {
         S.hands = await mod.HandLandmarker.createFromOptions(vision, Object.assign({ baseOptions: { modelAssetPath: t.model, delegate: "CPU" } }, base));
+        S.mpDelegate = "CPU";
       }
       S.handsOn = true;
       S.engine.hands = true;
@@ -599,6 +706,21 @@ async function initHandsInner() {
   S.handsOn = false;
   S.engine.hands = false;
   return false;
+}
+
+let handsPromise = null;
+async function initHands() {
+  if (handsPromise) return handsPromise;
+  handsPromise = initHandsInner();
+  return handsPromise;
+}
+async function initHandsInner() {
+  try {
+    return await startHandsWorker();
+  } catch (e) {
+    console.warn("HandLandmarker worker failed, main-thread last resort", e);
+    return initHandsMain();
+  }
 }
 
 function fallbackSkin(now) {
@@ -730,6 +852,10 @@ export {
   bestHand,
   nailMuzzle,
   pinchStrength,
+  applyMpLandmarks,
+  onHandsWorkerMsg,
+  kickWorkerDetect,
+  mpTrackMain,
   mpTrack,
   maybePinchFire,
   armVideoTrack,

@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 if command -v node >/dev/null 2>&1; then
-  for f in proto/aim.js proto/hands.js proto/house.js proto/boot.js proto/game.js; do
+  for f in proto/aim.js proto/hands.js proto/hands_worker.js proto/house.js proto/boot.js proto/game.js; do
     if [[ -f "$f" ]]; then
       node --check "$f"
     fi
@@ -30,6 +30,7 @@ python3 tools/test_lobby.py
 python3 tools/test_warmup_flow.py
 python3 tools/test_shared_range.py
 python3 tools/test_sableqa_offline.py
+python3 tools/test_hands_worker.py
 python3 tools/test_bay_playlist.py
 ./tools/run_cv_tests.sh
 

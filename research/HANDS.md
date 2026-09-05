@@ -74,9 +74,11 @@ No counterexample kills F for this SKU.
 
 | Stage | Tracker | Proof it survived |
 |-------|---------|-------------------|
-| **Do it** | MediaPipe Hands, landmark 8, mirror X, One Euro | Only in-browser fingertip at camera rate |
-| **Do it right** | If WASM/landmarks fail **this frame**, `fallbackSkin` (findHand + NCC) still writes the muzzle. HID fire never waits. `initHands` promise must resolve before play. Pinch after `updateMode`. | Fallback + mailbox |
+| **Do it** | MediaPipe Tasks Vision HandLandmarker, landmark 8, mirror X, One Euro | Only in-browser fingertip at camera rate |
+| **Do it right** | `detectForVideo` runs in `proto/hands_worker.js` (GPU, then CPU). Queue depth 1; drop stale. Main applies One Euro on UV then the mailbox. If WASM/landmarks fail **this frame**, `fallbackSkin` (findHand + NCC) still writes the muzzle. HID fire never waits on cam/worker. `initHands` promise must resolve before play. Pinch after `updateMode`. | Worker + fallback + mailbox |
 | **Do it better** | Pinch (8↔4) as optional fire; 2nd hand ignore; 120 FPS | After lock is green on a lid cam |
+
+**Model (confirmed):** Tasks Vision publishes one HandLandmarker `.task` — Google **float16/1 full** (`hand_landmarker.task`, 7819105 bytes). There is no `hand_landmarker_lite.task` on the model garden (404). Legacy Hands `hand_landmark_lite.tflite` is not a Tasks bundle. Keep the vendored float16/1 file. Sapiens / YOLO / egocentric are not defaults.
 
 Do not converge on blobs because they were easy. Blob lost the audit.
 
