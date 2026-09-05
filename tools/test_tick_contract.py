@@ -220,8 +220,14 @@ def test_shared_house_is_rewind_not_a_loop() -> None:
     pose = pose_m.group(0)
     if "born_ms" not in pose or "life" not in pose:
         _fail("_pose_at must stay closed-form at elapsed_ms")
+    if "sit_pose_y" not in pose:
+        _fail("_pose_at must use closed-form sit_pose_y — sit Y is house authority")
     if "for " in pose and "range(" in pose:
         _fail("_pose_at stepped a tick loop — rewind died")
+    if abs(lobby.sit_pose_y(0.35, 0.0) - 0.35) > 1e-12:
+        _fail("sit_pose_y(life 0) must stay on the pad")
+    if "def sit_pose_y" not in src or "math.sin" not in src:
+        _fail("sit_pose_y must stay closed-form")
     sync = re.search(r"def _sync_sim\([\s\S]*?return elapsed_ms\n", src)
     if not sync:
         _fail("missing _sync_sim")

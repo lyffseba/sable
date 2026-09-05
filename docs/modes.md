@@ -12,7 +12,9 @@ Durable hangar session is `S.hangar`: `hangar` (boot / Offline gallery) | `wait_
 |-------|----------|-------|-----------|
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
-| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates | host shares the live Yard; phase-preserve — skip calib/lock when already lifted |
+| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates + sit pose | host shares the live Yard; phase-preserve — skip calib/lock when already lifted |
+
+Sit plate pose is closed-form from life (`sitPoseY` / `sit_pose_y`: bob then drop). Offline / WARM UP / wait_practice local plates and match_live rewind share that house. The room still owns seed + hits only after ENTER RANGE — practice never opens the shared sim.
 
 Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / `house.js` booth may remain; boot `btn-bay` and lobby **ENTER BAY** stay off player chrome.
 

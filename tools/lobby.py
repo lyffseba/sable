@@ -29,6 +29,8 @@ SIM_HZ = 128
 SIM_DT_MS = 1000.0 / SIM_HZ
 SIT_DWELL_S = 4.2
 SIT_DROP_VY = -3.2
+SIT_BOB_RATE = 1.6
+SIT_BOB_AMP = 0.07
 PLATE_MAX_LIFE_S = 7.5
 GRAVITY = 4.6
 REWIND_MAX_MS = 350.0
@@ -353,6 +355,13 @@ def _spawn_random(sim: dict, elapsed_ms: float, hard: bool) -> dict:
     )
 
 
+def sit_pose_y(base_y: float, life: float) -> float:
+    """Closed-form sit Y from life. Same house as proto/house.js sitPoseY."""
+    if life >= SIT_DWELL_S:
+        return float(base_y) + SIT_DROP_VY * (life - SIT_DWELL_S)
+    return float(base_y) + math.sin(life * SIT_BOB_RATE) * SIT_BOB_AMP
+
+
 def _pose_at(rec: dict, elapsed_ms: float) -> dict:
     life = max(0.0, (float(elapsed_ms) - float(rec["born_ms"])) / 1000.0)
     if rec["kind"] in ("clay", "rise"):
@@ -361,12 +370,9 @@ def _pose_at(rec: dict, elapsed_ms: float) -> dict:
         z = rec["z0"] + rec["vz0"] * life
         vy = rec["vy0"] - GRAVITY * life
         vx, vz = rec["vx0"], rec["vz0"]
-    elif life >= SIT_DWELL_S:
-        x, z = rec["x0"], rec["z0"]
-        y = rec["baseY"] + SIT_DROP_VY * (life - SIT_DWELL_S)
-        vx = vy = vz = 0.0
     else:
-        x, y, z = rec["x0"], rec["baseY"], rec["z0"]
+        x, z = rec["x0"], rec["z0"]
+        y = sit_pose_y(rec["baseY"], life)
         vx = vy = vz = 0.0
     return {
         "id": rec["id"],

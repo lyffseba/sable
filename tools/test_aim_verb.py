@@ -324,14 +324,26 @@ def test_gallery_escape() -> None:
     dwell = _js_const(src, "SIT_DWELL_S")
     drop = _js_const(src, "SIT_DROP_VY")
     max_life = _js_const(src, "PLATE_MAX_LIFE_S")
+    if _js_const(src, "SIT_BOB_RATE") != 1.6:
+        raise AssertionError("SIT_BOB_RATE drifted from the shared house")
+    if _js_const(src, "SIT_BOB_AMP") != 0.07:
+        raise AssertionError("SIT_BOB_AMP drifted from the shared house")
     if dwell <= 0 or dwell > 8:
         raise AssertionError("sit plates need a short dwell, then escape")
     if drop >= 0:
         raise AssertionError("sit escape must drop, not rise")
     if max_life <= dwell:
         raise AssertionError("PLATE_MAX_LIFE_S must outlast sit dwell")
+    sit = _js_fn(src, "sitPoseY")
+    for needle in ("SIT_DWELL_S", "SIT_DROP_VY", "SIT_BOB_RATE", "SIT_BOB_AMP"):
+        if needle not in sit:
+            raise AssertionError(f"sitPoseY must own sit escape / bob ({needle})")
     body = _js_fn(src, "updateRange")
-    for needle in ("SIT_DWELL_S", "SIT_DROP_VY", "PLATE_MAX_LIFE_S", '"ESC"'):
+    if "sitPoseY" not in body:
+        raise AssertionError("updateRange must use closed-form sitPoseY — not an unsynced phase")
+    if "o.phase" in body:
+        raise AssertionError("updateRange must not accumulate a local sit phase")
+    for needle in ("PLATE_MAX_LIFE_S", '"ESC"'):
         if needle not in body:
             raise AssertionError(f"updateRange must escape plates ({needle})")
     y = 0.35
