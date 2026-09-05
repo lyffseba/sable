@@ -21,16 +21,12 @@ Camera / player at `(0, 1.64, 0)` looking −Z. Floor y = −1.64.
 
 | Piece | x | z | size (x,y,z) m | notes |
 |-------|---|---|----------------|-------|
-| Home pad | 0 | 1.4 | 2.0 × 0.08 × 1.2 | Stand here |
-| Tape | 0 | −16.5 | 16 × 0.04 × 0.08 | Back line |
-| Beam L | −3.4 | −4.2 | 2.4 × 0.55 × 0.7 | low crawler |
-| Beam R | 3.4 | −4.2 | 2.4 × 0.55 × 0.7 | low crawler |
-| Drum | −1.6 | −7.0 | Ø 1.1 × H 1.7 | cylinder |
-| Peak | 2.2 | −8.5 | 1.4 × 1.8 × 1.4 | pyramid |
-| Stack | −2.8 | −11.0 | 1.3 × 1.2 × 1.3 | box |
-| Wing | 0.0 | −12.5 | 2.6 × 1.0 × 0.7 | T |
-| Cross | 3.0 | −14.0 | 1.8 × 0.9 × 1.8 | plus |
-| Drum far | −3.2 | −14.5 | Ø 1.0 × H 1.5 | |
+| Home pad | 0 | 1.35 | 2.1 × 0.12 × 1.3 | rust stand |
+| Beam L | −3.4 | −4.2 | 2.8 × 0.76 × 0.76 | low bone crawler |
+| Beam R | 3.4 | −4.2 | 2.8 × 0.76 × 0.76 | low bone crawler |
+| Drum | −1.6 | −7.0 | 1.7 × 0.7 × 1.2 | short rust mass |
+| Peak | 2.2 | −8.5 | Ø 2.0 × H 0.92 | low bone pyramid |
+| Backstop | 0 | −16.8 | 7.2 × 2.4 × 1.35 | solid rust block |
 
 180° stadium symmetry is **later**. The range faces one way on purpose.
 

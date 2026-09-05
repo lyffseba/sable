@@ -55,6 +55,8 @@ Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/house
 
 Runtime Look is unshaded/baked CANCHO (charcoal / bone / mint / rust). `MeshBasic` / `bayUnshaded`, no ACES, no mint emissive bloom. Bay and Salt House share this bible. Aim noise stays readable.
 
+Gallery polish bar: Fortnite-class CANCHO silhouettes — charcoal barrel ribs with rust edge, mint centerline, solid rust backstop; yard bunkers few and low so bone plates stay readable.
+
 CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 ## Tech that is already right
