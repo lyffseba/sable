@@ -4,6 +4,8 @@
 
 Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The player-facing mode name is **GALLERY**. Do not rename the phase to trap lift/HID or kill Offline.
 
+Durable hangar session is `S.hangar`: `hangar` (boot / Offline gallery) | `wait_practice` (HUD-on-Yard waiting + WARM UP) | `match_live` (shared ENTER RANGE). It is a thin client seam so waiting-practice and shared gallery are not overloaded on `lobby` / `range` alone. Screen/sim phase stays `boot` / `lobby` / `lock` / `calibrate` / `range` / `results`. Server room `phase` stays `wait` | `range` | `bay` this cut — no parallel hangar field. Lift/HID never waits on a hangar write.
+
 | Entry | Playlist | Rules | Soft-lock |
 |-------|----------|-------|-----------|
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
@@ -47,4 +49,5 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
 - Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin chips — not a match-start screen.
 - Do not force calib/lock on ENTER RANGE when the Yard is already live. Promote is SableNet phase-preserve (`enterRangePreserve`) — lift/HID never waits on the lobby POST.
+- Do not collapse `wait_practice` and `match_live` back onto `lobby` / `range` alone. `S.hangar` is the durable session enum (`assignHangar` / `syncHangar`).
 - Do not touch `AimSample`. Fire peeks `AimBus` only.

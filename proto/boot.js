@@ -1,5 +1,6 @@
 /* SABLE — boot.js
    Boot, lobby UI wiring, serve entry, phase machine glue.
+   Durable hangar session: S.hangar hangar | wait_practice | match_live.
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -12,6 +13,7 @@ import {
   phase,
   assignView,
   assignPhase,
+  assignHangar,
   publishAim,
   updateMode,
   updateAim,
@@ -301,6 +303,7 @@ async function lobbyPoll() {
       S.warmup = false;
       lobbyStarting = true;
       syncWarmupChrome();
+      assignHangar("match_live");
       if (phase === "range") startRange();
       else if (phase === "results") setPhase("range");
       else if (phase === "lobby") enterRangePreserve();
@@ -320,6 +323,7 @@ function alreadyLifted() {
 
 function enterRangePreserve() {
   // SableNet phase-preserve: live Yard skips calib/lock so HID stays warm.
+  assignHangar("match_live");
   if (alreadyLifted() || phase === "lobby" || phase === "range") {
     setPhase("range");
     return;
@@ -361,6 +365,7 @@ async function lobbyWarmup() {
   S.warmup = true;
   S.waitingYard = false;
   S.online = true;
+  assignHangar("wait_practice");
   syncWarmupChrome();
   // Seat mark is best-effort. Do not wait on net to practice.
   lobbyPost("/api/lobby/warmup").then(function (data) {
@@ -508,8 +513,27 @@ async function play(target = "range") {
   S.lockStart = performance.now();
 }
 
+function syncHangar(screen) {
+  // Screen/sim phase stays boot|lobby|range|… Hangar is the session class.
+  // Sync only — never await, never touch AimBus / HID.
+  if (screen === "boot") {
+    assignHangar("hangar");
+    return;
+  }
+  if (screen === "lobby") {
+    assignHangar("wait_practice");
+    return;
+  }
+  if (screen === "range") {
+    if (S.warmup || S.waitingYard) assignHangar("wait_practice");
+    else if (S.online && S.room && S.player && !S.bayMatch) assignHangar("match_live");
+    else assignHangar("hangar");
+  }
+}
+
 function setPhase(next) {
   assignPhase(next);
+  syncHangar(next);
   for (const k of Object.keys(screens)) {
     if (screens[k]) screens[k].hidden = k !== next;
   }
@@ -1028,6 +1052,7 @@ $("btn-play").addEventListener("click", () => {
   S.warmup = false;
   S.waitingYard = false;
   S.playlist = "gallery";
+  assignHangar("hangar");
   play("range");
 });
 const btnOnline = $("btn-online");
