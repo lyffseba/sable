@@ -39,6 +39,7 @@ const Locker = {
     const idx = (s.indexOf(this.equippedStyle) + 1) % s.length;
     this.equippedStyle = s[idx];
     speak("Estilo: " + this.equippedStyle);
+    applyLockerLook();
     return this.equippedStyle;
   }
 };
@@ -49,21 +50,53 @@ const SIT_DROP_VY = -3.2;
 const PLATE_MAX_LIFE_S = 7.5;
 const HUD_PAD = 16;
 
-// --- Bay 1v1 Arena State ---
+// --- Bay 1v1 — original booth (docs/maps/bay.md). Not a third-party map. ---
+const BAY_TO_WIN = 5;
+const BAY_SPEED = 4.2;
+const BAY_EXPOSE_S = 0.12;
+const BAY_FREEZE_PAD_S = 0.45;
+const BAY_FOE_RADIUS = 0.46;
+const BAY_SPAWN_A = { x: 0, y: 1.64, z: 10 };
+const BAY_SPAWN_B = { x: 0, y: 0.89, z: -10 };
+
+function bayInLeftWindow(x, z) {
+  return x > -7.5 && x < -4.8 && z > 2.4 && z < 5.6;
+}
+function bayInRightAngle(x, z) {
+  return x > 4.6 && x < 7.5 && z > 1.6 && z < 5.8;
+}
+function bayInOpenMiddle(x, z) {
+  if (bayInLeftWindow(x, z) || bayInRightAngle(x, z)) return false;
+  return z <= 0.65 && z > -12.5 && Math.abs(x) < 7.6;
+}
+function bayStallHit(x, z) {
+  return Math.abs(x) < 2.15 && z > -0.55 && z < 0.55;
+}
+function bayCoverChip(x, z, lifted, frozen, over) {
+  if (over || frozen) return "DROP";
+  if (bayInOpenMiddle(x, z)) return "OPEN";
+  if (bayInLeftWindow(x, z)) return "WINDOW";
+  if (bayInRightAngle(x, z)) return "ANGLE";
+  return lifted ? "GUN" : "PAD";
+}
+
 const Bay = {
   active: false,
   you: 0,
   them: 0,
-  toWin: 5,
+  toWin: BAY_TO_WIN,
   round: 1,
-  speed: 5.2,
-  pos: { x: 0, y: 1.64, z: 10 },
-  foe: { x: 0, y: 0.89, z: -10, radius: 0.54, alive: true, strafeDir: 1, strafeT: 0 },
+  speed: BAY_SPEED,
+  pos: { x: BAY_SPAWN_A.x, y: BAY_SPAWN_A.y, z: BAY_SPAWN_A.z },
+  foe: {
+    x: BAY_SPAWN_B.x, y: BAY_SPAWN_B.y, z: BAY_SPAWN_B.z,
+    radius: BAY_FOE_RADIUS, alive: true, strafeT: 0,
+  },
   frozen: false,
   freezeT: 0,
-  freezePadS: 0.45,
+  freezePadS: BAY_FREEZE_PAD_S,
   expose: 0,
-  exposeMax: 0.14,
+  exposeMax: BAY_EXPOSE_S,
   voText: "",
   voT: 0,
   missT: 0,
@@ -71,12 +104,13 @@ const Bay = {
   wasLifted: false,
   keys: { w: false, a: false, s: false, d: false },
   resetRound() {
-    this.pos.x = 0; this.pos.y = 1.64; this.pos.z = 10;
-    this.foe.x = (Math.random() - 0.5) * 4.2;
-    this.foe.y = 0.89;
-    this.foe.z = -10 - Math.random() * 2.0;
+    this.pos.x = BAY_SPAWN_A.x;
+    this.pos.y = BAY_SPAWN_A.y;
+    this.pos.z = BAY_SPAWN_A.z;
+    this.foe.x = BAY_SPAWN_B.x;
+    this.foe.y = BAY_SPAWN_B.y;
+    this.foe.z = BAY_SPAWN_B.z;
     this.foe.alive = true;
-    this.foe.strafeDir = Math.random() < 0.5 ? 1 : -1;
     this.foe.strafeT = 0;
     this.expose = 0;
     this.frozen = false;
@@ -184,9 +218,9 @@ function pullWhistle() {
 // --- Three.js 3D Engine Architecture ---
 // ==========================================
 export let renderer, scene, camera;
-export let gunGroup, gunBody, gunStripe, gunMuzzleLight;
+export let gunGroup, gunBody, gunStripe, gunMuzzleLight, gunCuff;
 export let rangeTargetGroup, rangeHallGroup, shardGroup;
-export let bayGroup, foeGroup, foeMesh, foeVisor;
+export let bayGroup, foeGroup, foeMesh, foeVisor, foeStripe, foeCollar, foeChest;
 export let tracerLines = [];
 
 function init3D() {
@@ -249,10 +283,10 @@ function buildFirstPersonGun() {
   const char = sableStd(0x141a22, { metalness: 0.35, roughness: 0.4 });
   const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
 
-  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.05, 0.07, 8), rust);
-  cuff.rotation.x = Math.PI / 2;
-  cuff.position.set(0, -0.01, 0.1);
-  gunGroup.add(cuff);
+  gunCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.05, 0.07, 8), rust);
+  gunCuff.rotation.x = Math.PI / 2;
+  gunCuff.position.set(0, -0.01, 0.1);
+  gunGroup.add(gunCuff);
 
   gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.045, 0.12), bone);
   gunBody.position.set(0, 0.012, 0.02);
@@ -423,71 +457,106 @@ const YARD_PEEKS = [
   [-3.0, 0.25, -14.1],
 ];
 
+function bayUnshaded(hex) {
+  return new THREE.MeshBasicMaterial({ color: hex });
+}
+
+function applyLockerLook() {
+  const id = Locker.equippedStyle;
+  let body = 0x0f1214;
+  let rust = Locker.colors.rustHex;
+  let stripe = Locker.colors.mintHex;
+  if (id === STYLE_RANKED) {
+    body = 0x0a0d12;
+    rust = 0x734234;
+  } else if (id === STYLE_NIGHT) {
+    body = 0x050508;
+    rust = 0x331a14;
+    stripe = S.lifted ? Locker.colors.mintHex : 0x1e5947;
+  }
+  if (gunStripe && gunStripe.material && gunStripe.material.color) {
+    gunStripe.material.color.setHex(stripe);
+  }
+  if (gunCuff && gunCuff.material && gunCuff.material.color) {
+    gunCuff.material.color.setHex(rust);
+  }
+  if (foeMesh && foeMesh.material && foeMesh.material.color) {
+    foeMesh.material.color.setHex(body);
+  }
+  if (foeCollar && foeCollar.material && foeCollar.material.color) {
+    foeCollar.material.color.setHex(body);
+  }
+  if (foeStripe && foeStripe.material && foeStripe.material.color) {
+    foeStripe.material.color.setHex(stripe);
+  }
+  if (foeChest) {
+    foeChest.visible = id === STYLE_RANKED;
+    if (foeChest.material && foeChest.material.color) {
+      foeChest.material.color.setHex(Locker.colors.mintHex);
+    }
+  }
+}
+
 function buildBay3D() {
   bayGroup = new THREE.Group();
   bayGroup.visible = false;
   scene.add(bayGroup);
 
-  // Arena Floor Grid
-  const grid = new THREE.GridHelper(40, 20, 0x00f0ff, 0x113344);
-  grid.position.y = 0;
-  bayGroup.add(grid);
+  const charcoal = bayUnshaded(0x101214);
+  const wallMat = bayUnshaded(0x0c0d10);
+  const stallMat = bayUnshaded(0x2a2c28);
+  const rustMat = bayUnshaded(Locker.colors.rustHex);
 
-  // Floor plane
-  const floorGeo = new THREE.PlaneGeometry(40, 40);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x03060a,
-    roughness: 0.9,
-    metalness: 0.2,
-  });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(16, 28), charcoal);
   floor.rotation.x = -Math.PI / 2;
   bayGroup.add(floor);
 
-  // Concrete Pillars & Barriers
-  const pillarGeo = new THREE.BoxGeometry(2.4, 8, 2.4);
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x09121c, roughness: 0.8 });
-  for (const [x, z] of [[-6, -4], [6, -4], [0, -16], [-10, 2], [10, 2]]) {
-    const p = new THREE.Mesh(pillarGeo, pillarMat);
-    p.position.set(x, 4, z);
-    bayGroup.add(p);
-  }
-  const neon = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
-  for (const z of [-8, 0, 8]) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(22, 0.06, 0.1), neon);
-    bar.position.set(0, 7.2, z);
-    bayGroup.add(bar);
-  }
+  const wallH = 4.2;
+  const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.2, wallH, 28), wallMat);
+  wallL.position.set(-8, wallH * 0.5, 0);
+  const wallR = wallL.clone();
+  wallR.position.x = 8;
+  const wallN = new THREE.Mesh(new THREE.BoxGeometry(16, wallH, 0.2), wallMat);
+  wallN.position.set(0, wallH * 0.5, 14);
+  const wallS = wallN.clone();
+  wallS.position.z = -14;
+  bayGroup.add(wallL);
+  bayGroup.add(wallR);
+  bayGroup.add(wallN);
+  bayGroup.add(wallS);
 
-  // Left Window Cover
-  const coverGeo = new THREE.BoxGeometry(3.2, 2.4, 0.8);
-  const coverMat = new THREE.MeshStandardMaterial({ color: 0x0c1824, roughness: 0.6 });
-  const leftCover = new THREE.Mesh(coverGeo, coverMat);
-  leftCover.position.set(-5.5, 1.2, 4.0);
-  const rightCover = new THREE.Mesh(coverGeo, coverMat);
-  rightCover.position.set(5.5, 1.2, 3.5);
-  bayGroup.add(leftCover);
-  bayGroup.add(rightCover);
+  const stall = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.84, 1.1), stallMat);
+  stall.position.set(0, 0.42, 0);
+  bayGroup.add(stall);
 
-  // Foe CANCHO Opponent Capsule
+  const chipGeo = new THREE.BoxGeometry(2.4, 1.1, 0.7);
+  const leftChip = new THREE.Mesh(chipGeo, rustMat);
+  leftChip.position.set(-6.15, 0.55, 4.0);
+  const rightChip = new THREE.Mesh(chipGeo, rustMat);
+  rightChip.position.set(6.05, 0.55, 3.7);
+  bayGroup.add(leftChip);
+  bayGroup.add(rightChip);
+
   foeGroup = new THREE.Group();
-  const foeBodyGeo = new THREE.CapsuleGeometry(0.48, 1.1, 8, 16);
-  const foeBodyMat = new THREE.MeshStandardMaterial({ color: 0x141a22, roughness: 0.4 });
-  foeMesh = new THREE.Mesh(foeBodyGeo, foeBodyMat);
-  foeMesh.position.y = 1.0;
+  foeMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.22, 4, 8), bayUnshaded(0x0f1214));
+  foeMesh.position.y = 0.89;
   foeGroup.add(foeMesh);
 
-  // Mint Visor
-  const visorGeo = new THREE.BoxGeometry(0.52, 0.12, 0.32);
-  const visorMat = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
-  foeVisor = new THREE.Mesh(visorGeo, visorMat);
-  foeVisor.position.set(0, 1.35, 0.25);
-  foeGroup.add(foeVisor);
-  const visorLight = new THREE.PointLight(Locker.colors.mintHex, 1.4, 6);
-  visorLight.position.set(0, 1.42, 0.4);
-  foeGroup.add(visorLight);
+  foeCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.16, 8), bayUnshaded(0x0f1214));
+  foeCollar.position.y = 1.52;
+  foeGroup.add(foeCollar);
 
-  foeGroup.position.set(0, 0, -10);
+  foeStripe = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.22), bayUnshaded(Locker.colors.mintHex));
+  foeStripe.position.set(0.26, 1.12, 0.12);
+  foeGroup.add(foeStripe);
+  foeVisor = foeStripe;
+
+  foeChest = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.12), bayUnshaded(Locker.colors.mintHex));
+  foeChest.position.set(0, 1.18, 0.22);
+  foeChest.visible = false;
+  foeGroup.add(foeChest);
+
+  foeGroup.position.set(BAY_SPAWN_B.x, 0, BAY_SPAWN_B.z);
   bayGroup.add(foeGroup);
 }
 
@@ -556,33 +625,49 @@ function addBulletTracer(from, to) {
   scene.add(line);
   tracerLines.push({ line, age: 0, life: 0.065 });
 }
+function rayHitsBayFoe(origin, direction) {
+  if (!Bay.foe.alive) return false;
+  const cx = Bay.foe.x;
+  const cy = 0.89;
+  const cz = Bay.foe.z;
+  const r = Bay.foe.radius;
+  const ox = origin.x - cx;
+  const oy = origin.y - cy;
+  const oz = origin.z - cz;
+  const b = 2 * (ox * direction.x + oy * direction.y + oz * direction.z);
+  const c = ox * ox + oy * oy + oz * oz - r * r;
+  const disc = b * b - 4 * c;
+  if (disc < 0) return false;
+  const t = (-b - Math.sqrt(disc)) * 0.5;
+  return t > 0;
+}
+
 function fireBay3D(raycaster, muzzleWorld) {
   if (Bay.frozen || Bay.over) { missTick(); return; }
 
-  const intersects = raycaster.intersectObject(foeMesh, true);
-  if (intersects.length > 0 && Bay.foe.alive) {
-    const hitPt = intersects[0].point;
+  const origin = raycaster.ray.origin;
+  const dir = raycaster.ray.direction;
+  if (rayHitsBayFoe(origin, dir)) {
+    const hitPt = new THREE.Vector3(Bay.foe.x, 0.89, Bay.foe.z);
     addBulletTracer(muzzleWorld, hitPt);
     Bay.you++;
     Bay.foe.alive = false;
-    foeGroup.visible = false;
+    if (foeGroup) foeGroup.visible = false;
     Bay.vo(Locker.operator.vo.hit);
     hitBlip(Bay.you);
     S.hitstop = 1;
     shatterTarget3D(hitPt, 160);
 
+    Bay.frozen = true;
+    Bay.freezeT = 0;
     if (Bay.you >= Bay.toWin) {
       Bay.over = true;
-      Bay.frozen = true;
       Bay.vo(Locker.operator.vo.win);
-    } else {
-      Bay.frozen = true;
-      Bay.freezeT = 0;
     }
   } else {
     missTick();
     Bay.missT = 0.06;
-    const farPt = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(24));
+    const farPt = origin.clone().add(dir.clone().multiplyScalar(24));
     addBulletTracer(muzzleWorld, farPt);
   }
 }
@@ -690,7 +775,42 @@ async function pullSharedSim() {
     if (data && data.ok) applySharedSim(data);
   } catch (e) { /* next poll */ }
 }
+function restoreYardLook() {
+  Bay.active = false;
+  if (scene) {
+    scene.background = new THREE.Color(0x151c22);
+    scene.fog = new THREE.FogExp2(0x151c22, 0.022);
+  }
+  if (camera) {
+    camera.position.set(0, 1.64, 2.05);
+    camera.lookAt(0, 0.55, -12);
+  }
+  if (gunGroup) gunGroup.visible = true;
+  if (rangeHallGroup) rangeHallGroup.visible = true;
+  if (bayGroup) bayGroup.visible = false;
+}
+
+function startBay() {
+  Bay.active = true;
+  Bay.resetMatch();
+  if (rangeTargetGroup) rangeTargetGroup.visible = false;
+  if (rangeHallGroup) rangeHallGroup.visible = false;
+  if (bayGroup) bayGroup.visible = true;
+  if (foeGroup) foeGroup.visible = true;
+  if (scene) {
+    scene.background = new THREE.Color(0x0a0c10);
+    scene.fog = null;
+  }
+  if (camera) {
+    camera.position.set(Bay.pos.x, Bay.pos.y, Bay.pos.z);
+    camera.lookAt(Bay.pos.x, 0.89, Bay.pos.z - 16);
+  }
+  if (gunGroup) gunGroup.visible = true;
+  applyLockerLook();
+}
+
 function startRange() {
+  restoreYardLook();
   S.enteringRange = false;
   while (rangeTargetGroup && rangeTargetGroup.children.length > 0) {
     rangeTargetGroup.remove(rangeTargetGroup.children[0]);
@@ -802,8 +922,8 @@ function updateRange(dt, now) {
 function tickBay(dt) {
   if (phase !== "bay") return;
   const sample = aimBus.peek();
+  applyLockerLook();
 
-  // VO on lift state transition
   if (!Bay.over) {
     if (sample.lifted && !Bay.wasLifted) {
       Bay.vo(Locker.operator.vo.lift);
@@ -813,19 +933,20 @@ function tickBay(dt) {
   }
   Bay.wasLifted = sample.lifted;
 
+  if (gunGroup) gunGroup.visible = !Bay.over;
+
   if (Bay.frozen && !Bay.over) {
     Bay.freezeT += dt;
     if (Bay.freezeT >= Bay.freezePadS && !sample.lifted) {
       Bay.round++;
       Bay.resetRound();
-      foeGroup.visible = true;
+      if (foeGroup) foeGroup.visible = true;
     }
     return;
   }
 
   if (Bay.over) return;
 
-  // WASD only on pad (PAD mode). Lift locks walk for physical ADS aiming!
   if (!sample.lifted) {
     let mx = 0, mz = 0;
     if (Bay.keys.w) mz -= 1;
@@ -833,41 +954,36 @@ function tickBay(dt) {
     if (Bay.keys.a) mx -= 1;
     if (Bay.keys.d) mx += 1;
     if (mx !== 0 && mz !== 0) { mx *= 0.7071; mz *= 0.7071; }
-    Bay.pos.x = clamp(Bay.pos.x + mx * Bay.speed * dt, -7.0, 7.0);
-    Bay.pos.z = clamp(Bay.pos.z + mz * Bay.speed * dt, 1.0, 14.0);
-    camera.position.x = Bay.pos.x;
-    camera.position.z = Bay.pos.z;
+    const nx = clamp(Bay.pos.x + mx * Bay.speed * dt, -7.6, 7.6);
+    const nz = clamp(Bay.pos.z + mz * Bay.speed * dt, -12.2, 13.6);
+    if (!bayStallHit(nx, Bay.pos.z)) Bay.pos.x = nx;
+    if (!bayStallHit(Bay.pos.x, nz)) Bay.pos.z = nz;
+  }
+  if (camera) {
+    camera.position.set(Bay.pos.x, Bay.pos.y, Bay.pos.z);
+    camera.lookAt(Bay.pos.x, 0.89, Bay.pos.z - 16);
   }
 
-  // Foe bot strafe AI
   if (Bay.foe.alive) {
     Bay.foe.strafeT += dt;
-    if (Bay.foe.strafeT > 1.8) {
-      Bay.foe.strafeT = 0;
-      Bay.foe.strafeDir = Math.random() < 0.5 ? 1 : -1;
+    Bay.foe.x = Math.sin(Bay.foe.strafeT * 0.85) * 2.2;
+    if (foeGroup) {
+      foeGroup.position.set(Bay.foe.x, 0, Bay.foe.z);
+      foeGroup.lookAt(camera.position.x, foeGroup.position.y, camera.position.z);
     }
-    Bay.foe.x = clamp(Bay.foe.x + Bay.foe.strafeDir * 2.8 * dt, -4.5, 4.5);
-    foeGroup.position.set(Bay.foe.x, Bay.foe.y, Bay.foe.z);
-    foeGroup.lookAt(camera.position.x, foeGroup.position.y, camera.position.z);
   }
 
-  // Open Middle Danger
-  const inWindow = Bay.pos.x < -4.8;
-  const inAngle = Bay.pos.x > 4.6;
-  const inOpen = !inWindow && !inAngle && Bay.pos.z < 8.0;
-  if (inOpen && !sample.lifted) {
+  if (bayInOpenMiddle(Bay.pos.x, Bay.pos.z)) {
     Bay.expose += dt;
     if (Bay.expose >= Bay.exposeMax) {
       Bay.them++;
       Bay.expose = 0;
       missTick();
+      Bay.frozen = true;
+      Bay.freezeT = 0;
       if (Bay.them >= Bay.toWin) {
         Bay.over = true;
-        Bay.frozen = true;
         Bay.vo(Locker.operator.vo.win);
-      } else {
-        Bay.frozen = true;
-        Bay.freezeT = 0;
       }
     }
   } else {
@@ -889,7 +1005,21 @@ export {
   SIT_DROP_VY,
   PLATE_MAX_LIFE_S,
   HUD_PAD,
+  BAY_TO_WIN,
+  BAY_SPEED,
+  BAY_EXPOSE_S,
+  BAY_FREEZE_PAD_S,
+  BAY_FOE_RADIUS,
+  BAY_SPAWN_A,
+  BAY_SPAWN_B,
   Bay,
+  bayInLeftWindow,
+  bayInRightAngle,
+  bayInOpenMiddle,
+  bayStallHit,
+  bayCoverChip,
+  applyLockerLook,
+  rayHitsBayFoe,
   speak,
   unlockAudio,
   bang,
@@ -909,6 +1039,8 @@ export {
   spawnSharedPlate,
   applySharedSim,
   pullSharedSim,
+  restoreYardLook,
+  startBay,
   startRange,
   randomOrb,
   popup,

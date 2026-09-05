@@ -30,6 +30,7 @@ python3 tools/test_lobby.py
 python3 tools/test_warmup_flow.py
 python3 tools/test_shared_range.py
 python3 tools/test_sableqa_offline.py
+python3 tools/test_bay_playlist.py
 ./tools/run_cv_tests.sh
 
 python3 tools/test_mojo_python.py

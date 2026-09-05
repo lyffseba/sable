@@ -55,13 +55,16 @@ import {
   rangeHallGroup,
   shardGroup,
   bayGroup,
-  foeGroup,
   tracerLines,
   startRange,
+  startBay,
+  restoreYardLook,
+  applyLockerLook,
   updateRange,
   tickBay,
   sharedMatch,
   applySharedSim,
+  bayCoverChip,
   RANGE_MS,
   HUD_PAD,
 } from "./house.js";
@@ -80,6 +83,7 @@ const screens = {
   lock: $("screen-lock"),
   calibrate: $("screen-calib"),
   range: $("screen-range"),
+  bay: $("screen-bay"),
   results: $("screen-results"),
 };
 
@@ -129,7 +133,7 @@ async function requestGeminiLock() {
   return false;
 }
 function enterGame() {
-  setPhase("range");
+  setPhase(targetGameMode === "bay" ? "bay" : "range");
 }
 function goCalib() {
   if (S.lockAdvance) return;
@@ -248,6 +252,7 @@ async function lobbyJoin(code) {
 
 async function lobbyPoll() {
   if (!S.room || !S.online) return;
+  if (phase === "bay") return;
   if (phase !== "lobby" && !S.warmup && !sharedMatch()) return;
   try {
     const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
@@ -327,6 +332,34 @@ function syncWarmupChrome() {
   if (res) res.hidden = !S.warmup;
 }
 
+function syncBayChrome() {
+  const bar = $("bay-bar");
+  if (bar) bar.hidden = phase !== "bay";
+  const boot = $("btn-bay-boot");
+  if (boot) boot.textContent = S.online ? "RETURN TO LOBBY" : "BOOT";
+}
+
+function lobbyStartBay() {
+  S.playlist = "bay";
+  S.warmup = false;
+  syncWarmupChrome();
+  if (camReady && (S.smooth || S.tpl || S.desktop)) {
+    setPhase("bay");
+    return;
+  }
+  play("bay");
+}
+
+function leaveBay() {
+  Bay.active = false;
+  syncBootButtons(false);
+  if (S.online) {
+    returnToLobby();
+    return;
+  }
+  setPhase("boot");
+}
+
 async function returnToLobby() {
   S.warmup = false;
   lobbyStarting = false;
@@ -335,6 +368,7 @@ async function returnToLobby() {
   const onBtn = $("btn-online");
   if (onBtn) onBtn.disabled = false;
   syncWarmupChrome();
+  syncBootButtons(false);
   setPhase("lobby");
   stopLobbyPoll();
   ensureLobbyPoll();
@@ -361,10 +395,7 @@ async function lobbyLeave() {
   S.warmup = false;
   lobbyStarting = false;
   syncWarmupChrome();
-  const playBtn = $("btn-play");
-  if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
-  const onBtn = $("btn-online");
-  if (onBtn) onBtn.disabled = false;
+  syncBootButtons(false);
   setPhase("boot");
 }
 
@@ -377,16 +408,31 @@ async function openLobby() {
   }
 }
 
+function syncBootButtons(busy) {
+  const playBtn = $("btn-play");
+  if (playBtn) {
+    playBtn.disabled = !!busy;
+    if (!busy) playBtn.textContent = "OFFLINE";
+  }
+  const onBtn = $("btn-online");
+  if (onBtn) onBtn.disabled = !!busy;
+  const bayBtn = $("btn-bay");
+  if (bayBtn) {
+    bayBtn.disabled = !!busy;
+    if (!busy) bayBtn.textContent = "BAY";
+  }
+}
+
 async function play(target = "range") {
-  targetGameMode = "range";
+  targetGameMode = target === "bay" ? "bay" : "range";
+  S.playlist = targetGameMode;
   unlockAudio();
   const playBtn = $("btn-play");
   if (playBtn) {
     playBtn.disabled = true;
     playBtn.textContent = "...";
   }
-  const onBtn = $("btn-online");
-  if (onBtn) onBtn.disabled = true;
+  syncBootButtons(true);
   resetLockState();
   setPhase("lock");
   S.lockStart = performance.now();
@@ -402,10 +448,12 @@ async function play(target = "range") {
 
 function setPhase(next) {
   assignPhase(next);
-  for (const k of Object.keys(screens)) screens[k].hidden = k !== next;
+  for (const k of Object.keys(screens)) {
+    if (screens[k]) screens[k].hidden = k !== next;
+  }
   if (rangeTargetGroup) rangeTargetGroup.visible = (next === "range");
   if (rangeHallGroup) rangeHallGroup.visible = (next !== "bay");
-  if (bayGroup) bayGroup.visible = false;
+  if (bayGroup) bayGroup.visible = (next === "bay");
 
   if (next === "calibrate") {
     S.calibIndex = S.camPts.every(Boolean) ? 4 : firstMissingCorner();
@@ -413,12 +461,10 @@ function setPhase(next) {
     $("btn-redo").hidden = !S.camPts.some(Boolean) || S.calibIndex >= 4;
   }
   if (next === "range") startRange();
+  else if (next === "bay") startBay();
+  else if (next !== "lock" && next !== "calibrate") restoreYardLook();
   syncWarmupChrome();
-  if (next === "bay") {
-    Bay.active = true;
-    Bay.resetMatch();
-    foeGroup.visible = true;
-  }
+  syncBayChrome();
   if (next === "results") showResults();
 }
 
@@ -648,56 +694,57 @@ function drawBayHUD() {
   ctx.font = "700 22px system-ui, sans-serif";
   ctx.fillStyle = Locker.colors.bone;
   ctx.textAlign = "left";
-  ctx.fillText(`${op.displayName}  ${Bay.you}   —   ${Bay.them}   ·  ${Locker.equippedStyle.toUpperCase()}`, HUD_PAD, HUD_PAD + 20);
+  ctx.fillText(
+    op.displayName + "  " + Bay.you + "  —  " + Bay.them + "  ·  " + Locker.equippedStyle,
+    HUD_PAD,
+    HUD_PAD + 20
+  );
 
-  const inWindow = Bay.pos.x < -4.8;
-  const inAngle = Bay.pos.x > 4.6;
-  const inOpen = !inWindow && !inAngle && Bay.pos.z < 8.0;
-  let coverText = "PAD";
-  let coverColor = Locker.colors.mint;
-  if (inOpen && !Bay.frozen) {
-    coverText = "DANGER: OPEN";
-    coverColor = "#ff2bd6";
-  } else if (inWindow) {
-    coverText = "COVER: WINDOW";
-    coverColor = Locker.colors.mint;
-  } else if (inAngle) {
-    coverText = "COVER: ANGLE";
-    coverColor = Locker.colors.mint;
-  } else if (S.lifted) {
-    coverText = "LIFT";
-    coverColor = Locker.colors.mint;
-  }
-
-  ctx.font = "700 13px system-ui, sans-serif";
-  ctx.fillStyle = coverColor;
-  ctx.fillText(coverText, HUD_PAD, HUD_PAD + 44);
+  const chip = bayCoverChip(Bay.pos.x, Bay.pos.z, S.lifted, Bay.frozen, Bay.over);
+  const chipCol = chip === "OPEN" ? "#c45c3a" : chip === "DROP" ? "#e6e0d1" : Locker.colors.mint;
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.letterSpacing = "0.16em";
+  ctx.fillStyle = chipCol;
+  ctx.fillText(chip, HUD_PAD, HUD_PAD + 46);
+  ctx.fillStyle = Locker.colors.mint;
+  ctx.fillText("FIRST TO 5", HUD_PAD, HUD_PAD + 66);
 
   if (Bay.expose > 0 && !Bay.frozen) {
-    ctx.fillStyle = "rgba(255, 43, 214, 0.2)";
-    ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120, 6);
-    ctx.fillStyle = "#ff2bd6";
-    ctx.fillRect(HUD_PAD, HUD_PAD + 52, 120 * clamp(Bay.expose / Bay.exposeMax, 0, 1), 6);
+    ctx.letterSpacing = "0";
+    ctx.fillStyle = "rgba(196, 92, 58, 0.25)";
+    ctx.fillRect(HUD_PAD, HUD_PAD + 76, 120, 6);
+    ctx.fillStyle = "#c45c3a";
+    ctx.fillRect(HUD_PAD, HUD_PAD + 76, 120 * clamp(Bay.expose / Bay.exposeMax, 0, 1), 6);
   }
 
   drawModeChip();
 
   if (Bay.voT > 0 && Bay.voText) {
+    ctx.letterSpacing = "0";
     ctx.font = "italic 700 24px system-ui, sans-serif";
     ctx.fillStyle = Locker.colors.bone;
     ctx.textAlign = "center";
-    ctx.fillText(`"${Bay.voText}"`, W * 0.5, H - 70);
+    ctx.fillText(Bay.voText, W * 0.5, H - 70);
   }
 
+  ctx.letterSpacing = "0";
   ctx.font = "500 13px system-ui, sans-serif";
   ctx.fillStyle = "rgba(232, 246, 255, 0.55)";
   ctx.textAlign = "center";
   if (Bay.over) {
-    ctx.fillText(`${Bay.you >= Bay.toWin ? "VICTORIA" : "DERROTA"} · ${op.vo.win} · Primer a 5`, W * 0.5, H - 32);
+    ctx.fillText(
+      (Bay.you >= Bay.toWin ? "YOU" : "THEM") + "  ·  " + op.vo.win + "  ·  BOOT",
+      W * 0.5,
+      H - 32
+    );
   } else if (Bay.frozen) {
-    ctx.fillText("RONDA CONGELADA · BAJA LA MANO PARA CONTINUAR", W * 0.5, H - 32);
+    ctx.fillText("DROP  ·  LOWER THE CUFF TO CONTINUE", W * 0.5, H - 32);
   } else {
-    ctx.fillText(`WASD en pad  ·  LEVANTA la mano para apuntar  ·  CLIC dispara  ·  L cambia estilo (${Locker.equippedStyle})`, W * 0.5, H - 32);
+    ctx.fillText(
+      "WASD on PAD  ·  LIFT to aim  ·  CLICK fires  ·  L cycles " + Locker.equippedStyle,
+      W * 0.5,
+      H - 32
+    );
   }
   ctx.restore();
 }
@@ -885,9 +932,9 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyA") Bay.keys.a = true;
   if (e.code === "KeyS") Bay.keys.s = true;
   if (e.code === "KeyD") Bay.keys.d = true;
-  if (e.code === "KeyL") {
-    const nextStyle = Locker.cycleStyle();
-    Bay.vo("ESTILO: " + nextStyle.toUpperCase());
+  if (e.code === "KeyL" && phase === "bay") {
+    Locker.cycleStyle();
+    applyLockerLook();
   }
 });
 
@@ -907,10 +954,23 @@ $("btn-play").addEventListener("click", () => {
   S.playlist = "range";
   play("range");
 });
+const btnBay = $("btn-bay");
+if (btnBay) {
+  btnBay.addEventListener("click", () => {
+    S.online = false;
+    S.warmup = false;
+    S.playlist = "bay";
+    play("bay");
+  });
+}
 const btnOnline = $("btn-online");
 if (btnOnline) btnOnline.addEventListener("click", () => openLobby());
 const btnLobbyRange = $("btn-lobby-range");
 if (btnLobbyRange) btnLobbyRange.addEventListener("click", () => lobbyStartRange());
+const btnLobbyBay = $("btn-lobby-bay");
+if (btnLobbyBay) btnLobbyBay.addEventListener("click", () => lobbyStartBay());
+const btnBayBoot = $("btn-bay-boot");
+if (btnBayBoot) btnBayBoot.addEventListener("click", () => leaveBay());
 const btnLobbyWarmup = $("btn-lobby-warmup");
 if (btnLobbyWarmup) btnLobbyWarmup.addEventListener("click", () => lobbyWarmup());
 const btnReturnLobby = $("btn-return-lobby");
@@ -996,5 +1056,7 @@ export {
   ensureLobbyPoll,
   setPhase,
   play,
+  lobbyStartBay,
+  leaveBay,
   requestGeminiLock,
 };

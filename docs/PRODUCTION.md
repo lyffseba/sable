@@ -30,7 +30,7 @@ We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, map
 |------|------------|----------|
 | **Salt House / Range** | 60 s gallery. Sit plates, crossing clays, rising flushes. Escape = miss. | Playable now — plates drop, clays leave |
 | **Waiting arena** | Room code, 10 slots, WARM UP anytime, host ENTER RANGE | Rooms work; ENTER RANGE shares plates |
-| **Bay 1v1** | Original booth, cover vs open middle, first to 5 | Geometry exists; not the front door |
+| **Bay 1v1** | Original booth, cover vs open middle, first to 5 | Playlist from lobby / boot — local first-to-5 |
 
 v1 is **not** an on-rails walk through a mall. If we ever add a “house walk,” it is a later mode with original rooms, not a clone.
 
@@ -89,7 +89,7 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **merge to main when CI green**. **`v0.11.0` stands** — do not cut a zip/tag from this split. Next tag after R1 tip + SableQA clear. R1 is the file split only — same fire verb, no Bay playlist start, no R6 tick unify. Next code: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
+Recommend **merge to main when CI green**. **`v0.11.0` stands** — do not cut a zip/tag from the R1 split. Next tag after R1 tip + SableQA clear. R1 is the file split only — same fire verb, no R6 tick unify. **M4** is the Bay playlist (lobby / boot entry, local booth). Shared Range stays the online house. Next after M4: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
 
 ## Milestones
 
@@ -97,7 +97,7 @@ Recommend **merge to main when CI green**. **`v0.11.0` stands** — do not cut a
 - **M1:** Arcade gallery loop (plates/clays escape). Waiting-room WARM UP. Fire peeks only (no aim recompute on click). Sticky lift shipped. **Done.**
 - **M2:** Landmarks + lift verb that allows trackpad fire. **Done** (Hands + R3).
 - **M3:** Two clients, same plates, same house. **Done** for the room (seed + fire-tick ray). Offline / WARM UP stay local. Zip held until tip + SableQA offline-shoot gate.
-- **M4:** Bay as a second playlist from the lobby, still one art bible.
+- **M4:** Bay as a second playlist from the lobby, still one art bible. **Done** (boot **BAY** + lobby **ENTER BAY**; original booth; first to 5; Offline / WARM UP / shared Range stay).
 
 ## Non-goals (v1)
 
