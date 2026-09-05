@@ -45,7 +45,7 @@ def test_round_trip() -> None:
     warm = lobby.warmup(a["code"], b["player"])
     if warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice":
         _fail(f"WARM UP must keep wait_practice {warm}")
-    if "seed" in warm or warm.get("plates"):
+    if "seed" in warm or warm.get("plates") or warm.get("scores"):
         _fail("WARM UP must not open the shared sim")
 
     st = lobby.start(a["code"], a["player"], now=2_000.0, seed=7)
@@ -115,7 +115,7 @@ def test_practice_never_promotes() -> None:
     g = lobby.get(a["code"])
     if g.get("hangar") != "wait_practice" or g.get("phase") != "wait":
         _fail(f"practice promoted the room {g.get('hangar')} {g.get('phase')}")
-    if g.get("seed") or g.get("plates"):
+    if g.get("seed") or g.get("plates") or g.get("scores"):
         _fail("practice opened the shared sim")
     late = lobby.warmup(a["code"], a["player"])
     if late.get("hangar") != "wait_practice":
