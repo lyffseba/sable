@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SableQA product gate: fail LOUD if Offline / WARM UP die, HID waits, or Bay is the only gun."""
+"""SableQA product gate: fail LOUD if Offline one-click dies, or Salt House/gallery is the only gun."""
 
 from __future__ import annotations
 
@@ -24,7 +24,64 @@ def _fail(msg: str) -> None:
 
 
 def _fail_only_gun(msg: str) -> None:
-    raise AssertionError(f"SABLEQA FAIL: Bay became the only gun — {msg}")
+    raise AssertionError(f"SABLEQA FAIL: Salt House/gallery became the only gun — {msg}")
+
+
+# Runtime + map specs only. research/ may name third-party maps as refuse notes.
+_GEOMETRY_FILES = (
+    "proto/house.js",
+    "proto/boot.js",
+    "proto/index.html",
+    "docs/yard.md",
+    "docs/maps/bay.md",
+    "art/README.md",
+    "art/blender/build_sable_kit.py",
+    "art/concepts/hall.svg",
+    "art/concepts/gauntlet.svg",
+    "art/concepts/plate.svg",
+)
+_FOREIGN_DNA = (
+    "de_dust",
+    "de_mirage",
+    "de_inferno",
+    "de_nuke",
+    "de_overpass",
+    "de_anubis",
+    "de_ancient",
+    "de_vertigo",
+    "de_cache",
+    "de_train",
+    "dust2",
+    "Tilted Towers",
+    "Pleasant Park",
+    "Valve",
+    "Epic Games",
+    "Fortnite",
+    "Counter-Strike",
+    "CS:GO",
+    "CS2",
+    ".vmf",
+    ".bsp",
+    "Unreal Marketplace",
+)
+
+
+def _assert_original_geometry() -> None:
+    for rel in _GEOMETRY_FILES:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        low = text.lower()
+        for needle in _FOREIGN_DNA:
+            if needle.lower() in low:
+                raise AssertionError(
+                    f"SABLEQA FAIL: Valve/Epic asset DNA in original geometry ({rel}: {needle})"
+                )
+    modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
+    if "architecture notes" not in modes.lower():
+        raise AssertionError("SABLEQA FAIL: CS map literacy must stay architecture notes only")
+    if "original" not in modes.lower() or "Valve" not in modes:
+        raise AssertionError(
+            "SABLEQA FAIL: docs/modes.md must keep original SABLE geometry / zero Valve DNA"
+        )
 
 
 def main() -> int:
@@ -127,8 +184,35 @@ def main() -> int:
         if "/api/lobby/start" not in start_room:
             _fail_only_gun("host ENTER RANGE no longer shares the house")
 
+        if 'id="btn-bay"' not in html or ">BAY<" not in html:
+            _fail_only_gun("boot lost BAY")
+        if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
+            _fail_only_gun("lobby lost ENTER BAY")
+        boot_bay = re.search(
+            r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)',
+            js,
+        )
+        if not boot_bay:
+            _fail_only_gun("boot BAY no longer calls play(bay)")
+        if "S.online = false" not in boot_bay.group(0):
+            _fail("boot BAY trapped HID behind a room")
         if 'play("bay")' in play.group(0):
             _fail_only_gun("OFFLINE was rerouted into Bay")
+
+        if "GALLERY CLEAR" not in html:
+            _fail("gallery lost its end state — Salt House is leftover Range again")
+        if "gallerySessionLabel" not in js or "galleryOver" not in js:
+            _fail("gallery mode rules left house.js")
+        sess = _js_fn(js, "gallerySessionLabel")
+        if 'return "GALLERY"' not in sess:
+            _fail("OFFLINE gallery session label died")
+        if "WARM UP" not in sess:
+            _fail("WARM UP must stay a practice label")
+        hud = _js_fn(js, "drawHUD")
+        if "shadowBlur" in hud or "shadowBlur" in _js_fn(js, "drawCrosshair"):
+            _fail("Look bloomed over the reticle")
+        if "ACESFilmicToneMapping" in js:
+            _fail("Look trapped aim noise with ACES")
 
         to_win = re.search(r"const BAY_TO_WIN = ([0-9.]+)", js)
         if not to_win or float(to_win.group(1)) != 5:
@@ -143,6 +227,10 @@ def main() -> int:
             _fail("ENTER BAY started the shared house")
         if re.search(r"await\s+", start_bay):
             _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
+        if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
+            _fail_only_gun("ENTER BAY no longer drops into the booth")
+
+        _assert_original_geometry()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
         return 1

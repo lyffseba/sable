@@ -117,7 +117,7 @@ const S = {
   handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null, rvfc: false,
   mpBusy: false, mpDelegate: "",
   online: false,
-  playlist: "range",
+  playlist: "gallery",
   room: "",
   player: "",
   slot: -1,

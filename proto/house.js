@@ -1,5 +1,5 @@
 /* SABLE — house.js
-   Salt House / Yard Range, plates, shared match client hooks, Bay.
+   Salt House gallery (60s plates/clays), shared match hooks, Bay.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
@@ -862,9 +862,25 @@ function desiredOrbCount(elapsed) {
   return 4;
 }
 
+function galleryOver(elapsedMs) {
+  return elapsedMs >= RANGE_MS;
+}
+
+function galleryLeftMs(elapsedMs) {
+  return Math.max(0, RANGE_MS - elapsedMs);
+}
+
+function gallerySessionLabel() {
+  if (S.warmup) return "WARM UP  " + S.room;
+  if (sharedMatch()) return "SHARED  " + S.room;
+  if (!S.online) return "GALLERY";
+  if (S.playlist === "5v5") return "5v5  " + S.room;
+  return "GALLERY  " + S.room;
+}
+
 function updateRange(dt, elapsed) {
   // dt + elapsed are the 128 Hz sim clock. Render does not own plates.
-  if (elapsed >= RANGE_MS) { setPhase("results"); return; }
+  if (galleryOver(elapsed)) { setPhase("results"); return; }
   const shared = sharedMatch();
   if (!shared) {
     const want = desiredOrbCount(elapsed);
@@ -1040,6 +1056,9 @@ export {
   randomOrb,
   popup,
   desiredOrbCount,
+  galleryOver,
+  galleryLeftMs,
+  gallerySessionLabel,
   updateRange,
   tickBay,
 };

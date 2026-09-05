@@ -34,6 +34,7 @@ python3 tools/test_tick_contract.py
 python3 tools/test_hands_worker.py
 python3 tools/test_sableperf.py
 python3 tools/test_bay_playlist.py
+python3 tools/test_gallery_mode.py
 ./tools/run_cv_tests.sh
 
 python3 tools/test_mojo_python.py

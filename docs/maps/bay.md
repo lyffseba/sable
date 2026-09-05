@@ -11,7 +11,7 @@ Scene: `godot/scenes/bay/Bay.tscn`. Controller: `godot/src/app/bay_controller.gd
 `python3 tools/serve_proto.py` → **http://127.0.0.1:8080**
 
 - Boot **BAY**, or lobby **ENTER BAY** (local first-to-5; does not start the shared house)
-- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** stay the Salt House paths
+- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** stay the Salt House gallery paths
 
 Godot **4.7.2** → import `godot/` (spec reference):
 

@@ -65,7 +65,8 @@ import {
   sharedMatch,
   applySharedSim,
   bayCoverChip,
-  RANGE_MS,
+  galleryLeftMs,
+  gallerySessionLabel,
   HUD_PAD,
 } from "./house.js";
 
@@ -183,12 +184,12 @@ function paintLobby(data) {
   const room = $("lobby-room");
   if (room) room.textContent = "ROOM  " + data.code;
   const kicker = $("lobby-kicker");
-  if (kicker) kicker.textContent = data.phase === "wait" ? "5v5  ·  WAITING ARENA" : "5v5  ·  RANGE";
+  if (kicker) kicker.textContent = data.phase === "wait" ? "5v5  ·  WAITING ARENA" : "5v5  ·  GALLERY";
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
-      ? "WARM UP is practice now. ENTER RANGE shares one house — same plates."
-      : "WARM UP anytime. Waiting on host for the shared house.";
+      ? "WARM UP is practice now. ENTER RANGE shares the 60s gallery — same plates."
+      : "WARM UP anytime. Waiting on host for the shared gallery.";
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
@@ -428,7 +429,7 @@ function syncBootButtons(busy) {
 
 async function play(target = "range") {
   targetGameMode = target === "bay" ? "bay" : "range";
-  S.playlist = targetGameMode;
+  S.playlist = targetGameMode === "bay" ? "bay" : "gallery";
   unlockAudio();
   const playBtn = $("btn-play");
   if (playBtn) {
@@ -486,7 +487,7 @@ function showResults() {
   const acc = S.shots ? Math.round((S.hits / S.shots) * 100) : 0;
   $("stats").innerHTML = [
     ["SCORE", S.score], ["HITS", S.hits], ["ACCURACY", acc + "%"],
-    ["COMBO", S.comboMax], ["TIME", "60s"],
+    ["COMBO", S.comboMax], ["ROUND", "60s"],
   ].map(([k, v]) => "<div class=\"stat\"><b>" + v + "</b><span>" + k + "</span></div>").join("");
 }
 
@@ -648,34 +649,43 @@ function drawModeChip() {
 function drawHUD(now) {
   drawModeChip();
   if (phase !== "range") return;
-  const left = Math.max(0, RANGE_MS - simMs());
+  const left = galleryLeftMs(simMs());
   const sec = (left / 1000).toFixed(1);
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillStyle = "#f4fbff";
+  ctx.fillStyle = Locker.colors.bone;
   ctx.font = "900 34px Impact, system-ui, sans-serif";
   ctx.fillText(String(S.score), W / 2, 16);
   ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillStyle = "#00f0ff";
-  const sess = S.warmup
-    ? "WARM UP  " + S.room
-    : (sharedMatch()
-      ? "SHARED  " + S.room
-      : (!S.online ? "OFFLINE RANGE" : (S.playlist === "5v5" ? "5v5  " + S.room : "ONLINE RANGE")));
+  ctx.fillStyle = Locker.colors.mint;
+  const sess = gallerySessionLabel();
   ctx.fillText("SCORE  ·  " + sess, W / 2, 52);
   if (S.combo > 1) {
-    ctx.fillStyle = "#ff2bd6";
+    ctx.fillStyle = Locker.colors.rust;
     ctx.font = "900 22px Impact, system-ui, sans-serif";
     ctx.fillText(S.combo + "x", W / 2, 70);
   }
-  ctx.fillStyle = "#e8f6ff";
+  ctx.fillStyle = Locker.colors.bone;
   ctx.font = "700 18px Impact, system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.fillText(sec, W - HUD_PAD, 16);
   ctx.font = "700 10px system-ui, sans-serif";
-  ctx.fillStyle = "#00f0ff";
-  ctx.fillText("TIME", W - HUD_PAD, 38);
+  ctx.fillStyle = Locker.colors.mint;
+  ctx.fillText("ROUND", W - HUD_PAD, 38);
+  ctx.font = "700 11px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.letterSpacing = "0.14em";
+  ctx.fillStyle = Locker.colors.mint;
+  ctx.fillText("60s GALLERY", W / 2, H - 48);
+  ctx.letterSpacing = "0";
+  ctx.font = "500 13px system-ui, sans-serif";
+  ctx.fillStyle = "rgba(230, 224, 209, 0.55)";
+  ctx.fillText(
+    S.warmup ? "PRACTICE  ·  ESC = miss  ·  RETURN TO LOBBY" : "ESC = miss  ·  plates drop  ·  clays leave",
+    W / 2,
+    H - 28
+  );
   ctx.restore();
 
   if (S.mode === "PAD") {
@@ -684,7 +694,7 @@ function drawHUD(now) {
     ctx.globalAlpha = 0.45 + Math.sin(S.liftPulse) * 0.2;
     ctx.textAlign = "center";
     ctx.font = "700 22px Impact, system-ui, sans-serif";
-    ctx.fillStyle = "#00f0ff";
+    ctx.fillStyle = Locker.colors.mint;
     ctx.letterSpacing = "0.2em";
     ctx.fillText("RAISE YOUR HAND", W / 2, H * 0.78);
     ctx.restore();
@@ -973,7 +983,7 @@ window.addEventListener("resize", fit);
 $("btn-play").addEventListener("click", () => {
   S.online = false;
   S.warmup = false;
-  S.playlist = "range";
+  S.playlist = "gallery";
   play("range");
 });
 const btnBay = $("btn-bay");

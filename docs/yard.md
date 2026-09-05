@@ -34,7 +34,7 @@ Camera / player at `(0, 1.64, 0)` looking −Z. Floor y = −1.64.
 
 Use these numbers only — not another game’s device list.
 
-- Playlist: Range 60 s, then later 5v5 on a **SABLE** stadium.
+- Playlist: Gallery 60 s (`docs/modes.md`), then later 5v5 on a **SABLE** stadium.
 - One-hit plates / one-hit out in 5v5.
 - Start pad 2.0 × 1.2 m.
 - Fire is HID or a later finger-pinch. Aim is the pointing hand.

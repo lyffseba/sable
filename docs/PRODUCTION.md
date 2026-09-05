@@ -28,7 +28,7 @@ We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, map
 
 | Mode | What it is | Ship bar |
 |------|------------|----------|
-| **Salt House / Range** | 60 s gallery. Sit plates, crossing clays, rising flushes. Escape = miss. | Playable now — plates drop, clays leave |
+| **Salt House / Gallery** | 60 s scored gallery. Sit plates, crossing clays, rising flushes. Escape = miss. End state: GALLERY CLEAR. | Playable now — a mode, not leftover Range |
 | **Waiting arena** | Room code, 10 slots, WARM UP anytime, host ENTER RANGE | Rooms work; ENTER RANGE shares plates |
 | **Bay 1v1** | Original booth, cover vs open middle, first to 5 | Playlist from lobby / boot — local first-to-5 |
 
@@ -78,7 +78,7 @@ Hand tracking: MediaPipe Tasks Vision HandLandmarker (Apache-2.0, published floa
 
 Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss.
 
-**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click** — no warm-up tax. Bay is a second playlist (first to 5, `AimBus` peek) — never the only gun. Shared house is not the only way to shoot. Lift/HID must not wait on net, the Hands worker, the 128 Hz sim step, or rAF — if the lobby POST hangs or `detectForVideo` is in flight, local practice still fires. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). Main rAF must not run `HandLandmarker.detect` synchronously. `?sableperf=1` / `window.SablePerf` still proves HID→hitscan p99 < 8 ms (`t0` before `bang()`). `tools/test_sableperf.py`, `tools/test_sableqa_offline.py`, and `tools/test_tick_contract.py` fail loud if detect sneaks back onto main, the probe is reordered, Offline / WARM UP die, lock shows the OS cursor, fire waits on the worker or the tick, sim steps hitch to frame time, fire_ms couples to present, docs drift off 128 Hz, or Bay becomes the only gun. **`v0.18.0` stood.** Build tags after this soft-lock.
+**Product gate (locked):** Offline **GALLERY** (`play("range")`) and waiting-room **WARM UP** stay **local and one-click** — no warm-up tax. Salt House / gallery is never the only gun: Bay, WARM UP, and ENTER RANGE stay. Runtime geometry is original SABLE (Yard / Salt House / Bay). CS map literacy is architecture notes only — zero Valve / Epic asset DNA. Shared house is not the only way to shoot. Lift/HID must not wait on net, the Hands worker, the 128 Hz sim step, or rAF — if the lobby POST hangs or `detectForVideo` is in flight, local practice still fires. Look must not bloom over the reticle. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). Main rAF must not run `HandLandmarker.detect` synchronously. `?sableperf=1` / `window.SablePerf` still proves HID→hitscan p99 < 8 ms (`t0` before `bang()`). `tools/test_sableperf.py`, `tools/test_sableqa_offline.py`, `tools/test_tick_contract.py`, and `tools/test_gallery_mode.py` fail loud if detect sneaks back onto main, the probe is reordered, Offline / WARM UP die, lock shows the OS cursor, fire waits on the worker or the tick, sim steps hitch to frame time, fire_ms couples to present, docs drift off 128 Hz, Look traps lift/HID, gallery loses score/clock/end, or Bay becomes the only gun. **`v0.19.0` stood.** Build tags after this soft-lock. Playlist: `docs/modes.md`.
 
 Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose). The click does **not** call `coastTrack` / `updateAim` — hitscan uses the last committed `S.aim` / mailbox sample. Optional `?sableperf=1` records HID→hitscan p50/p99 vs the 8 ms bar (`window.SablePerf.stats()`).
 
@@ -93,7 +93,7 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | contract + local `stepSim` | **Done** |
 
-Recommend **merge to main when CI green**. **`v0.18.0` stood.** Build tags after this soft-lock. R6 is the tick contract only — same fire verb, AimSample untouched. Shared house stays a lazy lobby snapshot + fire-tick rewind (not a fake global 128 Hz friend sim). Next after R6: R5 when a modeler is in Blender, or competitive 1v1 on this contract.
+Recommend **merge to main when CI green**. **`v0.19.0` stood.** Build tags after this soft-lock. Gallery is a playlist/label cut only — same fire verb, AimSample untouched, R6 128 Hz / `fire_ms` honesty stays. Shared house stays a lazy lobby snapshot + fire-tick rewind (not a fake global 128 Hz friend sim). Next after this: R5 when a modeler is in Blender, or competitive 1v1 on the R6 contract.
 
 ## Milestones
 
@@ -102,6 +102,7 @@ Recommend **merge to main when CI green**. **`v0.18.0` stood.** Build tags after
 - **M2:** Landmarks + lift verb that allows trackpad fire. **Done** (Hands + R3).
 - **M3:** Two clients, same plates, same house. **Done** for the room (seed + fire-tick ray). Offline / WARM UP stay local. Zip held until tip + SableQA offline-shoot gate.
 - **M4:** Bay as a second playlist from the lobby, still one art bible. **Done** (boot **BAY** + lobby **ENTER BAY**; original booth; first to 5). Offline / WARM UP stay local one-click. Zip held until tip + SableQA (Bay must not be the only gun). **`v0.12.0` stands.**
+- **M5:** Salt House is a playable **gallery mode** (60 s score / round clock / GALLERY CLEAR). Offline one-click stays. Bay / WARM UP / ENTER RANGE stay. **Done.** **`v0.19.0` stood.** Build tags after this soft-lock.
 
 ## Non-goals (v1)
 
@@ -119,8 +120,8 @@ Is v1 **laptop lid camera + trackpad** only, or must a living-room TV + USB webc
 ### Q2. Friends
 Is “with friends” **same couch / same screen** (pass the click, or two hands on one cam), **two laptops / room code**, or both?
 
-### Q3. House fantasy
-Is Salt House a **clay gallery** (things fly at you, you stand still) or do you **walk the house** (on-rails or WASD) in v1?
+### Q3. House fantasy — decided
+Salt House v1 is a **clay gallery**: things fly at you, you stand still. Score the 60 s clock. WASD is Bay only. A house walk is a later mode, original rooms, not a clone.
 
 ### Q4. Fail to lock
 If the camera never sees a hand: **desktop T forever**, **skip to gallery with a warning**, or **hard stop**?
