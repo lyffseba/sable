@@ -11,23 +11,22 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def mode(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> str:
-    """Chip only. Camera still writes the mailbox on PAD."""
+    """Chip only. Camera still writes the mailbox on PAD.
+    Hand lock beats trackpad HID so a MacBook click can fire."""
     if desktop:
         return "DESKTOP"
     if force:
         return "GUN"
-    if hid_moving:
-        return "PAD"
     if det or coasting:
         return "GUN"
+    if hid_moving:
+        return "PAD"
     return "SEEKING"
 
 
 def lifted(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: bool) -> bool:
     if desktop or force:
         return True
-    if hid_moving:
-        return False
     return det or coasting
 
 
@@ -36,21 +35,24 @@ def can_fire(desktop: bool, force: bool, hid_moving: bool, det: bool, coasting: 
 
 
 def test_mode_table() -> None:
-    assert mode(False, False, True, True, False) == "PAD"
+    assert mode(False, False, True, True, False) == "GUN"
     assert mode(False, False, False, True, False) == "GUN"
     assert mode(False, False, False, False, True) == "GUN"
+    assert mode(False, False, True, False, False) == "PAD"
     assert mode(False, False, False, False, False) == "SEEKING"
     assert mode(False, True, True, False, False) == "GUN"
     assert mode(True, False, True, True, False) == "DESKTOP"
 
 
 def test_lift_and_fire() -> None:
-    # On the mat with a live lock: see the reticle, do not shoot.
-    assert lifted(False, False, True, True, False) is False
-    assert can_fire(False, False, True, True, False) is False
-    # Lift-off.
+    # Hand up + trackpad click must still shoot (MacBook).
+    assert lifted(False, False, True, True, False) is True
+    assert can_fire(False, False, True, True, False) is True
+    # Hand up, pad idle.
     assert lifted(False, False, False, True, False) is True
     assert can_fire(False, False, False, True, False) is True
+    # Hand down, pad moving: no shoot.
+    assert can_fire(False, False, True, False, False) is False
     # Space.
     assert can_fire(False, True, True, False, False) is True
     # T debug always shoots.
@@ -82,8 +84,8 @@ def test_proto_mailbox() -> None:
     mode_body = _js_fn(src, "updateMode")
     hid = mode_body.find("if (S.hidMoving)")
     locked = mode_body.find("if (locked)")
-    if hid < 0 or locked < 0 or hid > locked:
-        raise AssertionError("chip: hidMoving must beat lock")
+    if hid < 0 or locked < 0 or locked > hid:
+        raise AssertionError("chip: hand lock must beat trackpad HID")
     if "S.lifted" not in mode_body:
         raise AssertionError("updateMode must write lifted")
 

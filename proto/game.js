@@ -773,7 +773,7 @@ function updateMode(now) {
   if (S.desktop) {
     S.mode = "DESKTOP"; S.seeking = false; S.lifted = true; S.liftMs = LIFT_ON_MS; return;
   }
-  const want = S.forceGun || (!S.hidMoving && locked);
+  const want = S.forceGun || locked;
   if (want) S.liftMs = Math.min(160, S.liftMs + dtm);
   else S.liftMs = Math.max(0, S.liftMs - dtm);
   S.lifted = S.forceGun || S.liftMs >= LIFT_ON_MS;
@@ -783,11 +783,11 @@ function updateMode(now) {
   if (S.forceGun) {
     S.mode = "GUN"; S.seeking = !locked; return;
   }
-  if (S.hidMoving) {
-    S.mode = "PAD"; S.seeking = !locked; return;
-  }
   if (locked) {
     S.mode = "GUN"; S.seeking = false; return;
+  }
+  if (S.hidMoving) {
+    S.mode = "PAD"; S.seeking = true; return;
   }
   S.mode = "SEEKING"; S.seeking = true;
 }
@@ -951,18 +951,19 @@ function init3D() {
   renderer.toneMappingExposure = 1.08;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x03050a);
-  scene.fog = new THREE.FogExp2(0x03050a, 0.032);
+  scene.background = new THREE.Color(0x151c22);
+  scene.fog = new THREE.FogExp2(0x151c22, 0.022);
 
-  camera = new THREE.PerspectiveCamera(68, W / H, 0.08, 160);
-  camera.position.set(0, 1.64, 0);
+  camera = new THREE.PerspectiveCamera(62, W / H, 0.08, 160);
+  camera.position.set(0, 1.64, 2.05);
+  camera.lookAt(0, 0.55, -12);
 
-  scene.add(new THREE.HemisphereLight(0x4a6a88, 0x08060a, 0.85));
-  const dir = new THREE.DirectionalLight(0xc8e8ff, 1.35);
-  dir.position.set(4, 14, 7);
+  scene.add(new THREE.HemisphereLight(0x8aa8b8, 0x1a1810, 0.7));
+  const dir = new THREE.DirectionalLight(0xe8dcc8, 1.15);
+  dir.position.set(-6, 16, 4);
   scene.add(dir);
-  const rim = new THREE.DirectionalLight(Locker.colors.mintHex, 0.35);
-  rim.position.set(-8, 6, -4);
+  const rim = new THREE.DirectionalLight(Locker.colors.mintHex, 0.22);
+  rim.position.set(8, 5, -6);
   scene.add(rim);
 
   buildFirstPersonGun();
@@ -1038,45 +1039,27 @@ function buildRange3D() {
   scene.add(rangeTargetGroup);
   scene.add(shardGroup);
 
-  const char = sableStd(0x0a0c10, { roughness: 0.92, metalness: 0.08 });
-  const rust = sableStd(Locker.colors.rustHex, { roughness: 0.78 });
-  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
-
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 40), char);
+  const turf = sableStd(0x1a2218, { roughness: 0.95, metalness: 0.02, flatShading: true });
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(28, 42), turf);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -1.64;
   rangeHallGroup.add(floor);
 
-  const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 36), mint);
-  line.position.set(0, -1.62, -6);
-  rangeHallGroup.add(line);
+  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  const lane = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 20), mint);
+  lane.position.set(0, -1.62, -7);
+  rangeHallGroup.add(lane);
 
-  for (let i = 0; i < 7; i++) {
-    const rib = new THREE.Mesh(new THREE.TorusGeometry(8.4, 0.08, 5, 18, Math.PI), rust);
-    rib.rotation.y = Math.PI / 2;
-    rib.position.set(0, -1.5, -1.2 - i * 2.3);
-    rangeHallGroup.add(rib);
-  }
-
-  const back = new THREE.Mesh(new THREE.BoxGeometry(18, 6.2, 0.35), rust);
-  back.position.set(0, 1.4, -16);
-  rangeHallGroup.add(back);
-  for (let k = -2; k <= 2; k++) {
-    const plate = new THREE.Mesh(hexPlateGeo(0.7, 0.08), sableStd(Locker.colors.boneHex));
-    plate.position.set(k * 2.2, 1.6, -15.7);
-    plate.rotation.x = Math.PI / 2;
-    rangeHallGroup.add(plate);
-  }
-
-  const lumen = new THREE.Mesh(new THREE.BoxGeometry(16, 0.06, 0.1), mint);
-  lumen.position.set(0, 6.2, -15.4);
-  rangeHallGroup.add(lumen);
-
-  const stall = sableStd(0x141a22, { roughness: 0.85 });
-  for (const x of [-6.2, 6.2]) {
-    const w = new THREE.Mesh(new THREE.BoxGeometry(0.28, 2.4, 8), stall);
-    w.position.set(x, -0.4, -4);
-    rangeHallGroup.add(w);
+  const post = sableStd(0x2a241c, { roughness: 0.8 });
+  for (const x of [-8.2, 8.2]) {
+    for (let i = 0; i < 6; i++) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 2.4, 6), post);
+      p.position.set(x, -0.44, 1.5 - i * 3.4);
+      rangeHallGroup.add(p);
+    }
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 18), post);
+    rail.position.set(x, 0.5, -7);
+    rangeHallGroup.add(rail);
   }
 
   buildYardBunkers(rangeHallGroup);
@@ -1135,6 +1118,17 @@ function buildYardBunkers(group) {
   const drumFar = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5, 14), bone);
   addYard(group, drumFar, -3.2, floorY + 0.75, -14.5, 0);
 }
+
+const YARD_PEEKS = [
+  [-3.4, -0.7, -3.9],
+  [3.4, -0.7, -3.9],
+  [-0.5, 0.35, -6.6],
+  [2.4, 0.55, -8.1],
+  [-2.6, 0.05, -10.5],
+  [0.8, -0.15, -12.0],
+  [3.1, 0.15, -13.5],
+  [-3.0, 0.25, -14.1],
+];
 
 function buildBay3D() {
   bayGroup = new THREE.Group();
@@ -1221,26 +1215,21 @@ function createTargetMesh(kind, hue) {
 
 function spawnOrb3D(opts) {
   const o = Object.assign({
-    x: 0, y: 0, r: 24, kind: "static", vx: 0, vy: 0,
-    amp: 0, freq: 0, baseY: 0, phase: 0, worth: 100, hue: 185,
-    life: 0, born: performance.now(),
+    kind: "sit", vx: 0, vy: 0, vz: 0, worth: 100, hue: 165,
+    life: 0, born: performance.now(), r: 28,
   }, opts);
-
   const meshObj = createTargetMesh(o.kind, o.hue);
   o.mesh = meshObj.group;
+  o.mesh.userData.orb = o;
+  o.mesh.traverse((c) => { c.userData.orb = o; });
   rangeTargetGroup.add(o.mesh);
-
-  // Position target in 3D camera frustum space at depth z = -5.0
-  const normX = (o.x / W) * 2 - 1;
-  const normY = -(o.y / H) * 2 + 1;
-  const depth = 5.2;
-  const v = new THREE.Vector3(normX, normY, 0.5).unproject(camera);
-  const dir = v.sub(camera.position).normalize();
-  const dist = depth / -dir.z;
-  o.mesh.position.copy(camera.position).add(dir.multiplyScalar(dist));
-
   S.orbs.push(o);
   return o;
+}
+
+function worldToHud(pos) {
+  const v = pos.clone().project(camera);
+  return { x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H };
 }
 
 function shatterTarget3D(pos, hue) {
@@ -1321,12 +1310,14 @@ function fire() {
 
   S.shots++;
   let hit = null;
-  for (const o of S.orbs) {
-    const dist = Math.hypot(S.aim.x - o.x, S.aim.y - o.y);
-    if (dist < o.r + 14) { hit = o; break; }
+  const hits = raycaster.intersectObjects(rangeTargetGroup.children, true);
+  if (hits.length) {
+    let obj = hits[0].object;
+    while (obj && !obj.userData.orb) obj = obj.parent;
+    hit = obj && obj.userData.orb;
   }
 
-  if (hit) {
+  if (hit && hit.mesh) {
     S.combo++;
     if (S.combo > S.comboMax) S.comboMax = S.combo;
     const pts = hit.worth * S.combo;
@@ -1336,7 +1327,8 @@ function fire() {
     const hitPos = hit.mesh.position.clone();
     addBulletTracer(muzzleWorld, hitPos);
     shatterTarget3D(hitPos, hit.hue);
-    popup(hit.x, hit.y - hit.r, (S.combo > 1 ? S.combo + "x " : "") + pts, hit.hue);
+    const hud = worldToHud(hitPos);
+    popup(hud.x, hud.y - 18, (S.combo > 1 ? S.combo + "x " : "") + pts, hit.hue);
 
     rangeTargetGroup.remove(hit.mesh);
     S.orbs = S.orbs.filter((o) => o !== hit);
@@ -1622,7 +1614,8 @@ function startRange() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.recoil = 0; S.punch = 0; S.flash = 0;
-  spawnOrb3D({ x: W / 2, y: H * 0.46, r: 38, kind: "sit", worth: 100, hue: 180 });
+  const first = spawnOrb3D({ kind: "sit", worth: 100, hue: 165 });
+  first.mesh.position.set(0.2, 0.35, -6.6);
 }
 
 function showResults() {
@@ -1680,40 +1673,24 @@ function randomOrb(hard) {
   let kind = "sit";
   if (roll > 0.42) kind = "clay";
   else if (roll > 0.22) kind = "rise";
-  const small = hard || kind === "clay";
-  const r = small ? 16 + Math.random() * 6 : 24 + Math.random() * 10;
-  const hue = kind === "clay" ? 165 : 48;
   const worth = kind === "clay" ? 250 : (kind === "rise" ? 180 : 100);
-  let x, y, vx = 0, vy = 0;
+  const o = spawnOrb3D({ kind, worth, hue: 165 });
+  const p = YARD_PEEKS[(Math.random() * YARD_PEEKS.length) | 0];
   if (kind === "clay") {
-    const fromLeft = Math.random() < 0.5;
-    x = fromLeft ? -30 : W + 30;
-    y = 70 + Math.random() * (H * 0.42);
-    vx = (fromLeft ? 1 : -1) * (240 + Math.random() * (hard ? 200 : 90));
-    vy = -(50 + Math.random() * 90);
+    const left = Math.random() < 0.5;
+    o.mesh.position.set(left ? -8.5 : 8.5, 0.7 + Math.random() * 0.7, -5 - Math.random() * 8);
+    o.vx = (left ? 1 : -1) * (4.2 + Math.random() * (hard ? 5 : 2.2));
+    o.vy = 1.4 + Math.random();
+    o.vz = -0.8 - Math.random();
     pullWhistle();
   } else if (kind === "rise") {
-    x = 100 + Math.random() * (W - 200);
-    y = H + 24;
-    vy = -(110 + Math.random() * 90);
-    vx = (Math.random() - 0.5) * 70;
+    o.mesh.position.set(p[0], -1.45, p[2]);
+    o.vy = 3.4 + Math.random() * 1.4;
     pullWhistle();
   } else {
-    let guard = 0;
-    do {
-      x = 90 + Math.random() * (W - 180);
-      y = 90 + Math.random() * (H - 220);
-      guard++;
-    } while (nearOther(x, y, r + 40) && guard < 40);
+    o.mesh.position.set(p[0], p[1], p[2]);
   }
-  return spawnOrb3D({ x, y, r, kind, worth, hue, vx, vy, amp: 0, freq: 0, baseY: y, phase: 0 });
-}
-
-function nearOther(x, y, minD) {
-  for (const o of S.orbs) {
-    if (Math.hypot(o.x - x, o.y - y) < minD + o.r) return true;
-  }
-  return false;
+  return o;
 }
 
 function popup(x, y, text, hue) {
@@ -1737,21 +1714,18 @@ function updateRange(dt, now) {
   const gone = [];
   for (const o of S.orbs) {
     o.life += dt;
+    if (!o.mesh) continue;
     if (o.kind === "clay" || o.kind === "rise") {
-      o.x += o.vx * dt;
-      o.y += o.vy * dt;
-      o.vy += 55 * dt;
-      if (o.x < -80 || o.x > W + 80 || o.y < -80 || o.y > H + 80) gone.push(o);
+      o.mesh.position.x += o.vx * dt;
+      o.mesh.position.y += o.vy * dt;
+      o.mesh.position.z += (o.vz || 0) * dt;
+      o.vy -= 4.6 * dt;
+      const p = o.mesh.position;
+      if (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3) gone.push(o);
     }
-    if (o.mesh && gone.indexOf(o) < 0) {
-      const normX = (o.x / W) * 2 - 1;
-      const normY = -(o.y / H) * 2 + 1;
-      const depth = 5.2;
-      const v = new THREE.Vector3(normX, normY, 0.5).unproject(camera);
-      const dir = v.sub(camera.position).normalize();
-      o.mesh.position.copy(camera.position).add(dir.multiplyScalar(depth / -dir.z));
+    if (gone.indexOf(o) < 0) {
       o.mesh.lookAt(camera.position);
-      if (o.kind === "clay") o.mesh.rotation.z += 4 * dt;
+      if (o.kind === "clay") o.mesh.rotateZ(3.2 * dt);
     }
   }
   for (const o of gone) {
