@@ -3,6 +3,7 @@
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
 Gallery SCORE / combo / hits live on that rewind (not a local peek).
+ESC is the same miss for combo — a plate that leaves drops the book.
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.
@@ -468,6 +469,7 @@ def _sync_sim(sim: dict, now: float) -> float:
     sim["last"] = now
     elapsed_ms = max(0.0, (now - float(sim["t0"])) * 1000.0)
     _advance_spawns(sim, elapsed_ms)
+    _note_escapes(sim, elapsed_ms)
     return elapsed_ms
 
 
@@ -485,6 +487,33 @@ def _gallery_miss(sim: dict, player: str) -> None:
     """A confirmed miss drops that player's combo. Score stays. Not a fire gate."""
     _gallery_book(sim)
     sim["combos"][player] = 0
+
+
+def _gallery_escape(sim: dict) -> None:
+    """ESC = miss. Drop every live combo. Score stays. Not a fire gate."""
+    _gallery_book(sim)
+    for player in list(sim["combos"].keys()):
+        sim["combos"][player] = 0
+
+
+def _note_escapes(sim: dict, elapsed_ms: float) -> None:
+    """First time a plate leaves the house, stamp ESC and drop the book."""
+    if "escaped" not in sim:
+        sim["escaped"] = []
+    known = {d["id"] for d in sim["escaped"]}
+    known |= {d["id"] for d in sim["dead"]}
+    fresh = False
+    for rec in sim["spawned"]:
+        pid = rec["id"]
+        if pid in known:
+            continue
+        if float(rec["born_ms"]) > float(elapsed_ms):
+            continue
+        if _escaped_at(rec, elapsed_ms):
+            sim["escaped"].append({"id": pid, "at_ms": float(elapsed_ms)})
+            fresh = True
+    if fresh:
+        _gallery_escape(sim)
 
 
 def _gallery_hit(sim: dict, player: str, struck: dict) -> None:
@@ -506,6 +535,7 @@ def _new_sim(seed: int, now: float) -> dict:
         "rng": _Rng(seed),
         "spawned": [],
         "dead": [],
+        "escaped": [],
         "scores": {},
         "combos": {},
         "hits": {},
@@ -545,6 +575,7 @@ def _sim_view(sim: dict, now: float) -> dict:
         "elapsed_ms": int(elapsed_ms),
         "plates": plates,
         "dead": list(sim["dead"]),
+        "escaped": list(sim.get("escaped") or []),
         "scores": dict(sim.get("scores") or {}),
         "combos": dict(sim.get("combos") or {}),
         "hits": dict(sim.get("hits") or {}),

@@ -4,8 +4,10 @@
    same house local and rewind. Do not Euler-integrate flyers.
    Hitscan is the same sphere as lobby rewind (hitscanRange / plateRadius).
    Do not mesh-test the spun hex — a HID peek that hits the plate can
-   miss the room sphere (and the reverse). match_live SCORE / shatter
+   miss the room sphere (and the reverse).    match_live SCORE / shatter
    snap from the room book. Do not locally credit a rewind miss.
+   ESC is the same miss for combo — snap the book, then tell. Do not
+   locally zero combo before the room.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -932,6 +934,7 @@ function applySharedSim(data) {
     if (!seen && d && d.by === S.player) freshOwn.push(d);
   }
   // Room owns SCORE / combo / hits after ENTER RANGE. Snap — do not invent.
+  // ESC is a room miss: combo already dropped on the book before we tell.
   const scores = data.scores || {};
   const combos = data.combos || {};
   const hits = data.hits || {};
@@ -959,6 +962,11 @@ function applySharedSim(data) {
   for (const o of gone) {
     if (o.mesh) {
       if (S.sharedDead.has(o.id)) shatterTarget3D(o.mesh.position.clone(), o.hue);
+      else {
+        missTick(o.mesh.position.x);
+        const hud = worldToHud(o.mesh.position);
+        popup(hud.x, hud.y, "ESC", 20);
+      }
       rangeTargetGroup.remove(o.mesh);
     }
   }

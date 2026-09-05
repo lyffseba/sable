@@ -14,14 +14,14 @@ Durable hangar session is `S.hangar`: `hangar` (boot / Offline gallery) | `wait_
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
 | **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates + sit / flyer pose + SCORE | host shares the live Yard; phase-preserve — skip calib/lock when already lifted |
 
-Sit / flyer pose is closed-form from life (`sitPoseY` / `sit_pose_y`: bob then drop; `flyerPose` / `flyer_pose`: `y0 + vy0*t - 0.5*g*t^2`). Hitscan is the same sphere (`hitscanRange` / `_hitscan`). Offline / WARM UP / wait_practice local plates and match_live rewind share that house. Do not Euler-integrate flyers. Do not mesh-test the spun hex — a HID peek that hits the plate must hit the rewind sphere. The room owns seed + hits + SCORE (combo / worth) only after ENTER RANGE. `applySharedSim` snaps the book. Practice never opens the shared sim. A local peek must not keep phantom points — two friends must not both credit the same plate.
+Sit / flyer pose is closed-form from life (`sitPoseY` / `sit_pose_y`: bob then drop; `flyerPose` / `flyer_pose`: `y0 + vy0*t - 0.5*g*t^2`). Hitscan is the same sphere (`hitscanRange` / `_hitscan`). Offline / WARM UP / wait_practice local plates and match_live rewind share that house. Do not Euler-integrate flyers. Do not mesh-test the spun hex — a HID peek that hits the plate must hit the rewind sphere. The room owns seed + hits + SCORE (combo / worth) only after ENTER RANGE. ESC is a room miss for combo. `applySharedSim` snaps the book. Practice never opens the shared sim. A local peek must not keep phantom points — two friends must not both credit the same plate. A shared escape must not leave combo live.
 
 Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / `house.js` booth may remain; boot `btn-bay` and lobby **ENTER BAY** stay off player chrome.
 
 ## Gallery rules (Salt House)
 
 - Round clock is `RANGE_MS` (60 s) on the 128 Hz sim (`galleryOver` / `galleryLeftMs`).
-- Score + combo are the mode. Escape (`ESC`) is a miss. Sit plates dwell, then drop. Clays leave.
+- Score + combo are the mode. Escape (`ESC`) is a miss — Offline / WARM UP drop combo locally; match_live drops the room book (`_gallery_escape`) so two friends agree. Sit plates dwell, then drop. Clays leave.
 - End state is **GALLERY CLEAR** (score / hits / accuracy / combo / 60 s round).
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
 - Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): hangar chip from `S.hangar` (`WAIT` / `READY` / `LIVE`), a thin `ROOM` chip from `S.room` when `wait_practice` or `match_live`, then `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby. Waiting arena stays HUD-on-Yard (`startWaitingYard`) — local plates, thin `WAIT` + `ROOM` chips, no gallery SCORE / ROUND, no 60 s lock, no net on the click. Overlay `ROOM` stays; the HUD chip is additive so friends see the code without thicker chrome.
