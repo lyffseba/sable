@@ -211,6 +211,14 @@ def main() -> int:
         hud = _js_fn(js, "drawHUD")
         if "shadowBlur" in hud or "shadowBlur" in _js_fn(js, "drawCrosshair"):
             _fail("Look bloomed over the reticle")
+        if "drawSableChip" not in hud:
+            _fail("gallery HUD left the SableHUD bar")
+        if "RAISE YOUR HAND" in hud or "ESC = miss" in hud:
+            _fail("tutorial wall hides the gun")
+        if "Impact" in hud:
+            _fail("SableHUD thickened over the cuff")
+        if '"GALLERY CLEAR"' not in hud:
+            _fail("HUD lost the gallery end state")
         if "ACESFilmicToneMapping" in js:
             _fail("Look trapped aim noise with ACES")
 

@@ -646,59 +646,60 @@ function drawModeChip() {
   ctx.restore();
 }
 
+// SableHUD bar — thin arcade chips. Charcoal plate, bone/mint/rust ink. No bloom.
+const SABLE_HUD_H = 22;
+
+function sableChipWidth(text) {
+  ctx.font = "700 11px system-ui, sans-serif";
+  ctx.letterSpacing = "0.12em";
+  return Math.ceil(ctx.measureText(text).width) + 18;
+}
+
+function drawSableChip(text, col, x, y) {
+  const w = sableChipWidth(text);
+  ctx.fillStyle = "rgba(10,12,16,0.82)";
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, w, SABLE_HUD_H);
+  ctx.strokeRect(x, y, w, SABLE_HUD_H);
+  ctx.fillStyle = col;
+  ctx.font = "700 11px system-ui, sans-serif";
+  ctx.letterSpacing = "0.12em";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + 9, y + SABLE_HUD_H * 0.5);
+  ctx.letterSpacing = "0";
+  return w;
+}
+
 function drawHUD(now) {
   drawModeChip();
   if (phase !== "range") return;
   const left = galleryLeftMs(simMs());
   const sec = (left / 1000).toFixed(1);
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillStyle = Locker.colors.bone;
-  ctx.font = "900 34px Impact, system-ui, sans-serif";
-  ctx.fillText(String(S.score), W / 2, 16);
-  ctx.font = "700 12px system-ui, sans-serif";
-  ctx.fillStyle = Locker.colors.mint;
   const sess = gallerySessionLabel();
-  ctx.fillText("SCORE  ·  " + sess, W / 2, 52);
-  if (S.combo > 1) {
-    ctx.fillStyle = Locker.colors.rust;
-    ctx.font = "900 22px Impact, system-ui, sans-serif";
-    ctx.fillText(S.combo + "x", W / 2, 70);
+  const bone = Locker.colors.bone;
+  const mint = Locker.colors.mint;
+  const rust = Locker.colors.rust;
+  const timeCol = left <= 10000 ? rust : mint;
+  let stateChip = "60s GALLERY";
+  if (left <= 0) stateChip = "GALLERY CLEAR";
+  else if (sess !== "GALLERY") stateChip = sess;
+  const chips = [["SCORE " + S.score, bone]];
+  if (S.combo > 1) chips.push([S.combo + "x", rust]);
+  chips.push(["ROUND " + sec, timeCol]);
+  chips.push([stateChip, left <= 10000 ? rust : mint]);
+  ctx.save();
+  const gap = 8;
+  let total = 0;
+  for (let i = 0; i < chips.length; i++) total += sableChipWidth(chips[i][0]) + gap;
+  total -= gap;
+  let x = Math.round((W - total) * 0.5);
+  const y = HUD_PAD;
+  for (let i = 0; i < chips.length; i++) {
+    x += drawSableChip(chips[i][0], chips[i][1], x, y) + gap;
   }
-  ctx.fillStyle = Locker.colors.bone;
-  ctx.font = "700 18px Impact, system-ui, sans-serif";
-  ctx.textAlign = "right";
-  ctx.fillText(sec, W - HUD_PAD, 16);
-  ctx.font = "700 10px system-ui, sans-serif";
-  ctx.fillStyle = Locker.colors.mint;
-  ctx.fillText("ROUND", W - HUD_PAD, 38);
-  ctx.font = "700 11px system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.letterSpacing = "0.14em";
-  ctx.fillStyle = Locker.colors.mint;
-  ctx.fillText("60s GALLERY", W / 2, H - 48);
-  ctx.letterSpacing = "0";
-  ctx.font = "500 13px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(230, 224, 209, 0.55)";
-  ctx.fillText(
-    S.warmup ? "PRACTICE  ·  ESC = miss  ·  RETURN TO LOBBY" : "ESC = miss  ·  plates drop  ·  clays leave",
-    W / 2,
-    H - 28
-  );
   ctx.restore();
-
-  if (S.mode === "PAD") {
-    S.liftPulse += 0.05;
-    ctx.save();
-    ctx.globalAlpha = 0.45 + Math.sin(S.liftPulse) * 0.2;
-    ctx.textAlign = "center";
-    ctx.font = "700 22px Impact, system-ui, sans-serif";
-    ctx.fillStyle = Locker.colors.mint;
-    ctx.letterSpacing = "0.2em";
-    ctx.fillText("RAISE YOUR HAND", W / 2, H * 0.78);
-    ctx.restore();
-  }
 }
 
 function drawBayHUD() {
