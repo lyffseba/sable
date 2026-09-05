@@ -322,9 +322,8 @@ function fire() {
     if (S.combo > S.comboMax) S.comboMax = S.combo;
     const pts = hit.worth * S.combo;
     S.score += pts; S.hits++;
-    hitBlip(S.combo); S.hitstop = 1;
-
     const hitPos = hit.mesh.position.clone();
+    hitBlip(S.combo, hitPos.x); S.hitstop = 1;
     addBulletTracer(muzzleWorld, hitPos);
     shatterTarget3D(hitPos, hit.hue);
     const hud = worldToHud(hitPos);
@@ -334,8 +333,8 @@ function fire() {
     S.orbs = S.orbs.filter((o) => o !== hit);
   } else {
     S.combo = 0;
-    missTick();
     const farPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(20));
+    missTick(farPoint.x);
     addBulletTracer(muzzleWorld, farPoint);
   }
   // Shared report never gates the shot. Net down → local shatter still happened.
