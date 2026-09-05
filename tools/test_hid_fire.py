@@ -86,7 +86,7 @@ def test_client_does_not_wait() -> None:
     if "SablePerf.begin" not in fire_src or "SablePerf.markHid" not in fire_src:
         raise AssertionError("HID→hitscan must be wrapped by the optional SablePerf probe")
     begin_at = fire_src.find("SablePerf.begin")
-    bang_at = fire_src.find("bang()")
+    bang_at = fire_src.find("bang();")
     mark_at = fire_src.find("SablePerf.markHid")
     if begin_at < 0 or bang_at < 0:
         raise AssertionError("fire() must call SablePerf.begin and bang()")

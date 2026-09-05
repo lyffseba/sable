@@ -1530,7 +1530,7 @@ function fire() {
   const busLift = !!(shot && shot.lifted);
   if (!S.desktop && !S.lifted && !busLift && !recent && !S.forceGun) return;
 
-  // Probe HID→hitscan from post-gate, including bang() + gun FX, to first intersect.
+  // Probe HID→hitscan from post-gate, including bang path + gun FX, to first intersect.
   const t0 = SablePerf.begin();
   bang();
   S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;
