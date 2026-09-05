@@ -370,25 +370,28 @@ function capEnds(group, x, y, z, alongX, radius, capMat) {
 }
 
 function buildYardBunkers(group) {
-  const bone = inflateMat(Locker.colors.boneHex);
+  // Charcoal mass + rust rim. Bone is reserved for plates so silhouettes stay readable.
+  const charcoal = inflateMat(0x1a222c);
   const rust = inflateMat(Locker.colors.rustHex);
   const floorY = -1.64;
 
   const pad = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 1.3), rust);
   addYard(group, pad, 0, floorY + 0.06, 1.35, 0);
 
-  const beamL = sausageX(0.38, 2.8, bone);
+  const beamL = sausageX(0.38, 2.8, charcoal);
   addYard(group, beamL, -3.4, floorY + 0.38, -4.2, 0);
   capEnds(group, -3.4, floorY + 0.38, -4.2, 1.2, 0.38, rust);
-  const beamR = sausageX(0.38, 2.8, bone);
+  const beamR = sausageX(0.38, 2.8, charcoal);
   addYard(group, beamR, 3.4, floorY + 0.38, -4.2, 0);
   capEnds(group, 3.4, floorY + 0.38, -4.2, 1.2, 0.38, rust);
 
   const drum = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 1.2), rust);
   addYard(group, drum, -1.6, floorY + 0.35, -7.0, 0);
 
-  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.98, 0.92, 5), bone);
+  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.98, 0.92, 5), charcoal);
   addYard(group, peak, 2.2, floorY + 0.46, -8.5, 0.35);
+  const peakRim = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.08, 5), rust);
+  addYard(group, peakRim, 2.2, floorY + 0.04, -8.5, 0.35);
 }
 
 const YARD_PEEKS = [

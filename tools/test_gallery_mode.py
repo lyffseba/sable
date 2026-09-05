@@ -227,6 +227,7 @@ def test_original_geometry() -> None:
         ROOT / "art/concepts/hall.svg",
         ROOT / "art/concepts/gauntlet.svg",
         ROOT / "art/concepts/plate.svg",
+        ROOT / "art/concepts/yard.svg",
         ROOT / "art/blender/build_sable_kit.py",
     )
     for path in files:
@@ -259,6 +260,8 @@ def test_modes_doc() -> None:
         _fail("docs/modes.md must point at the SablePort path")
     if "v0.20.0" not in bible:
         _fail("PRODUCTION.md must stand v0.20.0 until Build tags this gallery HUD tip")
+    if "test_sablelook.py" not in bible or "test_sableyard.py" not in bible:
+        _fail("PRODUCTION.md must keep the SableLook / SableYard plate-readability gates")
 
 
 def main() -> int:

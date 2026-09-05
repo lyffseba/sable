@@ -40,6 +40,9 @@ python3 tools/test_gallery_mode.py
 python3 tools/test_sablehud.py
 python3 tools/test_sableaudio.py
 python3 tools/test_sablelobby.py
+# SableLook / SableYard: bone plates readable vs charcoal/rust bunkers.
+python3 tools/test_sablelook.py
+python3 tools/test_sableyard.py
 # SablePort: fail loud if Valve/Epic DNA lands in runtime art.
 python3 tools/test_sableport.py
 ./tools/run_cv_tests.sh

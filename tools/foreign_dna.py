@@ -10,6 +10,7 @@ from __future__ import annotations
 import pathlib
 
 # Titles, maps, pack formats — not generic words like "epic" or "creative".
+# Docs may name these as refuse / silhouette literacy. proto/ + art/ must not.
 FOREIGN_DNA = (
     "de_dust",
     "de_mirage",
@@ -35,9 +36,14 @@ FOREIGN_DNA = (
     ".vmf",
     ".bsp",
     ".vmap",
+    ".umap",
     "Unreal Marketplace",
+    "Fab Marketplace",
     "UEFN",
 )
+
+# Ship bar: these four must stay in FOREIGN_DNA so proto/art fail loud.
+REQUIRED_DNA = ("Valve", "Epic Games", "Fortnite", "UEFN")
 
 _TEXT_SUFFIX = {".js", ".html", ".css", ".svg", ".md", ".py", ".json", ".txt"}
 _SKIP_PARTS = {"vendor", ".git", "build", "bin", "node_modules"}

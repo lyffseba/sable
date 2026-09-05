@@ -9,6 +9,9 @@
   <rect x="200" y="200" width="14" height="120" fill="#141a22"/>
   <rect x="686" y="200" width="14" height="120" fill="#141a22"/>
   <rect x="360" y="250" width="180" height="70" fill="#8C472E"/>
+  <rect x="200" y="268" width="86" height="28" rx="14" fill="#1a222c"/>
+  <circle cx="204" cy="282" r="14" fill="#8C472E"/>
+  <circle cx="282" cy="282" r="14" fill="#8C472E"/>
   <rect x="120" y="90" width="660" height="6" fill="#59F2C7"/>
   <polygon points="450,180 470,210 450,240 430,210" fill="#E6E0D1" stroke="#59F2C7" stroke-width="2"/>
 </svg>

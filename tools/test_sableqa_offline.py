@@ -41,6 +41,7 @@ _GEOMETRY_FILES = (
     "art/concepts/hall.svg",
     "art/concepts/gauntlet.svg",
     "art/concepts/plate.svg",
+    "art/concepts/yard.svg",
 )
 _FOREIGN_DNA = FOREIGN_DNA
 
@@ -208,6 +209,17 @@ def main() -> int:
             _fail("lobby was thickened")
         if "ACESFilmicToneMapping" in js:
             _fail("Look trapped aim noise with ACES")
+        house = (ROOT / "proto/house.js").read_text(encoding="utf-8")
+        yard = house[house.find("function buildYardBunkers") : house.find("const YARD_PEEKS")]
+        plates = _js_fn(js, "createTargetMesh")
+        if "boneHex" not in plates or "mintHex" not in plates:
+            _fail("bone plates left createTargetMesh")
+        if "boneHex" in yard:
+            _fail("Yard bunkers took bone fill — plates hide")
+        if "0x1a222c" not in yard or "rustHex" not in yard:
+            _fail("Yard bunkers left charcoal / rust")
+        if "mintHex" in yard:
+            _fail("Yard mint bloomed over plates")
 
         to_win = re.search(r"const BAY_TO_WIN = ([0-9.]+)", js)
         if not to_win or float(to_win.group(1)) != 5:

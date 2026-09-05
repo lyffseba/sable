@@ -2,7 +2,7 @@
 
 First-party only. Palette is CANCHO: charcoal, bone, mint, rust.
 
-Runtime Look (`proto/house.js`) is unshaded/baked — `bayUnshaded` / MeshBasic, charcoal fog, no ACES, no bloom. Bay and Salt House / Range share that bible. Do not paint milsim steel or mint emissive that hides aim.
+Runtime Look (`proto/house.js`) is unshaded/baked — `bayUnshaded` / MeshBasic, charcoal fog, no ACES, no bloom. Bay and Salt House / Range share that bible. Yard bunkers stay charcoal / rust so bone plates read. Do not paint milsim steel or mint emissive that hides aim.
 
 ```
 art/concepts/*.svg   paint / ortho sheets
