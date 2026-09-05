@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """SableHUD lock: thin arcade chips over live aim.
 
-Fail loud if gallery SCORE / ROUND / end leave the 22px chip bar, bloom
-covers the reticle, Offline one-click dies, Salt House becomes the only
-gun, or the lobby grows a thicker HUD.
+Fail loud if gallery SCORE / ROUND / end leave the 22px chip bar, hangar
+WAIT / READY / LIVE leave S.hangar, bloom covers the reticle, Offline
+one-click dies, Salt House becomes the only gun, chips thicken the lobby,
+or HUD copy hides the gun.
 """
 
 from __future__ import annotations
@@ -69,6 +70,8 @@ def test_thin_arcade_chips() -> None:
         _fail("chips must stay bone / mint / rust")
     if "HUD_PAD" not in hud:
         _fail("SableHUD must stay a top bar over live aim")
+    if "hangarHudChip" not in hud:
+        _fail("SableHUD lost hangar chips from S.hangar")
     if "Impact" in hud:
         _fail("SableHUD thickened — no Impact billboard")
     if "RAISE YOUR HAND" in hud or "ESC = miss" in hud:
@@ -150,13 +153,83 @@ def test_offline_never_only_gun() -> None:
         _fail("parked lobbyStartBay started the shared gallery")
 
 
+def test_hangar_chips_from_s_hangar() -> None:
+    js = proto_js()
+    chip = _js_fn(js, "hangarHudChip")
+    if "S.hangar" not in chip:
+        _fail("hangar chips must read S.hangar only")
+    if '"WAIT"' not in chip or '"READY"' not in chip or '"LIVE"' not in chip:
+        _fail("hangar chips must stay WAIT / READY / LIVE")
+    if "wait_practice" not in chip or "match_live" not in chip:
+        _fail("hangar chips must map wait_practice / match_live")
+    if re.search(r"\bphase\b", chip) or "setPhase" in chip or "assignPhase" in chip:
+        _fail("hangar chips renamed a screen phase — read S.hangar only")
+    if "aimBus" in chip or "fire(" in chip or "AimSample" in chip:
+        _fail("hangar chips gated fire / touched AimSample")
+    if re.search(r"await\s+", chip) or "fetch(" in chip:
+        _fail("hangar chips await — HUD trapped HID")
+    if "shadowBlur" in chip or "glow" in chip.lower() or "filter" in chip:
+        _fail("hangar chips bloomed")
+    if "H * 0.78" in chip or "H*0.78" in chip or "H * 0.5" in chip:
+        _fail("hangar chips hide the gun or the reticle")
+    hud = _js_fn(js, "drawHUD")
+    if "hangarHudChip" not in hud:
+        _fail("SableHUD lost hangar chips")
+    if "drawSableChip" not in hud:
+        _fail("hangar chips left the thin SableHUD bar")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    if mode_at < 0 or hangar_at < 0 or mode_at > hangar_at:
+        _fail("hangar chips wiped PAD/GUN — mode chip must stay live")
+    if 'phase === "range"' not in hud or '"SCORE "' not in hud:
+        _fail("gallery SCORE must stay gated on range — hangar chips must not thicken lobby")
+    if '"ROUND "' not in hud and '"ROUND"' not in hud:
+        _fail("RANGE clock left the bar — hangar chips must not unpin gallery ROUND")
+    if '"60s GALLERY"' not in hud:
+        _fail("RANGE gallery chip left the bar")
+    if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud:
+        _fail("hangar chips hide the gun or the reticle")
+    if "RAISE YOUR HAND" in hud or "ESC = miss" in hud or "Impact" in hud:
+        _fail("hangar chips grew a tutorial wall")
+    if "setPhase" in hud or "fire(" in hud or "aimBus" in hud:
+        _fail("HUD trapped lift/HID")
+    d2 = _js_fn(js, "draw2D")
+    lobby = d2[d2.find('phase === "lobby"') :]
+    if not lobby:
+        _fail("draw2D lost the waiting-arena path")
+    xh = lobby.find("drawCrosshair")
+    chips = lobby.find("drawHUD")
+    if xh < 0 or chips < 0 or xh > chips:
+        _fail("waiting-arena hangar chips must paint over live aim — crosshair then chips")
+    preserve = _js_fn(js, "enterRangePreserve")
+    if 'assignHangar("match_live")' not in preserve:
+        _fail("promote WAIT→LIVE must write match_live")
+    if "clearRect" in preserve or "drawHUD" in preserve or "drawModeChip" in preserve:
+        _fail("promote WAIT→LIVE wiped the HUD")
+    if re.search(r"await\s+", preserve) or "fetch(" in preserve:
+        _fail("promote awaits — WAIT→LIVE trapped HID")
+    fire = _js_fn(js, "fire")
+    if "hangarHudChip" in fire or "S.hangar" in fire:
+        _fail("fire() gated on hangar — Fire = AimBus HID peek")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+
+
 def test_lobby_stays_thin() -> None:
     css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
     html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
     js = proto_js()
     hud = _js_fn(js, "drawHUD")
     if 'phase !== "range"' not in hud:
-        _fail("SableHUD must not paint the lobby")
+        _fail("SableHUD must not thicken the lobby with gallery chips")
+    if "hangarHudChip" not in hud:
+        _fail("waiting arena lost hangar chips")
     lobby = re.search(r"\.lobby-inner \{([^}]+)\}", css)
     if not lobby:
         _fail("lobby-inner rule missing")
@@ -182,6 +255,10 @@ def test_docs_lock() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "SableHUD" not in modes:
         _fail("docs/modes.md must name the thin SableHUD bar")
+    if "WAIT" not in modes or "READY" not in modes or "LIVE" not in modes:
+        _fail("docs/modes.md must name hangar WAIT / READY / LIVE chips")
+    if "S.hangar" not in modes:
+        _fail("docs/modes.md must paint hangar chips from S.hangar")
     if "Do not thicken the lobby" not in modes and "thicken the lobby" not in modes:
         _fail("docs/modes.md must refuse a thicker lobby")
     if "test_sablehud.py" not in bible:
@@ -195,6 +272,7 @@ def main() -> int:
         test_thin_arcade_chips()
         test_over_live_aim()
         test_offline_never_only_gun()
+        test_hangar_chips_from_s_hangar()
         test_lobby_stays_thin()
         test_docs_lock()
     except AssertionError as exc:

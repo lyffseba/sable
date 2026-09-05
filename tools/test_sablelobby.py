@@ -3,8 +3,9 @@
 
 Fail loud if Bay reappears on player chrome, Offline / WARM UP lose
 one-click local practice, ENTER RANGE stops being host shared gallery
-start, promote traps HID behind calib/lock or a lobby POST, or the
-lobby becomes a match-start screen again.
+start, promote traps HID behind calib/lock or a lobby POST, hangar
+chips thicken the lobby or hide the gun, or the lobby becomes a
+match-start screen again.
 """
 
 from __future__ import annotations
@@ -144,6 +145,33 @@ def test_waiting_arena_always_practice() -> None:
     hud = _js_fn(js, "drawHUD")
     if 'phase !== "range"' not in hud:
         _fail("SableHUD must not thicken the waiting arena with gallery chips")
+    if "hangarHudChip" not in hud:
+        _fail("waiting arena lost hangar chips from S.hangar")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    if mode_at < 0 or hangar_at < 0 or mode_at > hangar_at:
+        _fail("hangar chips wiped PAD/GUN — mode chip must stay live")
+    if '"SCORE "' not in hud or ('"ROUND "' not in hud and '"ROUND"' not in hud):
+        _fail("RANGE clock/score left drawHUD — hangar chips must not unpin gallery")
+    if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud or "Impact" in hud:
+        _fail("hangar chips hide the gun")
+    if "RAISE YOUR HAND" in hud or "ESC = miss" in hud:
+        _fail("hangar chips grew a tutorial wall over the waiting Yard")
+    chip = _js_fn(js, "hangarHudChip")
+    if "S.hangar" not in chip or '"WAIT"' not in chip:
+        _fail("waiting-arena WAIT chip must read S.hangar")
+    if re.search(r"\bphase\b", chip):
+        _fail("hangar chips must not rename screen phases")
+    if "aimBus" in chip or "fire(" in chip:
+        _fail("hangar chips gated fire — gun never gates on hangar")
+    d2 = _js_fn(js, "draw2D")
+    lobby_draw = d2[d2.find('phase === "lobby"') :]
+    if not lobby_draw or "drawHUD" not in lobby_draw:
+        _fail("waiting arena must paint hangar chips on the thin SableHUD bar")
+    xh = lobby_draw.find("drawCrosshair")
+    chips = lobby_draw.find("drawHUD")
+    if xh < 0 or chips < 0 or xh > chips:
+        _fail("waiting-arena chips must not paint over the cuff/reticle")
 
 
 def test_enter_range_stays_shared() -> None:
@@ -167,6 +195,8 @@ def test_enter_range_stays_shared() -> None:
     if "lobbyPost(\"/api/lobby/start\")" not in start and "lobbyPost('/api/lobby/start')" not in start:
         _fail("host ENTER RANGE must fire-and-forget /api/lobby/start")
     preserve = _js_fn(js, "enterRangePreserve")
+    if "clearRect" in preserve or "drawHUD" in preserve:
+        _fail("promote WAIT→LIVE wiped the HUD")
     if "alreadyLifted()" not in preserve:
         _fail("phase-preserve must skip calib when already lifted")
     if 'phase === "lobby"' not in preserve or 'phase === "range"' not in preserve:
@@ -293,6 +323,12 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must keep hangar client-only this cut")
     if "S.hangar" not in bible or "wait_practice" not in bible or "match_live" not in bible:
         _fail("PRODUCTION.md must name the durable hangar session enum")
+    if "WAIT" not in modes or "READY" not in modes or "LIVE" not in modes:
+        _fail("docs/modes.md must name hangar WAIT / READY / LIVE chips")
+    if "WAIT" not in bible or "READY" not in bible or "LIVE" not in bible:
+        _fail("PRODUCTION.md must name hangar WAIT / READY / LIVE chips")
+    if "hangar chips thicken the lobby" not in bible:
+        _fail("PRODUCTION.md must fail loud if hangar chips thicken the lobby / hide the gun")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_sablelobby.py" not in ci:
         _fail("ci.sh must run the SableLobby always-practice gate")
