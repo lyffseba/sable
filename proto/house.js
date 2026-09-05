@@ -663,6 +663,10 @@ function sharedMatch() {
   return !!(S.online && !S.warmup && S.room && S.player);
 }
 
+function committedSimMs() {
+  return (S.simTick || 0) * (1000 / (S.simHz || 128));
+}
+
 function reportSharedFire(shot, localPlateId) {
   if (!sharedMatch() || !S.room || !S.player) return;
   if (!S.sharedPending) S.sharedPending = new Set();
@@ -678,7 +682,7 @@ function reportSharedFire(shot, localPlateId) {
       uv: uv,
       lifted: !!(shot && shot.lifted),
       t_hw: shot && shot.t_hw != null ? shot.t_hw : 0,
-      fire_ms: performance.now() - S.rangeStart,
+      fire_ms: committedSimMs(),
       aspect: W / H,
     }),
   }).then(function (res) { return res.json(); }).then(function (data) {
@@ -712,6 +716,7 @@ function applySharedSim(data) {
   S.seed = data.seed;
   if (typeof data.elapsed_ms === "number") {
     S.rangeStart = performance.now() - data.elapsed_ms;
+    S.simTick = Math.floor(data.elapsed_ms * (S.simHz || 128) / 1000);
   }
   if (!S.sharedDead) S.sharedDead = new Set();
   if (!S.sharedPending) S.sharedPending = new Set();
@@ -779,6 +784,7 @@ function restoreYardLook() {
 }
 
 function startBay() {
+  S.simTick = 0;
   Bay.active = true;
   Bay.resetMatch();
   if (rangeTargetGroup) rangeTargetGroup.visible = false;
@@ -806,6 +812,7 @@ function startRange() {
   S.orbs = []; S.parts = []; S.pops = [];
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
+  S.simTick = 0;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
@@ -855,9 +862,8 @@ function desiredOrbCount(elapsed) {
   return 4;
 }
 
-function updateRange(dt, now) {
-  // dt is SIM_DT from boot.stepSim (128 Hz). Shared house skips local spawn.
-  const elapsed = now - S.rangeStart;
+function updateRange(dt, elapsed) {
+  // dt + elapsed are the 128 Hz sim clock. Render does not own plates.
   if (elapsed >= RANGE_MS) { setPhase("results"); return; }
   const shared = sharedMatch();
   if (!shared) {
