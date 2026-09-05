@@ -215,6 +215,12 @@ def test_sableperf_probe_order() -> None:
         _fail("Bay HID→hitscan must mark after fireBay3D, still under the 8 ms probe")
     if bay_report < 0 or bay_mark > bay_report:
         _fail("reportSharedBayFire must stay after markHid — Shared Bay must not tax the 8 ms bar")
+    bay_probe = fire[bay:bay_mark]
+    if "peekMuzzleWorld" in bay_probe or "getWorldPosition" in bay_probe or "applyGunKick" in bay_probe:
+        _fail("Bay Look (muzzle world / gun kick) landed inside the HID→hitscan probe")
+    bay_muzzle = fire.find("peekMuzzleWorld", bay_mark) if bay_mark >= 0 else -1
+    if bay_muzzle < 0 or (bay_report >= 0 and bay_muzzle > bay_report):
+        _fail("Bay peekMuzzleWorld must run after markHid, not vanish or follow the lobby POST")
 
 
 def test_sableperf_budget_math() -> None:
@@ -296,6 +302,9 @@ def test_shared_bay_never_taxes_hid_probe() -> None:
         _fail("Bay HID→hitscan must mark, then fire-and-forget the room")
     if not (bay_fire < bay_mark < bay_report):
         _fail("reportSharedBayFire landed inside the HID→hitscan probe — Shared Bay taxed the 8 ms bar")
+    bay_probe = fire[bay:bay_mark]
+    if "peekMuzzleWorld" in bay_probe or "getWorldPosition" in bay_probe or "applyGunKick" in bay_probe:
+        _fail("Bay Look (muzzle world / gun kick) landed inside the HID→hitscan probe")
 
     report = _fn(js, "reportSharedBayFire")
     if "async function reportSharedBayFire" in js:

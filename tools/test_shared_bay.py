@@ -319,6 +319,8 @@ def test_client_keeps_local_and_hid() -> None:
     bay_report = fire.find("reportSharedBayFire", bay) if bay >= 0 else -1
     if bay < 0 or bay_mark < 0 or bay_report < 0 or bay_mark > bay_report:
         _fail("SablePerf must mark HID→hitscan before reportSharedBayFire — Shared Bay must not tax the 8 ms bar")
+    if "peekMuzzleWorld" in fire[bay:bay_mark] or "getWorldPosition" in fire[bay:bay_mark]:
+        _fail("Bay peekMuzzleWorld landed inside the HID→hitscan probe")
 
     bay = _js_fn(js, "fireBay3D")
     if "fetch(" in bay or "/api/lobby" in bay:

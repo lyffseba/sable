@@ -731,16 +731,16 @@ function rayHitsBayFoe(origin, direction) {
   return t > 0;
 }
 
-function fireBay3D(raycaster, muzzleWorld) {
+function fireBay3D(raycaster) {
   // HID peek already happened. Stamp the last committed 128 Hz tick — not present.
+  // Sphere only. Look tracers peek muzzle after markHid — not a fire gate.
   Bay.fireMs = committedSimMs();
-  if (Bay.frozen || Bay.over) { missTick(); return; }
+  if (Bay.frozen || Bay.over) { missTick(); return null; }
 
   const origin = raycaster.ray.origin;
   const dir = raycaster.ray.direction;
   if (rayHitsBayFoe(origin, dir)) {
     const hitPt = new THREE.Vector3(Bay.foe.x, 0.89, Bay.foe.z);
-    addBulletTracer(muzzleWorld, hitPt);
     Bay.you++;
     Bay.foe.alive = false;
     if (foeGroup) foeGroup.visible = false;
@@ -755,12 +755,12 @@ function fireBay3D(raycaster, muzzleWorld) {
       Bay.over = true;
       Bay.vo(Locker.operator.vo.win);
     }
-  } else {
-    const farPt = origin.clone().add(dir.clone().multiplyScalar(24));
-    missTick(farPt.x);
-    Bay.missT = 0.06;
-    addBulletTracer(muzzleWorld, farPt);
+    return hitPt;
   }
+  const farPt = origin.clone().add(dir.clone().multiplyScalar(24));
+  missTick(farPt.x);
+  Bay.missT = 0.06;
+  return farPt;
 }
 function sharedMatch() {
   return !!(S.online && !S.warmup && !S.waitingYard && S.room && S.player && !S.bayMatch);

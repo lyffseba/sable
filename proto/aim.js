@@ -317,13 +317,14 @@ function fire() {
   const uv = shot && shot.uv ? shot.uv : { x: S.aim.x / W, y: S.aim.y / H };
 
   if (phase === "bay") {
-    // Parked booth. Sphere first, then the 8 ms mark. Gun kick after.
+    // Parked booth. Sphere first, then the 8 ms mark. Look after.
     const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouseNorm, camera);
-    fireBay3D(raycaster, peekMuzzleWorld());
+    const bayEnd = fireBay3D(raycaster);
     SablePerf.markHid(t0);
     applyGunKick();
+    if (bayEnd) addBulletTracer(peekMuzzleWorld(), bayEnd);
     // Shared Bay POST is after the 8 ms HID→hitscan mark — fire-and-forget.
     if (sharedBay()) {
       try { reportSharedBayFire(shot); } catch (e) { /* local already resolved */ }
