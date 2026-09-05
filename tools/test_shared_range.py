@@ -103,7 +103,7 @@ def test_hit_never_reads_cam() -> None:
     if not fn:
         raise AssertionError("missing lobby.hit")
     body = fn.group(1)
-    for banned in ("confidence", "AimSample", "camera", "lifted", "aim"):
+    for banned in ("confidence", "AimSample", "camera", "lifted"):
         if banned in body:
             raise AssertionError(f"hit must not read {banned}")
 

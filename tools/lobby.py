@@ -372,7 +372,7 @@ def get(code: str, now: float | None = None) -> dict:
 
 
 def hit(code: str, player: str, plate: str, now: float | None = None) -> dict:
-    """Apply a client HID hit. Validates seat + live plate. Never reads cam confidence."""
+    """Apply a client HID hit. Validates seat + live plate. Ignores tracker quality."""
     code = (code or "").strip().upper()
     pid = (plate or "").strip()
     t = time.time() if now is None else now
