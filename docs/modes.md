@@ -29,5 +29,6 @@ CS / Fortnite layout literacy is **architecture notes only** (`research/`). Runt
 - Do not make gallery the only gun. Bay, WARM UP, and ENTER RANGE stay.
 - Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire.
 - Do not bloom the reticle. Charcoal / bone / mint / rust only.
-- Do not hide the gun with HUD copy. SableHUD stays a thin top bar.
+- Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
+- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE / ENTER BAY.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.

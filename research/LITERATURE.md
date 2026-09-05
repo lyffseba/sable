@@ -86,7 +86,7 @@ CANCHO is operator 1. Mint stripe on the **lifting glove**. Rust at the wrist. B
 | Fast filter + slow lock | One Euro + optional Gemini seed |
 | 30 s loop, first kill < 60 s | Range 60 s |
 | Broadcast lift | cuff pose, mint rail, PAD/GUN chip |
-| Limited palette, no bloom | Salt House materials |
+| Limited palette, no bloom | Salt House materials, thin SableHUD chips |
 | Original map | Salt House gallery, original Bay booth |
 | CS map literacy | architecture notes only — never runtime geometry |
 | Original operator | CANCHO cuff, not a body scan |
