@@ -10,7 +10,8 @@ Scene: `godot/scenes/bay/Bay.tscn`. Controller: `godot/src/app/bay_controller.gd
 
 `python3 tools/serve_proto.py` → **http://127.0.0.1:8080**
 
-- Boot **BAY**, or lobby **ENTER BAY** (local first-to-5; does not start the shared house)
+- Boot **BAY** is local first-to-5 without a room
+- Lobby **ENTER BAY** shares the booth (room owns score / pose / `fire_ms` rewind). Does not start the shared house (`/api/lobby/start`)
 - Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** stay the Salt House gallery paths
 
 Godot **4.7.2** → import `godot/` (spec reference):
@@ -63,7 +64,7 @@ WASD (`move_left` / `move_right` / `move_forward` / `move_back`) **only while PA
 
 Same hitscan as Range: `AimSample.uv` → screen → camera ray vs the foe sphere (radius **0.46**). Peek `AimBus` / `HidFire.shot_from_bus`. Miss = dry tick (1850 Hz, 28 ms) + HUD tick. No VO. No trash talk.
 
-`fireBay3D` stamps `Bay.fireMs = committedSimMs()` — the last 128 Hz tick, not rAF present. Local first-to-5 does not invent a lobby rewind loop. Pose / expose / freeze integrate only in `tickBay(SIM_DT)` from `stepSim`.
+`fireBay3D` stamps `Bay.fireMs = committedSimMs()` — the last 128 Hz tick, not rAF present. Local first-to-5 does not talk to `/api/lobby/*`. Shared Bay posts the peeked UV + last committed pose + `fire_ms` fire-and-forget; the room rewinds. Pose / expose / freeze integrate only in `tickBay(SIM_DT)` from `stepSim`.
 
 Hit: you score, VO `Claro.`, freeze (or match-over). Open-middle death: them score, no VO, freeze (or match-over).
 

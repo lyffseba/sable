@@ -100,6 +100,22 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                 d = self._read_json()
                 self._json(lobby_api.start(str(d.get("code") or ""), str(d.get("player") or "")))
                 return
+            if path == "/api/lobby/bay" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.start_bay(str(d.get("code") or ""), str(d.get("player") or "")))
+                return
+            if path == "/api/lobby/pose" and lobby_api:
+                d = self._read_json()
+                self._json(
+                    lobby_api.pose(
+                        str(d.get("code") or ""),
+                        str(d.get("player") or ""),
+                        x=d.get("x"),
+                        z=d.get("z"),
+                        fire_ms=d.get("fire_ms"),
+                    )
+                )
+                return
             if path == "/api/lobby/warmup" and lobby_api:
                 d = self._read_json()
                 self._json(lobby_api.warmup(str(d.get("code") or ""), str(d.get("player") or "")))
@@ -119,6 +135,8 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                         t_hw=d.get("t_hw"),
                         aspect=d.get("aspect"),
                         lifted=d.get("lifted"),
+                        pose=d.get("pose"),
+                        expose=d.get("expose"),
                     )
                 )
                 return

@@ -14,7 +14,7 @@ The gun is the pointing hand. `fire()` peeks `AimBus` only. `AimSample` stays `{
 
 ### Sim tick = 128 Hz, HID outside
 
-Named sim is **128 Hz** (`server/tick.py`, client `stepSim` / `S.simTick`). Render is rAF (consumer). Shared house is rewind (`fire_ms` on the grid), not a friend tick. Fire at tick 0 is legal. Contract: `docs/tick.md`.
+Named sim is **128 Hz** (`server/tick.py`, client `stepSim` / `S.simTick`). Render is rAF (consumer). Shared house and shared Bay are rewind (`fire_ms` on the grid), not a friend tick. Fire at tick 0 is legal. Contract: `docs/tick.md`.
 
 ### Look bible
 
@@ -26,7 +26,7 @@ Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM U
 
 ## Soft-lock (do not touch on this path)
 
-Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Bay stays local — no lobby friend tick. Behavior unchanged.
+Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local. Shared Bay is rewind, not a lobby friend tick. Behavior unchanged.
 
 ## What a later port may take
 

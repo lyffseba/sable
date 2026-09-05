@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""In-memory 5v5 waiting-arena rooms + shared Salt House sim. Stdlib only.
+"""In-memory 5v5 waiting-arena rooms + shared Salt House / Bay. Stdlib only.
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
+Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.
 """
@@ -42,6 +43,15 @@ YARD_PEEKS = (
     (3.1, 0.15, -13.5),
     (-3.0, 0.25, -14.1),
 )
+BAY_TO_WIN = 5
+BAY_FOE_RADIUS = 0.46
+BAY_EYE_Y = 1.64
+BAY_FOE_Y = 0.89
+BAY_LOOK_DZ = 16.0
+BAY_FREEZE_MS = 450.0
+BAY_POSE_RING = 24
+BAY_SPAWN_A = (0.0, 10.0)
+BAY_SPAWN_B = (0.0, -10.0)
 
 
 def _code() -> str:
@@ -127,6 +137,79 @@ def uv_for_world(x: float, y: float, z: float, aspect: float = DEFAULT_ASPECT) -
     """Project a yard point to UV. Test helper — not a new aim sample."""
     cam_x, cam_y, cam_z = _cam_basis()
     w = _vec_sub((x, y, z), CAM_EYE)
+    view_z = _vec_dot(w, cam_z)
+    if view_z >= -1e-6:
+        return (0.5, 0.5)
+    tan_h = math.tan(math.radians(FOV_Y_DEG) * 0.5)
+    asp = float(aspect) if aspect and aspect > 0.2 else DEFAULT_ASPECT
+    ndc_x = _vec_dot(w, cam_x) / (-view_z * tan_h * asp)
+    ndc_y = _vec_dot(w, cam_y) / (-view_z * tan_h)
+    return ((ndc_x + 1.0) * 0.5, (1.0 - ndc_y) * 0.5)
+
+
+def bay_in_left_window(x: float, z: float) -> bool:
+    return -7.5 < x < -4.8 and 2.4 < z < 5.6
+
+
+def bay_in_right_angle(x: float, z: float) -> bool:
+    return 4.6 < x < 7.5 and 1.6 < z < 5.8
+
+
+def bay_in_open_middle(x: float, z: float) -> bool:
+    if bay_in_left_window(x, z) or bay_in_right_angle(x, z):
+        return False
+    return z <= 0.65 and z > -12.5 and abs(x) < 7.6
+
+
+def _bay_cam(x: float, z: float, seat: str) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    eye = (float(x), BAY_EYE_Y, float(z))
+    look_z = float(z) + BAY_LOOK_DZ if seat == "B" else float(z) - BAY_LOOK_DZ
+    return eye, (float(x), BAY_FOE_Y, look_z)
+
+
+def _cam_basis_at(
+    eye: tuple[float, float, float],
+    at: tuple[float, float, float],
+) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]:
+    z_axis = _vec_norm(_vec_sub(eye, at))
+    x_axis = _vec_norm(_vec_cross(CAM_UP, z_axis))
+    y_axis = _vec_cross(z_axis, x_axis)
+    return x_axis, y_axis, z_axis
+
+
+def bay_ray_from_uv(
+    uv_x: float,
+    uv_y: float,
+    x: float,
+    z: float,
+    seat: str,
+    aspect: float = DEFAULT_ASPECT,
+) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """Booth ray from last-committed UV + pose. Same 62° camera as the client. Does not invent pose."""
+    eye, at = _bay_cam(x, z, seat)
+    ndc_x = float(uv_x) * 2.0 - 1.0
+    ndc_y = 1.0 - float(uv_y) * 2.0
+    tan_h = math.tan(math.radians(FOV_Y_DEG) * 0.5)
+    asp = float(aspect) if aspect and aspect > 0.2 else DEFAULT_ASPECT
+    cam_x, cam_y, cam_z = _cam_basis_at(eye, at)
+    local = (ndc_x * tan_h * asp, ndc_y * tan_h, -1.0)
+    world = _vec_add(_vec_add(_vec_mul(cam_x, local[0]), _vec_mul(cam_y, local[1])), _vec_mul(cam_z, local[2]))
+    return eye, _vec_norm(world)
+
+
+def bay_uv_for_world(
+    wx: float,
+    wy: float,
+    wz: float,
+    x: float,
+    z: float,
+    seat: str,
+    aspect: float = DEFAULT_ASPECT,
+) -> tuple[float, float]:
+    """Project a booth point to the shooter's UV. Test helper — not a new aim sample."""
+    eye, at = _bay_cam(x, z, seat)
+    cam_x, cam_y, cam_z = _cam_basis_at(eye, at)
+    w = _vec_sub((wx, wy, wz), eye)
     view_z = _vec_dot(w, cam_z)
     if view_z >= -1e-6:
         return (0.5, 0.5)
@@ -382,6 +465,113 @@ def _seat(room: dict, player: str) -> dict | None:
     return None
 
 
+def _bay_filled(room: dict) -> list[dict]:
+    return [s for s in room["slots"] if s]
+
+
+def _bay_seats(room: dict) -> dict[str, str]:
+    filled = _bay_filled(room)
+    seats: dict[str, str] = {}
+    if filled:
+        seats[filled[0]["id"]] = "A"
+    if len(filled) > 1:
+        seats[filled[1]["id"]] = "B"
+    return seats
+
+
+def _bay_spawn(seat: str) -> tuple[float, float]:
+    return BAY_SPAWN_B if seat == "B" else BAY_SPAWN_A
+
+
+def _new_bay(now: float, room: dict) -> dict:
+    seats = _bay_seats(room)
+    poses: dict[str, list[dict]] = {}
+    scores: dict[str, int] = {}
+    for pid, seat in seats.items():
+        x, z = _bay_spawn(seat)
+        poses[pid] = [{"x": x, "z": z, "sim_ms": 0.0}]
+        scores[pid] = 0
+    return {
+        "t0": now,
+        "seats": seats,
+        "scores": scores,
+        "poses": poses,
+        "round": 1,
+        "over": False,
+        "freeze_until_ms": -1.0,
+        "to_win": BAY_TO_WIN,
+    }
+
+
+def _bay_elapsed_ms(bay: dict, now: float) -> float:
+    return max(0.0, (now - float(bay["t0"])) * 1000.0)
+
+
+def _bay_pose_at(samples: list[dict], fire_ms: float, seat: str) -> dict:
+    chosen: dict | None = None
+    for rec in samples:
+        if float(rec.get("sim_ms", 0.0)) <= float(fire_ms):
+            chosen = rec
+        else:
+            break
+    if chosen is None:
+        if samples:
+            chosen = samples[0]
+        else:
+            x, z = _bay_spawn(seat)
+            return {"x": x, "z": z, "sim_ms": 0.0}
+    return chosen
+
+
+def _bay_record_pose(bay: dict, player: str, x: float, z: float, sim_ms: float) -> None:
+    ring = bay["poses"].setdefault(player, [])
+    rec = {"x": float(x), "z": float(z), "sim_ms": float(sim_ms)}
+    if ring and float(ring[-1].get("sim_ms", -1.0)) == rec["sim_ms"]:
+        ring[-1] = rec
+    else:
+        ring.append(rec)
+    if len(ring) > BAY_POSE_RING:
+        del ring[: len(ring) - BAY_POSE_RING]
+
+
+def _reset_bay_round(bay: dict) -> None:
+    for pid, seat in bay["seats"].items():
+        x, z = _bay_spawn(seat)
+        bay["poses"][pid] = [{"x": x, "z": z, "sim_ms": 0.0}]
+
+
+def _bay_score(bay: dict, scorer: str, elapsed_ms: float) -> None:
+    if bay["over"]:
+        return
+    if elapsed_ms < float(bay.get("freeze_until_ms", -1.0)):
+        return
+    bay["scores"][scorer] = int(bay["scores"].get(scorer, 0)) + 1
+    bay["freeze_until_ms"] = elapsed_ms + BAY_FREEZE_MS
+    if bay["scores"][scorer] >= int(bay.get("to_win", BAY_TO_WIN)):
+        bay["over"] = True
+        return
+    bay["round"] = int(bay.get("round", 1)) + 1
+    _reset_bay_round(bay)
+
+
+def _bay_view(bay: dict, now: float) -> dict:
+    elapsed_ms = _bay_elapsed_ms(bay, now)
+    poses = {}
+    for pid, seat in bay["seats"].items():
+        last = _bay_pose_at(bay["poses"].get(pid) or [], elapsed_ms, seat)
+        poses[pid] = {"x": last["x"], "z": last["z"], "sim_ms": last["sim_ms"], "seat": seat}
+    return {
+        "elapsed_ms": int(elapsed_ms),
+        "seats": dict(bay["seats"]),
+        "scores": dict(bay["scores"]),
+        "poses": poses,
+        "round": int(bay.get("round", 1)),
+        "over": bool(bay.get("over")),
+        "to_win": int(bay.get("to_win", BAY_TO_WIN)),
+        "frozen": (not bay.get("over")) and elapsed_ms < float(bay.get("freeze_until_ms", -1.0)),
+    }
+
+
 def snapshot(room: dict, now: float | None = None) -> dict:
     filled = sum(1 for s in room["slots"] if s)
     out = {
@@ -392,9 +582,11 @@ def snapshot(room: dict, now: float | None = None) -> dict:
         "filled": filled,
         "slots": room["slots"],
     }
+    t = time.time() if now is None else now
     if room["phase"] == "range" and room.get("sim"):
-        t = time.time() if now is None else now
         out.update(_sim_view(room["sim"], t))
+    if room["phase"] == "bay" and room.get("bay"):
+        out.update(_bay_view(room["bay"], t))
     return out
 
 
@@ -512,11 +704,74 @@ def start(
             return {"ok": False, "error": "no room"}
         if room["host"] != player:
             return {"ok": False, "error": "not host"}
+        if room["phase"] == "bay":
+            return {"ok": False, "error": "bay match"}
         if room["phase"] != "range" or not room.get("sim"):
             room["phase"] = "range"
             room["sim"] = _new_sim(secrets.randbits(32) if seed is None else seed, t)
         else:
             _sync_sim(room["sim"], t)
+        return snapshot(room, t)
+
+
+def start_bay(code: str, player: str, now: float | None = None) -> dict:
+    """Host starts the shared booth. Not the Salt House. Idempotent while already bay."""
+    code = (code or "").strip().upper()
+    t = time.time() if now is None else now
+    with _LOCK:
+        room = _ROOMS.get(code)
+        if not room:
+            return {"ok": False, "error": "no room"}
+        if room["host"] != player:
+            return {"ok": False, "error": "not host"}
+        if room["phase"] == "range":
+            return {"ok": False, "error": "match started"}
+        if room["phase"] != "bay" or not room.get("bay"):
+            room["phase"] = "bay"
+            room["bay"] = _new_bay(t, room)
+        return snapshot(room, t)
+
+
+def pose(
+    code: str,
+    player: str,
+    x: object = None,
+    z: object = None,
+    fire_ms: object = None,
+    now: float | None = None,
+) -> dict:
+    """Last committed booth pose. Mailbox write — not a 128 Hz friend tick."""
+    code = (code or "").strip().upper()
+    t = time.time() if now is None else now
+    try:
+        px = float(x)
+        pz = float(z)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "bad pose"}
+    try:
+        sim_ms = float(fire_ms) if fire_ms is not None else None
+    except (TypeError, ValueError):
+        sim_ms = None
+    with _LOCK:
+        room = _ROOMS.get(code)
+        if not room:
+            return {"ok": False, "error": "no room"}
+        if room["phase"] != "bay" or not room.get("bay"):
+            return {"ok": False, "error": "not in bay"}
+        if not _seat(room, player):
+            return {"ok": False, "error": "not in room"}
+        bay = room["bay"]
+        if player not in bay["seats"]:
+            return snapshot(room, t)
+        elapsed = _bay_elapsed_ms(bay, t)
+        if sim_ms is None:
+            sim_ms = elapsed
+        else:
+            sim_ms = quantize_fire_ms(sim_ms)
+            view_ms = quantize_fire_ms(elapsed)
+            if sim_ms > view_ms:
+                sim_ms = view_ms
+        _bay_record_pose(bay, player, px, pz, sim_ms)
         return snapshot(room, t)
 
 
@@ -532,6 +787,104 @@ def get(code: str, now: float | None = None) -> dict:
         return snapshot(room, t)
 
 
+def _parse_pose(raw: object) -> tuple[float, float] | None:
+    if isinstance(raw, dict) and "x" in raw and "z" in raw:
+        try:
+            return float(raw["x"]), float(raw["z"])
+        except (TypeError, ValueError):
+            return None
+    if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+        try:
+            return float(raw[0]), float(raw[1])
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _bay_opponent(bay: dict, player: str) -> str | None:
+    for pid in bay["seats"]:
+        if pid != player:
+            return pid
+    return None
+
+
+def _bay_hit(
+    room: dict,
+    player: str,
+    parsed: tuple[float, float] | None,
+    fire_tick: float | None,
+    stamp: int,
+    aspect_f: float,
+    pose_raw: object,
+    expose: object,
+    now: float,
+) -> dict:
+    if not _seat(room, player):
+        return {"ok": False, "error": "not in room"}
+    bay = room["bay"]
+    if player not in bay["seats"]:
+        snap = snapshot(room, now)
+        snap["miss"] = True
+        return snap
+    elapsed_now = _bay_elapsed_ms(bay, now)
+    view_ms = quantize_fire_ms(elapsed_now)
+    if fire_tick is None:
+        fire_tick = view_ms
+    else:
+        fire_tick = quantize_fire_ms(fire_tick)
+        if fire_tick > view_ms:
+            fire_tick = view_ms
+    snap = snapshot(room, now)
+    if elapsed_now - fire_tick > REWIND_MAX_MS:
+        snap["miss"] = True
+        snap["stale"] = True
+        return snap
+    if bay["over"] or elapsed_now < float(bay.get("freeze_until_ms", -1.0)):
+        snap["miss"] = True
+        return snap
+    own_pose = _parse_pose(pose_raw)
+    if own_pose is not None:
+        _bay_record_pose(bay, player, own_pose[0], own_pose[1], fire_tick)
+    seat = bay["seats"][player]
+    shooter = _bay_pose_at(bay["poses"].get(player) or [], fire_tick, seat)
+    if expose:
+        if not bay_in_open_middle(shooter["x"], shooter["z"]):
+            snap = snapshot(room, now)
+            snap["miss"] = True
+            return snap
+        foe = _bay_opponent(bay, player)
+        if not foe:
+            snap = snapshot(room, now)
+            snap["miss"] = True
+            return snap
+        _bay_score(bay, foe, elapsed_now)
+        snap = snapshot(room, now)
+        snap["expose"] = True
+        snap["by"] = player
+        return snap
+    if parsed is None:
+        snap["miss"] = True
+        return snap
+    foe = _bay_opponent(bay, player)
+    if not foe:
+        snap["miss"] = True
+        return snap
+    foe_seat = bay["seats"][foe]
+    target = _bay_pose_at(bay["poses"].get(foe) or [], fire_tick, foe_seat)
+    origin, direction = bay_ray_from_uv(parsed[0], parsed[1], shooter["x"], shooter["z"], seat, aspect_f)
+    t_hit = _ray_sphere(origin, direction, (target["x"], BAY_FOE_Y, target["z"]), BAY_FOE_RADIUS)
+    if t_hit is None:
+        snap = snapshot(room, now)
+        snap["miss"] = True
+        return snap
+    _bay_score(bay, player, elapsed_now)
+    snap = snapshot(room, now)
+    snap["hit"] = foe
+    snap["by"] = player
+    snap["t_hw"] = stamp
+    return snap
+
+
 def hit(
     code: str,
     player: str,
@@ -542,6 +895,8 @@ def hit(
     lifted: object = None,
     now: float | None = None,
     plate: object = None,
+    pose: object = None,
+    expose: object = None,
 ) -> dict:
     """Resolve a HID fire intent. Rewind to fire_ms, ray-test the peeked UV. Ignore plate id and tracker quality."""
     del plate  # never authority
@@ -565,6 +920,18 @@ def hit(
         room = _ROOMS.get(code)
         if not room:
             return {"ok": False, "error": "no room"}
+        if room["phase"] == "bay" and room.get("bay"):
+            return _bay_hit(
+                room,
+                player,
+                parsed,
+                fire_tick,
+                stamp,
+                aspect_f,
+                pose,
+                expose,
+                t,
+            )
         if room["phase"] != "range" or not room.get("sim"):
             return {"ok": False, "error": "not in range"}
         if not _seat(room, player):

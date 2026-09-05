@@ -99,6 +99,7 @@ const Bay = {
   toWin: BAY_TO_WIN,
   round: 1,
   speed: BAY_SPEED,
+  seat: "A",
   pos: { x: BAY_SPAWN_A.x, y: BAY_SPAWN_A.y, z: BAY_SPAWN_A.z },
   foe: {
     x: BAY_SPAWN_B.x, y: BAY_SPAWN_B.y, z: BAY_SPAWN_B.z,
@@ -117,12 +118,14 @@ const Bay = {
   wasLifted: false,
   keys: { w: false, a: false, s: false, d: false },
   resetRound() {
-    this.pos.x = BAY_SPAWN_A.x;
+    const spawn = this.seat === "B" ? BAY_SPAWN_B : BAY_SPAWN_A;
+    const foeSpawn = this.seat === "B" ? BAY_SPAWN_A : BAY_SPAWN_B;
+    this.pos.x = spawn.x;
     this.pos.y = BAY_SPAWN_A.y;
-    this.pos.z = BAY_SPAWN_A.z;
-    this.foe.x = BAY_SPAWN_B.x;
+    this.pos.z = spawn.z;
+    this.foe.x = foeSpawn.x;
     this.foe.y = BAY_SPAWN_B.y;
-    this.foe.z = BAY_SPAWN_B.z;
+    this.foe.z = foeSpawn.z;
     this.foe.alive = true;
     this.foe.strafeT = 0;
     this.expose = 0;
@@ -616,7 +619,15 @@ function fireBay3D(raycaster, muzzleWorld) {
   }
 }
 function sharedMatch() {
-  return !!(S.online && !S.warmup && S.room && S.player);
+  return !!(S.online && !S.warmup && S.room && S.player && !S.bayMatch);
+}
+
+function sharedBay() {
+  return !!(S.online && !S.warmup && S.room && S.player && S.bayMatch);
+}
+
+function bayLookZ() {
+  return Bay.seat === "B" ? Bay.pos.z + 16 : Bay.pos.z - 16;
 }
 
 function committedSimMs() {
@@ -647,6 +658,96 @@ function reportSharedFire(shot, localPlateId) {
     if (data.hit) S.sharedDead.add(data.hit);
     applySharedSim(data);
   }).catch(function () { /* snapshot poll is the authority */ });
+}
+
+function reportSharedBayFire(shot, expose) {
+  if (!sharedBay() || !S.room || !S.player) return;
+  const uv = shot && shot.uv ? [shot.uv.x, shot.uv.y] : [S.aim.x / W, S.aim.y / H];
+  fetch("/api/lobby/hit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      code: S.room,
+      player: S.player,
+      uv: expose ? undefined : uv,
+      lifted: !!(shot && shot.lifted),
+      t_hw: shot && shot.t_hw != null ? shot.t_hw : 0,
+      fire_ms: committedSimMs(),
+      aspect: W / H,
+      pose: { x: Bay.pos.x, z: Bay.pos.z },
+      expose: !!expose,
+    }),
+  }).then(function (res) { return res.json(); }).then(function (data) {
+    if (data && data.ok) applySharedBay(data);
+  }).catch(function () { /* snapshot poll is the authority */ });
+}
+
+function reportSharedBayPose() {
+  if (!sharedBay() || !S.room || !S.player) return;
+  fetch("/api/lobby/pose", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      code: S.room,
+      player: S.player,
+      x: Bay.pos.x,
+      z: Bay.pos.z,
+      fire_ms: committedSimMs(),
+    }),
+  }).then(function (res) { return res.json(); }).then(function (data) {
+    if (data && data.ok) applySharedBay(data);
+  }).catch(function () { /* next poll */ });
+}
+
+function applySharedBay(data) {
+  if (!data || !data.ok || data.phase !== "bay") return;
+  S.bayMatch = true;
+  if (typeof data.elapsed_ms === "number") {
+    S.simTick = Math.floor(data.elapsed_ms * (S.simHz || 128) / 1000);
+  }
+  const seats = data.seats || {};
+  if (S.player && seats[S.player]) {
+    Bay.seat = seats[S.player];
+    S.baySeat = Bay.seat;
+  }
+  const scores = data.scores || {};
+  let foeId = "";
+  for (const id of Object.keys(seats)) {
+    if (id !== S.player) { foeId = id; break; }
+  }
+  S.bayFoe = foeId;
+  const poses = data.poses || {};
+  if (foeId && poses[foeId]) {
+    Bay.foe.x = poses[foeId].x;
+    Bay.foe.z = poses[foeId].z;
+    if (foeGroup) foeGroup.position.set(Bay.foe.x, 0, Bay.foe.z);
+  }
+  if (!foeId) return;
+  const you = S.player && scores[S.player] != null ? scores[S.player] : Bay.you;
+  const them = scores[foeId] != null ? scores[foeId] : Bay.them;
+  const scored = you !== Bay.you || them !== Bay.them;
+  Bay.you = you;
+  Bay.them = them;
+  if (typeof data.round === "number") Bay.round = data.round;
+  if (data.over) {
+    Bay.over = true;
+    Bay.frozen = true;
+  }
+  if (scored && !Bay.over) {
+    Bay.frozen = true;
+    Bay.freezeT = 0;
+    Bay.foe.alive = false;
+    if (foeGroup) foeGroup.visible = false;
+  }
+}
+
+async function pullSharedBay() {
+  if (!sharedBay() || !S.room) return;
+  try {
+    const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
+    const data = await res.json();
+    if (data && data.ok) applySharedBay(data);
+  } catch (e) { /* next poll */ }
 }
 
 function spawnSharedPlate(p) {
@@ -742,6 +843,7 @@ function startBay() {
   S.simTick = 0;
   Bay.fireMs = 0;
   Bay.active = true;
+  Bay.seat = S.baySeat === "B" ? "B" : "A";
   Bay.resetMatch();
   if (rangeTargetGroup) rangeTargetGroup.visible = false;
   if (rangeHallGroup) rangeHallGroup.visible = false;
@@ -753,10 +855,14 @@ function startBay() {
   }
   if (camera) {
     camera.position.set(Bay.pos.x, Bay.pos.y, Bay.pos.z);
-    camera.lookAt(Bay.pos.x, 0.89, Bay.pos.z - 16);
+    camera.lookAt(Bay.pos.x, 0.89, bayLookZ());
   }
   if (gunGroup) gunGroup.visible = true;
   applyLockerLook();
+  if (sharedBay()) {
+    pullSharedBay();
+    ensureLobbyPoll();
+  }
 }
 
 function startRange() {
@@ -911,7 +1017,7 @@ function tickBay(dt) {
   if (Bay.frozen && !Bay.over) {
     Bay.freezeT += dt;
     if (Bay.freezeT >= Bay.freezePadS && !sample.lifted) {
-      Bay.round++;
+      if (!sharedBay()) Bay.round++;
       Bay.resetRound();
       if (foeGroup) foeGroup.visible = true;
     }
@@ -922,10 +1028,11 @@ function tickBay(dt) {
 
   if (!sample.lifted) {
     let mx = 0, mz = 0;
-    if (Bay.keys.w) mz -= 1;
-    if (Bay.keys.s) mz += 1;
-    if (Bay.keys.a) mx -= 1;
-    if (Bay.keys.d) mx += 1;
+    const fwd = Bay.seat === "B" ? 1 : -1;
+    if (Bay.keys.w) mz += fwd;
+    if (Bay.keys.s) mz -= fwd;
+    if (Bay.keys.a) mx += fwd;
+    if (Bay.keys.d) mx -= fwd;
     if (mx !== 0 && mz !== 0) { mx *= 0.7071; mz *= 0.7071; }
     const nx = clamp(Bay.pos.x + mx * Bay.speed * dt, -7.6, 7.6);
     const nz = clamp(Bay.pos.z + mz * Bay.speed * dt, -12.2, 13.6);
@@ -934,12 +1041,14 @@ function tickBay(dt) {
   }
   if (camera) {
     camera.position.set(Bay.pos.x, Bay.pos.y, Bay.pos.z);
-    camera.lookAt(Bay.pos.x, 0.89, Bay.pos.z - 16);
+    camera.lookAt(Bay.pos.x, 0.89, bayLookZ());
   }
 
   if (Bay.foe.alive) {
-    Bay.foe.strafeT += dt;
-    Bay.foe.x = Math.sin(Bay.foe.strafeT * 0.85) * 2.2;
+    if (!sharedBay() || !S.bayFoe) {
+      Bay.foe.strafeT += dt;
+      Bay.foe.x = Math.sin(Bay.foe.strafeT * 0.85) * 2.2;
+    }
     if (foeGroup) {
       foeGroup.position.set(Bay.foe.x, 0, Bay.foe.z);
       foeGroup.lookAt(camera.position.x, foeGroup.position.y, camera.position.z);
@@ -957,6 +1066,9 @@ function tickBay(dt) {
       if (Bay.them >= Bay.toWin) {
         Bay.over = true;
         Bay.vo(Locker.operator.vo.win);
+      }
+      if (sharedBay()) {
+        try { reportSharedBayFire(aimBus.peek(), true); } catch (e) { /* room is authority */ }
       }
     }
   } else {
@@ -1011,7 +1123,12 @@ export {
   shatterTarget3D,
   addBulletTracer,
   sharedMatch,
+  sharedBay,
   reportSharedFire,
+  reportSharedBayFire,
+  reportSharedBayPose,
+  applySharedBay,
+  pullSharedBay,
   spawnSharedPlate,
   applySharedSim,
   pullSharedSim,
