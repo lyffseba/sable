@@ -61,6 +61,10 @@ jobs:
           set -euo pipefail
           test -f proto/index.html
           test -f proto/game.js
+          test -f proto/aim.js
+          test -f proto/hands.js
+          test -f proto/house.js
+          test -f proto/boot.js
           test -f proto/style.css
           test -f proto/README.md
           test -f proto/package.json
@@ -71,7 +75,7 @@ jobs:
           test -s proto/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm
           test -f tools/serve_proto.py
           test -f tools/gemini_muzzle_tracker.py
-          (cd proto && zip -r "../sable-proto-${TAG}.zip" index.html game.js style.css README.md package.json vendor/)
+          (cd proto && zip -r "../sable-proto-${TAG}.zip" index.html game.js aim.js hands.js house.js boot.js style.css README.md package.json vendor/)
           zip -u "sable-proto-${TAG}.zip" -j tools/serve_proto.py tools/gemini_muzzle_tracker.py tools/sable_mojo.py tools/lobby.py
           sha256sum "sable-proto-${TAG}.zip" | tee "sable-proto-${TAG}.zip.sha256"
           ls -l "sable-proto-${TAG}.zip"

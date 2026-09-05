@@ -18,7 +18,7 @@ def must_contain(path: pathlib.Path, needles: tuple[str, ...]) -> list[str]:
 def main() -> int:
     native = ROOT / "native/cv_input/include/sable/aim_sample.hpp"
     bus_h = ROOT / "native/cv_input/include/sable/aim_bus.hpp"
-    proto_js = ROOT / "proto/game.js"
+    proto_js = ROOT / "proto/aim.js"
     mojo_s = ROOT / "native/mojo/aim_sample.mojo"
     mojo_b = ROOT / "native/mojo/aim_bus.mojo"
     missing = []

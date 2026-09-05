@@ -4,12 +4,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [[ -f proto/game.js ]]; then
-  if command -v node >/dev/null 2>&1; then
-    node --check proto/game.js
-  else
-    echo "node missing — skip proto syntax" >&2
-  fi
+if command -v node >/dev/null 2>&1; then
+  for f in proto/aim.js proto/hands.js proto/house.js proto/boot.js proto/game.js; do
+    if [[ -f "$f" ]]; then
+      node --check "$f"
+    fi
+  done
+else
+  echo "node missing — skip proto syntax" >&2
 fi
 
 # Release zip is self-contained: Hand Landmarker must not depend on CDN.

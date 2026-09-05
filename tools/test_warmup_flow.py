@@ -8,6 +8,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from proto_src import proto_js  # noqa: E402
 
 
 def _js_fn(src: str, name: str) -> str:
@@ -21,7 +23,7 @@ def main() -> int:
     try:
         html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
         css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
-        js = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+        js = proto_js()
         if ".range-bar[hidden]" not in css:
             raise AssertionError("range-bar hidden must beat display:flex so OFFLINE has no RETURN TO LOBBY")
 

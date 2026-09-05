@@ -51,7 +51,7 @@ Desktop **T** is a debug gun, not the product. Space is force-lift for developme
 
 ## Art contract
 
-Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/game.js` must match. Blender (`art/blender/build_sable_kit.py`) rebuilds the same kit for stills/GLB. No Marketplace packs, no scans, no third-party guns.
+Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/house.js` must match. Blender (`art/blender/build_sable_kit.py`) rebuilds the same kit for stills/GLB. No Marketplace packs, no scans, no third-party guns.
 
 CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
@@ -66,7 +66,7 @@ CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 ## What is proto (honest)
 
-`proto/game.js` is a **2.2k-line god module**: boot, lobby, camera, tracker, 3D, HUD, audio, Bay. That is fine for a vertical slice. It is not a production graph.
+`proto/game.js` is the module entry (`import "./boot.js"`). Ownership is split: `aim.js` (mailbox / fire peek / sticky lift / SablePerf / desktop), `hands.js` (MediaPipe + skin/NCC + One Euro), `house.js` (Salt House / Yard plates / shared match hooks / Bay), `boot.js` (lobby UI / phase machine / rAF glue).
 
 Docs disagree: `docs/tick.md` says 64 Hz, `server/tick.py` is 128 Hz, Range is `requestAnimationFrame`. Pick one before netcode.
 
@@ -74,7 +74,7 @@ Hand tracking: MediaPipe Hands (Apache-2.0, landmark 8) is the primary muzzle; s
 
 Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss.
 
-**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Shared house is not the only way to shoot. Lift/HID must not wait on net — if the lobby POST hangs, local practice still fires. `tools/test_sableqa_offline.py` fails loud if Offline shoot dies. Proto zip waits until this is on `main` tip and that gate is green.
+**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Shared house is not the only way to shoot. Lift/HID must not wait on net — if the lobby POST hangs, local practice still fires. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). `tools/test_sableqa_offline.py` fails loud if Offline shoot dies, HID waits, or lock shows the OS cursor. **`v0.11.0` stands.** Next proto tag only after R1 is on `main` tip and this gate is green.
 
 Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose). The click does **not** call `coastTrack` / `updateAim` — hitscan uses the last committed `S.aim` / mailbox sample. Optional `?sableperf=1` records HID→hitscan p50/p99 vs the 8 ms bar (`window.SablePerf.stats()`).
 
@@ -82,14 +82,14 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 
 | # | Refactor | Why | Cost | When |
 |---|----------|-----|------|------|
-| R1 | Split `proto/game.js` into `aim.js`, `hands.js`, `house.js`, `boot.js` | Production ownership, test seams | 1–2 days | After gallery loop feels good |
+| R1 | Split `proto/game.js` into `aim.js`, `hands.js`, `house.js`, `boot.js` | Production ownership, test seams | ownership files + contract tests read the concat | **Done** (same verb; merge when CI green) |
 | R2 | MediaPipe Hands as primary muzzle (landmark 8), skin/NCC fallback | Blob≠fingertip; face confusion | 1 day + vendor wasm | **Done** |
 | R3 | Hand-visible **beats** trackpad HID for lift; sticky through pad reach | Trackpad click dropped GUN when the hand left frame | Half day + test rewrite | **Done** |
 | R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | seed + rewind ray resolve; not a global tick | **Done** (merge when CI green; zip after tip) |
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **merge to main when CI green**. Zip / public proto wait for tip + `test_sableqa_offline.py`. Next code: **R1**. Do not unify tick (R6) in the same change as a file split. Shared sim is a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
+Recommend **merge to main when CI green**. **`v0.11.0` stands** — do not cut a zip/tag from this split. Next tag after R1 tip + SableQA clear. R1 is the file split only — same fire verb, no Bay playlist start, no R6 tick unify. Next code: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
 
 ## Milestones
 
