@@ -220,7 +220,7 @@ function pullWhistle() {
 export let renderer, scene, camera;
 export let gunGroup, gunBody, gunStripe, gunMuzzleLight, gunCuff;
 export let rangeTargetGroup, rangeHallGroup, shardGroup;
-export let bayGroup, foeGroup, foeMesh, foeVisor, foeStripe, foeCollar, foeChest;
+export let bayGroup, foeGroup, foeMesh, foeVisor, foeStripe, foeCollar, foeChest, foeWrist;
 export let tracerLines = [];
 
 function init3D() {
@@ -232,34 +232,34 @@ function init3D() {
   renderer.setSize(W, H);
   renderer.setPixelRatio(dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1.0;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x151c22);
-  scene.fog = new THREE.FogExp2(0x151c22, 0.022);
+  scene.background = new THREE.Color(0x0a0c10);
+  scene.fog = new THREE.FogExp2(0x101214, 0.022);
 
   camera = new THREE.PerspectiveCamera(62, W / H, 0.08, 160);
   camera.position.set(0, 1.64, 2.05);
   camera.lookAt(0, 0.55, -12);
 
-  scene.add(new THREE.HemisphereLight(0x8aa8b8, 0x1a1810, 0.7));
-  const dir = new THREE.DirectionalLight(0xe8dcc8, 1.15);
+  scene.add(new THREE.HemisphereLight(Locker.colors.boneHex, 0x101214, 0.55));
+  const dir = new THREE.DirectionalLight(Locker.colors.boneHex, 0.35);
   dir.position.set(-6, 16, 4);
   scene.add(dir);
-  const rim = new THREE.DirectionalLight(Locker.colors.mintHex, 0.22);
-  rim.position.set(8, 5, -6);
-  scene.add(rim);
 
   buildFirstPersonGun();
   buildRange3D();
   buildBay3D();
 }
 
+function bayUnshaded(hex) {
+  return new THREE.MeshBasicMaterial({ color: hex });
+}
+
 function sableStd(hex, extra) {
-  return new THREE.MeshStandardMaterial(Object.assign({
-    color: hex, roughness: 0.64, metalness: 0.14, flatShading: true,
-  }, extra || {}));
+  void extra;
+  return bayUnshaded(hex);
 }
 
 function hexPlateGeo(r, thick) {
@@ -278,10 +278,10 @@ function hexPlateGeo(r, thick) {
 
 function buildFirstPersonGun() {
   gunGroup = new THREE.Group();
-  const bone = sableStd(Locker.colors.boneHex, { roughness: 0.5 });
-  const rust = sableStd(Locker.colors.rustHex, { roughness: 0.72 });
-  const char = sableStd(0x141a22, { metalness: 0.35, roughness: 0.4 });
-  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  const bone = bayUnshaded(Locker.colors.boneHex);
+  const rust = bayUnshaded(Locker.colors.rustHex);
+  const char = bayUnshaded(Locker.colors.bodyHex);
+  const mint = bayUnshaded(Locker.colors.mintHex);
 
   gunCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.046, 0.05, 0.07, 8), rust);
   gunCuff.rotation.x = Math.PI / 2;
@@ -325,19 +325,19 @@ function buildRange3D() {
   scene.add(shardGroup);
 
   for (let i = 0; i < 10; i++) {
-    const g = sableStd(i % 2 ? 0x182218 : 0x1e2a1c, { roughness: 0.96, metalness: 0.02, flatShading: true });
+    const g = bayUnshaded(i % 2 ? 0x101214 : Locker.colors.bodyHex);
     const strip = new THREE.Mesh(new THREE.PlaneGeometry(26, 2.2), g);
     strip.rotation.x = -Math.PI / 2;
     strip.position.set(0, -1.64, 3.2 - i * 2.2);
     rangeHallGroup.add(strip);
   }
 
-  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  const mint = bayUnshaded(Locker.colors.mintHex);
   const lane = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 20), mint);
   lane.position.set(0, -1.62, -7);
   rangeHallGroup.add(lane);
 
-  const post = sableStd(0x2a241c, { roughness: 0.8 });
+  const post = bayUnshaded(Locker.colors.rustHex);
   for (const x of [-8.2, 8.2]) {
     for (let i = 0; i < 6; i++) {
       const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 2.6, 6), post);
@@ -351,25 +351,16 @@ function buildRange3D() {
 
   const net = new THREE.Mesh(
     new THREE.PlaneGeometry(18, 5.2, 16, 5),
-    new THREE.MeshBasicMaterial({ color: 0x4a5c50, transparent: true, opacity: 0.28, wireframe: true })
+    new THREE.MeshBasicMaterial({ color: 0x2a2c28, transparent: true, opacity: 0.28, wireframe: true })
   );
   net.position.set(0, 0.9, -17.1);
   rangeHallGroup.add(net);
-
-  const flood = new THREE.PointLight(0xffe8c8, 1.1, 22, 2);
-  flood.position.set(-5, 5.5, -3);
-  rangeHallGroup.add(flood);
-  const flood2 = flood.clone();
-  flood2.position.set(5, 5.5, -9);
-  rangeHallGroup.add(flood2);
 
   buildYardBunkers(rangeHallGroup);
 }
 
 function inflateMat(hex) {
-  return new THREE.MeshStandardMaterial({
-    color: hex, roughness: 0.22, metalness: 0.08, flatShading: false,
-  });
+  return bayUnshaded(hex);
 }
 
 function addYard(group, mesh, x, y, z, rotY) {
@@ -457,13 +448,9 @@ const YARD_PEEKS = [
   [-3.0, 0.25, -14.1],
 ];
 
-function bayUnshaded(hex) {
-  return new THREE.MeshBasicMaterial({ color: hex });
-}
-
 function applyLockerLook() {
   const id = Locker.equippedStyle;
-  let body = 0x0f1214;
+  let body = Locker.colors.bodyHex;
   let rust = Locker.colors.rustHex;
   let stripe = Locker.colors.mintHex;
   if (id === STYLE_RANKED) {
@@ -479,6 +466,9 @@ function applyLockerLook() {
   }
   if (gunCuff && gunCuff.material && gunCuff.material.color) {
     gunCuff.material.color.setHex(rust);
+  }
+  if (foeWrist && foeWrist.material && foeWrist.material.color) {
+    foeWrist.material.color.setHex(rust);
   }
   if (foeMesh && foeMesh.material && foeMesh.material.color) {
     foeMesh.material.color.setHex(body);
@@ -538,18 +528,23 @@ function buildBay3D() {
   bayGroup.add(rightChip);
 
   foeGroup = new THREE.Group();
-  foeMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.22, 4, 8), bayUnshaded(0x0f1214));
+  foeMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.22, 4, 8), bayUnshaded(Locker.colors.bodyHex));
   foeMesh.position.y = 0.89;
   foeGroup.add(foeMesh);
 
-  foeCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.16, 8), bayUnshaded(0x0f1214));
+  foeCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.16, 8), bayUnshaded(Locker.colors.bodyHex));
   foeCollar.position.y = 1.52;
   foeGroup.add(foeCollar);
 
-  foeStripe = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.22), bayUnshaded(Locker.colors.mintHex));
-  foeStripe.position.set(0.26, 1.12, 0.12);
+  foeStripe = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.10, 0.28), bayUnshaded(Locker.colors.mintHex));
+  foeStripe.position.set(0.28, 1.12, 0.12);
   foeGroup.add(foeStripe);
   foeVisor = foeStripe;
+
+  foeWrist = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.07, 8), bayUnshaded(Locker.colors.rustHex));
+  foeWrist.rotation.z = Math.PI / 2;
+  foeWrist.position.set(0.28, 1.02, 0.08);
+  foeGroup.add(foeWrist);
 
   foeChest = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.12), bayUnshaded(Locker.colors.mintHex));
   foeChest.position.set(0, 1.18, 0.22);
@@ -563,12 +558,8 @@ function buildBay3D() {
 // --- 3D Target Spawn & Shatter ---
 function createTargetMesh(kind, hue) {
   const group = new THREE.Group();
-  const bone = new THREE.MeshStandardMaterial({
-    color: Locker.colors.boneHex, roughness: 0.38, metalness: 0.06, flatShading: false,
-  });
-  const mint = new THREE.MeshStandardMaterial({
-    color: Locker.colors.mintHex, emissive: Locker.colors.mintHex, emissiveIntensity: 0.45, roughness: 0.3,
-  });
+  const bone = bayUnshaded(Locker.colors.boneHex);
+  const mint = bayUnshaded(Locker.colors.mintHex);
   const fly = kind === "clay" || kind === "rise";
   const plate = new THREE.Mesh(hexPlateGeo(fly ? 0.5 : 0.62, 0.08), bone);
   group.add(plate);
@@ -778,8 +769,8 @@ async function pullSharedSim() {
 function restoreYardLook() {
   Bay.active = false;
   if (scene) {
-    scene.background = new THREE.Color(0x151c22);
-    scene.fog = new THREE.FogExp2(0x151c22, 0.022);
+    scene.background = new THREE.Color(0x0a0c10);
+    scene.fog = new THREE.FogExp2(0x101214, 0.022);
   }
   if (camera) {
     camera.position.set(0, 1.64, 2.05);

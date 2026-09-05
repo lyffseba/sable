@@ -272,6 +272,41 @@ def test_foe_sphere_is_honest() -> None:
             raise AssertionError("sky ray must miss")
 
 
+def test_shared_look_bible() -> None:
+    """Bay and Range share unshaded CANCHO. No milsim steel, no ACES soup, no mint bloom."""
+    js = proto_js()
+    if "0x151c22" in js:
+        raise AssertionError("cool milsim 0x151c22 left the house — charcoal only")
+    if "0x8aa8b8" in js:
+        raise AssertionError("cool steel hemisphere must not return")
+    if "ACESFilmicToneMapping" in js:
+        raise AssertionError("ACES filmic hides aim noise")
+    if "NoToneMapping" not in js:
+        raise AssertionError("Look lock wants linear / NoToneMapping")
+    if "0x0a0c10" not in js or "0x101214" not in js:
+        raise AssertionError("scene + fog must be charcoal")
+    if "emissiveIntensity: 0.45" in js or "emissiveIntensity:0.45" in js:
+        raise AssertionError("mint plate bloom must stay dead")
+    house = (ROOT / "proto/house.js").read_text(encoding="utf-8")
+    if "GridHelper" in house or "0x00f0ff" in house:
+        raise AssertionError("cyan grid / neon leftover in house.js")
+    if "function bayUnshaded" not in js:
+        raise AssertionError("unshaded helper must stay the shared paint")
+    plates = _js_fn(js, "createTargetMesh")
+    if "emissiveIntensity" in plates:
+        raise AssertionError("plates must not emit")
+    if "bayUnshaded" not in plates:
+        raise AssertionError("plates must be bone + mint unshaded")
+    inflate = _js_fn(js, "inflateMat")
+    if "flatShading: false" in inflate or "roughness: 0.22" in inflate:
+        raise AssertionError("inflateMat must not be milsim plastic")
+    if "bayUnshaded" not in inflate:
+        raise AssertionError("yard props must match bayUnshaded")
+    look = _js_fn(js, "applyLockerLook")
+    if "bodyHex" not in look or "mintHex" not in look or "rustHex" not in look:
+        raise AssertionError("CANCHO tell (charcoal / mint / rust) must stay on applyLockerLook")
+
+
 def test_aimsample_untouched() -> None:
     js = proto_js()
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
@@ -295,6 +330,7 @@ def main() -> int:
         test_bay_rules()
         test_open_middle_volumes()
         test_foe_sphere_is_honest()
+        test_shared_look_bible()
         test_aimsample_untouched()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)

@@ -53,6 +53,8 @@ Desktop **T** is a debug gun, not the product. Space is force-lift for developme
 
 Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/house.js` must match. Blender (`art/blender/build_sable_kit.py`) rebuilds the same kit for stills/GLB. No Marketplace packs, no scans, no third-party guns.
 
+Runtime Look is unshaded/baked CANCHO (charcoal / bone / mint / rust). `MeshBasic` / `bayUnshaded`, no ACES, no mint emissive bloom. Bay and Salt House share this bible. Aim noise stays readable.
+
 CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 ## Tech that is already right
