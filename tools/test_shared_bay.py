@@ -314,6 +314,13 @@ def test_client_keeps_local_and_hid() -> None:
         _fail("fire() talks to net — HID is behind the lobby")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — HID is behind a promise")
+    if "reportSharedBayPose" in fire or "lobbyPoll" in fire:
+        _fail("pose mailbox / lobby poll leaked onto the click")
+    bay = fire.find('phase === "bay"')
+    bay_mark = fire.find("SablePerf.markHid", bay) if bay >= 0 else -1
+    bay_report = fire.find("reportSharedBayFire", bay) if bay >= 0 else -1
+    if bay < 0 or bay_mark < 0 or bay_report < 0 or bay_mark > bay_report:
+        _fail("SablePerf must mark HID→hitscan before reportSharedBayFire — Shared Bay must not tax the 8 ms bar")
 
     bay = _js_fn(js, "fireBay3D")
     if "fetch(" in bay or "/api/lobby" in bay:
@@ -399,8 +406,16 @@ def test_docs_and_ci() -> None:
         _fail("docs/maps/bay.md must keep fire_ms on the sim tick")
     if "test_shared_bay.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_shared_bay.py")
+    if "test_sableperf.py" not in bible:
+        _fail("PRODUCTION.md must keep the SablePerf fire-path honesty gate")
     if "M9" not in bible:
         _fail("PRODUCTION.md must stand the shared Bay milestone")
+    perf = (ROOT / "docs/perf_budget.md").read_text(encoding="utf-8")
+    if "8 ms" not in perf or "Shared Bay" not in perf:
+        _fail("docs/perf_budget.md must keep Shared Bay off the HID 8 ms bar")
+    aim = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
+    if "reportSharedBayFire" not in aim:
+        _fail("docs/aim_pipeline.md must name Shared Bay fire-and-forget after markHid")
     if "M8" not in bible:
         _fail("do not drop the local Bay R6 M8 stand")
     if "v0.20.0" not in bible:

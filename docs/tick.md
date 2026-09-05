@@ -15,7 +15,7 @@ Render stays `requestAnimationFrame`. Shared house is **not** this stepper.
 - **`fire_ms` speaks sim Hz, not rAF.** Shared rewind snaps to the 128 Hz grid (`quantize_fire_ms`). Local Bay stamps `Bay.fireMs = committedSimMs()` on the HID peek. Shared Bay uses the same stamp plus a pose mailbox — not a 128 Hz friend loop. The lobby snapshot stays a view.
 - **Fail loud** if sim steps hitch to frame time (`updateRange(dt)` / rAF `now`) or fire couples to present (`performance.now() - S.rangeStart`).
 - **Offline one-click stays.** No warm-up tax. Fire at tick 0 is legal — the first plate is already on the pad.
-- **HID→hitscan p99 ≤ 8 ms** still holds (`SablePerf`).
+- **HID→hitscan p99 ≤ 8 ms** still holds (`SablePerf`) with Shared Bay present. `reportSharedBayFire` / `reportSharedBayPose` / lobby poll stay fire-and-forget after `markHid` — never on the click critical path.
 
 ## Three clocks
 
