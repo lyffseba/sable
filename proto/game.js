@@ -882,8 +882,8 @@ function runTrack(now) {
   }
   S.camStamp = stamp;
   if (S.handsOn) {
-    if (mpFresh && S.rvfc) {
-      /* camera-thread already wrote the fingertip */
+    if (S.rvfc && (now - (S.lastDetAt || 0) < 120)) {
+      if (!S.det) coastTrack(now);
     } else if (mpTrack(now)) {
       S.mpMiss = 0;
     } else {

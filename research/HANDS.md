@@ -75,7 +75,7 @@ No counterexample kills F for this SKU.
 | Stage | Tracker | Proof it survived |
 |-------|---------|-------------------|
 | **Do it** | MediaPipe Hands, landmark 8, mirror X, One Euro | Only in-browser fingertip at camera rate |
-| **Do it right** | If WASM fails → findHand + NCC. HID fire never waits | Fallback + mailbox |
+| **Do it right** | If WASM/landmarks fail **this frame**, `fallbackSkin` (findHand + NCC) still writes the muzzle. HID fire never waits. `initHands` promise must resolve before play. Pinch after `updateMode`. | Fallback + mailbox |
 | **Do it better** | Pinch (8↔4) as optional fire; 2nd hand ignore; 120 FPS | After lock is green on a lid cam |
 
 Do not converge on blobs because they were easy. Blob lost the audit.
