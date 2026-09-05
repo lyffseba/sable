@@ -8,7 +8,7 @@ v1 modes: offline **Gallery** (Salt House 60s), **Bay** 1v1, waiting-arena **WAR
 
 ## Gallery (now)
 
-**Salt House** — original hall: rust ribs, mint centerline, bone plates. 60s scored round. Escape = miss. End state: GALLERY CLEAR. Crosshair follows `AimSample.uv`. Click fires the **latest** sample. Hits shatter a plate and spawn another. Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. HUD chips `60s GALLERY`.
+**Salt House** — original hall: rust ribs, mint centerline, bone plates. 60s scored round. Escape = miss. End state: GALLERY CLEAR. Crosshair follows `AimSample.uv`. Click fires the **latest** sample. Hits shatter a plate and spawn another. Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. Thin SableHUD bar chips `SCORE` / `ROUND` / `60s GALLERY`.
 
 First-person mesh is CANCHO’s **cuff** (mint rail = muzzle). AimSample is still the gun. WASD unused on gallery.
 

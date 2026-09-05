@@ -17,6 +17,7 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 - Score + combo are the mode. Escape (`ESC`) is a miss. Sit plates dwell, then drop. Clays leave.
 - End state is **GALLERY CLEAR** (score / hits / accuracy / combo / 60 s round).
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
+- Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby.
 - Stand still. WASD is Bay only.
 
 ## Geometry
@@ -28,4 +29,5 @@ CS / Fortnite layout literacy is **architecture notes only** (`research/`). Runt
 - Do not make gallery the only gun. Bay, WARM UP, and ENTER RANGE stay.
 - Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire.
 - Do not bloom the reticle. Charcoal / bone / mint / rust only.
+- Do not hide the gun with HUD copy. SableHUD stays a thin top bar.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.

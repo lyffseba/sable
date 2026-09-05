@@ -107,8 +107,27 @@ def test_gallery_rules() -> None:
         _fail("HUD must paint gallery score + round clock")
     if '"60s GALLERY"' not in hud:
         _fail("HUD must chip 60s GALLERY")
-    if '"ROUND"' not in hud:
+    if '"ROUND "' not in hud and '"ROUND"' not in hud:
         _fail("HUD must name the round clock")
+    if '"SCORE "' not in hud:
+        _fail("HUD must chip SCORE")
+    if '"GALLERY CLEAR"' not in hud:
+        _fail("HUD must chip the gallery end state")
+    if "drawSableChip" not in hud:
+        _fail("gallery feedback must stay on the SableHUD chip bar")
+    if "Impact" in hud:
+        _fail("SableHUD chips must stay thin — no Impact billboard")
+    if "RAISE YOUR HAND" in hud or "ESC = miss" in hud:
+        _fail("tutorial wall on the gallery HUD")
+    if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud:
+        _fail("HUD hides the gun or the reticle")
+    if _js_const(js, "SABLE_HUD_H") != 22:
+        _fail("SableHUD bar must stay thin (22px)")
+    chip = _js_fn(js, "drawSableChip")
+    if "SABLE_HUD_H" not in chip:
+        _fail("drawSableChip must use the thin SableHUD height")
+    if "shadowBlur" in chip or "glow" in chip.lower():
+        _fail("SableHUD chips must not bloom")
     results = _js_fn(js, "showResults")
     if '"ROUND"' not in results or "60s" not in results:
         _fail("results must keep the 60s round")
@@ -164,6 +183,10 @@ def test_look_and_hid_not_trapped() -> None:
     hud = _js_fn(js, "drawHUD")
     if "shadowBlur" in hud or "glow" in hud.lower():
         _fail("gallery HUD must not bloom over the reticle")
+    if "phase !== \"range\"" not in hud:
+        _fail("SableHUD must not thicken the lobby")
+    if "setPhase" in hud or "fire(" in hud or "aimBus" in hud:
+        _fail("HUD trapped lift/HID")
     cross = _js_fn(js, "drawCrosshair")
     if "shadowBlur" in cross or "glow" in cross.lower():
         _fail("reticle bloom is forbidden")
@@ -233,6 +256,10 @@ def test_modes_doc() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "Salt House / Gallery" not in bible and "gallery mode" not in bible.lower():
         _fail("PRODUCTION.md must name Salt House as gallery mode")
+    if "SableHUD" not in modes:
+        _fail("docs/modes.md must name the thin SableHUD bar")
+    if "v0.20.0" not in bible:
+        _fail("PRODUCTION.md must stand v0.20.0 until Build tags this gallery HUD tip")
 
 
 def main() -> int:
