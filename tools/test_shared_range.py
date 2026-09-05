@@ -627,6 +627,88 @@ def test_hit_score_authority() -> None:
         raise AssertionError("WARM UP must stay local after score lock")
 
 
+def test_escape_miss_authority() -> None:
+    """ESC = miss on the room book. Two clients agree. Offline still local."""
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 8_000.0
+    lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    uv = _p0_uv()
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=90.0,
+        t_hw=40,
+        now=t0 + 0.14,
+    )
+    if (shot.get("combos") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"setup hit must credit combo 1 {shot}")
+    if (shot.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError(f"setup hit must credit SCORE 100 {shot}")
+
+    mid_a = lobby.get(a["code"], now=t0 + 1.0)
+    mid_b = lobby.get(a["code"], now=t0 + 1.0)
+    if (mid_a.get("combos") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"young house must keep combo {mid_a.get('combos')}")
+    if mid_a.get("combos") != mid_b.get("combos"):
+        raise AssertionError("two clients split combo before ESC")
+    if (mid_a.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError("young house must keep SCORE")
+
+    late_a = lobby.get(a["code"], now=t0 + 9.0)
+    late_b = lobby.get(a["code"], now=t0 + 9.0)
+    if (late_a.get("combos") or {}).get(a["player"], 1) != 0:
+        raise AssertionError(f"ESC must drop combo {late_a.get('combos')}")
+    if late_a.get("combos") != late_b.get("combos"):
+        raise AssertionError(
+            f"two clients split ESC combo {late_a.get('combos')} vs {late_b.get('combos')}"
+        )
+    if (late_a.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError("ESC must not rewrite SCORE")
+    if (late_a.get("hits") or {}).get(a["player"]) != 1:
+        raise AssertionError("ESC must not invent a hit")
+    if not late_a.get("escaped"):
+        raise AssertionError("room must note the ESC")
+    if late_a.get("escaped") != late_b.get("escaped"):
+        raise AssertionError("two clients split the ESC set")
+
+    parked = lobby.create("HOST7")
+    guest = lobby.join(parked["code"], "V2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("escaped") or parked_warm.get("scores") or parked_warm.get("combos"):
+        raise AssertionError("wait_practice must not open the shared ESC book")
+    g = lobby.get(parked["code"])
+    if g.get("escaped") or g.get("scores") or g.get("seed"):
+        raise AssertionError("wait get leaked ESC / sim")
+
+    js = proto_js()
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if '"ESC"' not in apply or "missTick" not in apply:
+        raise AssertionError("applySharedSim must tell ESC when a plate leaves without a kill")
+    if "S.combo = 0" in apply:
+        raise AssertionError("applySharedSim must not locally zero combo — snap the room book")
+    if "data.combos" not in apply or "S.combo" not in apply:
+        raise AssertionError("applySharedSim must still snap combo from the room")
+    ranged = _js_fn(js, "updateRange")
+    if "S.combo = 0" not in ranged:
+        raise AssertionError("Offline / WARM UP must still drop combo on ESC")
+    fire = _js_fn(js, "fire")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — ESC is not a fire gate")
+    if "S.combo = 0" in fire[fire.find("if (sharedMatch())") : fire.find("S.score +=")]:
+        raise AssertionError("match_live fire() must not locally drop combo")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after ESC lock")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -638,6 +720,7 @@ def main() -> int:
         test_flyer_pose_authority()
         test_hitscan_sphere_authority()
         test_hit_score_authority()
+        test_escape_miss_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
