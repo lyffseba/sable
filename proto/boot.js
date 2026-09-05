@@ -66,7 +66,10 @@ import {
   updateRange,
   tickBay,
   sharedMatch,
+  sharedBay,
   applySharedSim,
+  applySharedBay,
+  reportSharedBayPose,
   bayCoverChip,
   galleryLeftMs,
   gallerySessionLabel,
@@ -193,8 +196,8 @@ function paintLobby(data) {
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
-      ? "WARM UP is practice now. ENTER RANGE shares the 60s gallery — same plates."
-      : "WARM UP anytime. Waiting on host for the shared gallery.";
+      ? "WARM UP is practice. ENTER RANGE shares the gallery. ENTER BAY shares first-to-5."
+      : "WARM UP anytime. Host ENTER RANGE / ENTER BAY shares the house or booth.";
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
@@ -261,13 +264,36 @@ async function lobbyJoin(code) {
 
 async function lobbyPoll() {
   if (!S.room || !S.online) return;
-  if (phase === "bay") return;
-  if (phase !== "lobby" && !S.warmup && !sharedMatch()) return;
+  if (phase === "bay") {
+    if (!sharedBay()) return;
+    try {
+      const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
+      const data = await res.json();
+      if (!data.ok) return;
+      if (data.phase === "bay") {
+        reportSharedBayPose();
+        applySharedBay(data);
+      }
+    } catch (e) { /* keep polling */ }
+    return;
+  }
+  if (phase !== "lobby" && !S.warmup && !sharedMatch() && !sharedBay()) return;
   try {
     const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
     const data = await res.json();
     if (!data.ok) return;
     if (phase === "lobby" || S.warmup) paintLobby(data);
+    if (data.phase === "bay" && !lobbyStarting) {
+      S.warmup = false;
+      S.bayMatch = true;
+      S.playlist = "bay";
+      if (data.seats && S.player && data.seats[S.player]) S.baySeat = data.seats[S.player];
+      lobbyStarting = true;
+      syncWarmupChrome();
+      applySharedBay(data);
+      if (phase === "lobby") play("bay");
+      else if (phase === "results") setPhase("bay");
+    }
     if (data.phase === "range" && !lobbyStarting) {
       S.warmup = false;
       lobbyStarting = true;
@@ -278,6 +304,9 @@ async function lobbyPoll() {
     }
     if (sharedMatch() && phase === "range" && data.phase === "range") {
       applySharedSim(data);
+    }
+    if (sharedBay() && data.phase === "bay") {
+      applySharedBay(data);
     }
   } catch (e) { /* keep polling */ }
 }
@@ -352,6 +381,11 @@ function lobbyStartBay() {
   S.playlist = "bay";
   S.warmup = false;
   syncWarmupChrome();
+  if (S.room && S.player) {
+    S.bayMatch = true;
+    if (S.host) lobbyPost("/api/lobby/bay");
+    ensureLobbyPoll();
+  }
   if (camReady && (S.smooth || S.tpl || S.desktop)) {
     setPhase("bay");
     return;
@@ -371,6 +405,9 @@ function leaveBay() {
 
 async function returnToLobby() {
   S.warmup = false;
+  S.bayMatch = false;
+  S.bayFoe = "";
+  S.baySeat = "A";
   lobbyStarting = false;
   const playBtn = $("btn-play");
   if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
@@ -402,6 +439,9 @@ async function lobbyLeave() {
   S.room = "";
   S.host = false;
   S.warmup = false;
+  S.bayMatch = false;
+  S.bayFoe = "";
+  S.baySeat = "A";
   lobbyStarting = false;
   syncWarmupChrome();
   syncBootButtons(false);

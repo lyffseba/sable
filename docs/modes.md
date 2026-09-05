@@ -9,7 +9,8 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
 | **ENTER RANGE** | shared Salt House | same 60 s gallery, room owns plates | host starts the house |
-| **BAY** / **ENTER BAY** | local first-to-5 | cover vs open middle, R6 128 Hz / HID outside / `fire_ms` stamp | never replaces gallery; one-click local |
+| **BAY** | local first-to-5 | cover vs open middle, R6 128 Hz / HID outside / `fire_ms` stamp | one-click local; no room |
+| **ENTER BAY** | shared first-to-5 | same booth, room owns score / pose / `fire_ms` rewind | host starts the booth; never `/api/lobby/start` |
 
 ## Gallery rules (Salt House)
 
@@ -24,9 +25,10 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 ## Bay rules (1v1 booth)
 
 - First to 5 (`BAY_TO_WIN`). Pose / expose / freeze live on the 128 Hz sim (`tickBay(SIM_DT)` from `stepSim`). Hitscan peeks the last committed pose.
-- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs = committedSimMs()`. No lobby Bay loop. No `/api/lobby/start`.
+- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs = committedSimMs()`. Boot **BAY** has no `/api/lobby/*`. Lobby **ENTER BAY** fire-and-forgets `/api/lobby/bay` — never `/api/lobby/start` (that starts the house). Shared resolve is a lazy snapshot + fire-tick rewind. No 128 Hz friend loop.
+- Room-owned shared Bay: last committed pose mailbox + peeked UV + `fire_ms` on the 128 Hz grid. The room ray-tests that UV against the foe capsule at that tick. A miss stays a miss. Open-middle death is an expose intent the room verifies.
 - Arcade feedback is the same thin **SableHUD** bar: `YOU` / `THEM` / `ROUND` + cover chip + `FIRST TO 5` / `MATCH`. Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff.
-- Boot **BAY** and lobby **ENTER BAY** stay local one-click. Offline **GALLERY**, **WARM UP**, and **ENTER RANGE** stay. Bay is never the only gun.
+- Boot **BAY** stays one-click local without a room. Lobby **ENTER BAY** drops into the booth immediately — if the lobby POST hangs, local BAY still fires. Offline **GALLERY**, **WARM UP**, and **ENTER RANGE** stay. Bay is never the only gun.
 
 ## Geometry
 

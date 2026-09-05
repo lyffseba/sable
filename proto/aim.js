@@ -19,7 +19,9 @@ import {
   worldToHud,
   popup,
   sharedMatch,
+  sharedBay,
   reportSharedFire,
+  reportSharedBayFire,
 } from "./house.js";
 import { enterGame } from "./boot.js";
 
@@ -127,6 +129,9 @@ const S = {
   seed: 0,
   sharedDead: null,
   sharedPending: null,
+  bayMatch: false,
+  baySeat: "A",
+  bayFoe: "",
 };
 
 function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -291,6 +296,9 @@ function fire() {
   if (phase === "bay") {
     fireBay3D(raycaster, muzzleWorld);
     SablePerf.markHid(t0);
+    if (sharedBay()) {
+      try { reportSharedBayFire(shot); } catch (e) { /* local already resolved */ }
+    }
     return;
   }
 
