@@ -5,7 +5,16 @@
 import * as THREE from "./vendor/three.module.js";
 import { S, W, H, dpr, phase, aimBus, clamp } from "./aim.js";
 import { $, canvas3D, setPhase, ensureLobbyPoll } from "./boot.js";
-import { unlockAudio, bang, hitBlip, missTick, pullWhistle } from "./audio.js";
+import {
+  unlockAudio,
+  bang,
+  hitBlip,
+  missTick,
+  pullWhistle,
+  liftMint,
+  mintTell,
+  SABLE_AUDIO_MINT_TELL,
+} from "./audio.js";
 
 // --- Operator Identity & Locker Catalog ---
 const OP_CANCHO = "cancho";
@@ -19,7 +28,7 @@ const Locker = {
     displayName: "CANCHO",
     styles: [STYLE_DEFAULT, STYLE_RANKED, STYLE_NIGHT],
     vo: {
-      lift: "¡Al aire!",
+      lift: SABLE_AUDIO_MINT_TELL,
       hit: "¡Claro!",
       drop: "¡Al suelo!",
       win: "¡Se escribió!"
@@ -126,9 +135,20 @@ const Bay = {
   vo(line) {
     this.voText = line;
     this.voT = 0.9;
-    speak(line);
+    // Mint-tell is the oscillator chirp (afterLiftState). No browser TTS.
+    if (line !== SABLE_AUDIO_MINT_TELL) speak(line);
   }
 };
+
+let liftTellArmed = false;
+
+function afterLiftState() {
+  const lifted = !!(S.lifted || S.desktop || S.forceGun);
+  const live = phase === "range" || phase === "bay" || phase === "calibrate" || phase === "lock";
+  if (live && lifted && !liftTellArmed) mintTell();
+  if (live) liftTellArmed = lifted;
+  if (!live) liftTellArmed = false;
+}
 
 // --- Speech Synthesis Helper ---
 function speak(text) {
@@ -964,6 +984,9 @@ export {
   hitBlip,
   missTick,
   pullWhistle,
+  liftMint,
+  mintTell,
+  afterLiftState,
   YARD_PEEKS,
   init3D,
   fireBay3D,

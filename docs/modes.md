@@ -18,7 +18,7 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 - End state is **GALLERY CLEAR** (score / hits / accuracy / combo / 60 s round).
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
 - Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby.
-- Sparse **SableAudio**: dry-tick miss (escape / dry fire) and hit punch on shatter. Feedback after resolve, never a fire gate. No bed, no ambience.
+- Sparse **SableAudio**: dry-tick miss (escape / dry fire) and hit punch on shatter. Quiet mint-tell lift cue (`Mint. Lift.` — oscillator this cut) after GUN. Feedback after resolve / lift state, never a fire gate. No bed, no ambience.
 - Stand still. WASD is Bay only.
 
 ## Geometry

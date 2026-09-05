@@ -50,7 +50,7 @@ Lines belong to CANCHO. Swapping a look does not change VO.
 
 | Event | Line |
 |-------|------|
-| lift (`AimSample.lifted` edge) | `Al aire.` |
+| lift mint-tell (`AimSample.lifted` / GUN edge) | `Mint. Lift.` (SableAudio; oscillator chirp this cut — no browser TTS / third-party voices) |
 | hit | `Claro.` |
 | drop (`!lifted` edge) | `Al suelo.` |
 | first-to-5 | `Se escribió.` |
