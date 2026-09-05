@@ -5,7 +5,7 @@
 
 Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no third-party game assets, names, maps, audio, or code. Codename only.
 
-**Your hand is the gun.** Raise the cuff in the **Salt House**, point, click the trackpad. Original hall, original plates, original CANCHO gauntlet (paint sheets in `art/concepts/`). Fingertip lock at camera rate, One Euro, Gemini only to seed. Fire is HID against the `AimSample` mailbox — never gated on a camera frame.
+**Your hand is the gun.** Raise it at a MacBook lid camera, point the index, pinch or tap the pad. MediaPipe Hands (landmark 8) is primary; skin/NCC is the else path. One Euro. Gemini only seeds. Fire is HID against the `AimSample` mailbox — never gated on a camera frame. Yard spec: `docs/yard.md`. Hands audit: `research/HANDS.md`.
 
 Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitscan via Pixi; **Three.js** WebGL client; C++17 reference tests. Fire stays HID-local. Native kernels run at hardware SIMD width (`std.sys.info.simd_width_of`).
 
@@ -25,13 +25,13 @@ Open **http://127.0.0.1:8080** in your browser.
 
 - **OFFLINE**: Straight into the Range — one iconic shooting ground.
 - **ONLINE**: Waiting-arena lobby. Enter the **same** Range, or **Host 5v5** (ten slots, then the same Range).
-- **AI HAND LOCK**: Gemini seeds the fingertip; the browser tracks it at 60–120 FPS.
+- **HANDS**: MediaPipe fingertip lock. PLAY ANYWAY if the camera misses. Pinch or trackpad fires.
 
 ### Keys
 
 | Key | Action |
 |-----|--------|
-| Trackpad / click | Fire at the **latest** `AimSample.uv` (HID click, never waits on camera) |
+| Trackpad / pinch | Fire at the **latest** `AimSample.uv` (never waits on camera) |
 | **WASD** | Move on the pad (Bay 1v1 mode only, locked during lift) |
 | **L** | Cycle CANCHO outfit style (`default`, `ranked`, `night`) |
 | **T** | Desktop aim toggle (OS cursor fallback) |
