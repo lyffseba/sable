@@ -137,6 +137,9 @@ def test_no_main_thread_detect() -> None:
         _fail("rAF frame lost runTrack — tracker no longer publishes the mailbox")
     if "fire(" in frame and "maybePinchFire" not in frame:
         _fail("rAF frame must not fire() except via pinch after updateMode")
+    step = _fn(js, "stepSim")
+    if "fire(" in step:
+        _fail("stepSim must not fire — HID stays off the 128 Hz clock")
 
 
 def test_sableperf_probe_order() -> None:

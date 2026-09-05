@@ -72,13 +72,13 @@ CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 `proto/game.js` is the module entry (`import "./boot.js"`). Ownership is split: `aim.js` (mailbox / fire peek / sticky lift / SablePerf / desktop), `hands.js` (MediaPipe + skin/NCC + One Euro; `detectForVideo` in `hands_worker.js`), `house.js` (Salt House / Yard plates / shared match hooks / Bay), `boot.js` (lobby UI / phase machine / rAF glue).
 
-Docs disagree: `docs/tick.md` says 64 Hz, `server/tick.py` is 128 Hz, Range is `requestAnimationFrame`. Pick one before netcode.
+Tick contract (`docs/tick.md`): render is rAF; named sim is **128 Hz** (`server/tick.py` + client `stepSim`); HID fire peeks `AimBus` and waits on neither. Shared house stays a lazy lobby snapshot + fire-tick rewind — not a global 128 Hz friend loop.
 
 Hand tracking: MediaPipe Tasks Vision HandLandmarker (Apache-2.0, published float16/1 `.task`, landmark 8) is the primary muzzle. Detect runs in a Web Worker (GPU, then CPU). Main applies One Euro, then the mailbox. skin/NCC is the else path when landmarks die. Fire never waits on the worker.
 
 Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss.
 
-**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Bay is a second playlist (first to 5, `AimBus` peek) — never the only gun. Shared house is not the only way to shoot. Lift/HID must not wait on net or the Hands worker — if the lobby POST hangs or `detectForVideo` is in flight, local practice still fires. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). Main rAF must not run `HandLandmarker.detect` synchronously. `?sableperf=1` / `window.SablePerf` still proves HID→hitscan p99 < 8 ms (`t0` before `bang()`). `tools/test_sableperf.py` and `tools/test_sableqa_offline.py` fail loud if detect sneaks back onto main, the probe is reordered, Offline / WARM UP die, lock shows the OS cursor, fire waits on the worker, or Bay becomes the only gun. **`v0.13.0` stood.** Build tags after this soft-lock.
+**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Bay is a second playlist (first to 5, `AimBus` peek) — never the only gun. Shared house is not the only way to shoot. Lift/HID must not wait on net, the Hands worker, the 128 Hz sim step, or rAF — if the lobby POST hangs or `detectForVideo` is in flight, local practice still fires. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). Main rAF must not run `HandLandmarker.detect` synchronously. `?sableperf=1` / `window.SablePerf` still proves HID→hitscan p99 < 8 ms (`t0` before `bang()`). `tools/test_sableperf.py`, `tools/test_sableqa_offline.py`, and `tools/test_tick_contract.py` fail loud if detect sneaks back onto main, the probe is reordered, Offline / WARM UP die, lock shows the OS cursor, fire waits on the worker or the tick, docs drift off 128 Hz, or Bay becomes the only gun. **`v0.18.0` stood.** Build tags after this soft-lock.
 
 Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose). The click does **not** call `coastTrack` / `updateAim` — hitscan uses the last committed `S.aim` / mailbox sample. Optional `?sableperf=1` records HID→hitscan p50/p99 vs the 8 ms bar (`window.SablePerf.stats()`).
 
@@ -91,9 +91,9 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 | R3 | Hand-visible **beats** trackpad HID for lift; sticky through pad reach | Trackpad click dropped GUN when the hand left frame | Half day + test rewrite | **Done** |
 | R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | seed + rewind ray resolve; not a global tick | **Done** (merge when CI green; zip after tip) |
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
-| R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
+| R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | contract + local `stepSim` | **Done** |
 
-Recommend **merge to main when CI green**. **`v0.12.0` stands** — do not cut a zip/tag from this Bay playlist. Next tag after Bay tip + SableQA clear (Offline / WARM UP / Bay-not-only-gun). R1 is the file split only — same fire verb, no R6 tick unify. **M4** is the Bay playlist (lobby / boot entry, local first-to-5 booth). Shared Range stays the online house. Next after M4: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
+Recommend **merge to main when CI green**. **`v0.18.0` stood.** Build tags after this soft-lock. R6 is the tick contract only — same fire verb, AimSample untouched. Shared house stays a lazy lobby snapshot + fire-tick rewind (not a fake global 128 Hz friend sim). Next after R6: R5 when a modeler is in Blender, or competitive 1v1 on this contract.
 
 ## Milestones
 

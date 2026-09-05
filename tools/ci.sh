@@ -30,6 +30,7 @@ python3 tools/test_lobby.py
 python3 tools/test_warmup_flow.py
 python3 tools/test_shared_range.py
 python3 tools/test_sableqa_offline.py
+python3 tools/test_tick_contract.py
 python3 tools/test_hands_worker.py
 python3 tools/test_sableperf.py
 python3 tools/test_bay_playlist.py

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""In-memory 5v5 waiting-arena rooms + shared Salt House sim. Stdlib only."""
+"""In-memory 5v5 waiting-arena rooms + shared Salt House sim. Stdlib only.
+
+Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
+Not the 128 Hz dedicated stepper (server/tick.py). See docs/tick.md.
+"""
 
 from __future__ import annotations
 
