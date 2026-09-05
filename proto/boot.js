@@ -1,6 +1,7 @@
 /* SABLE — boot.js
    Boot, lobby UI wiring, serve entry, phase machine glue.
    Durable hangar session: S.hangar hangar | wait_practice | match_live.
+   SableNet hangar lock: room owns hangar; poll is a view; HUD reads S.hangar.
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -187,8 +188,19 @@ function slotLabel(slot) {
   return you + slot.name + warm;
 }
 
+function applyRoomHangar(data) {
+  // Poll view of room-owned hangar. HUD still reads S.hangar. Never await; never fire.
+  if (!data || !data.ok) return;
+  if (data.hangar == null || data.hangar === "") throw new Error("SABLE HANGAR: room snapshot missing hangar");
+  // Host ENTER RANGE is fire-and-forget. Do not revert LIVE while the POST is in flight.
+  if (lobbyStarting && data.hangar === "wait_practice" && S.hangar === "match_live") return;
+  assignHangar(data.hangar);
+}
+
 function paintLobby(data) {
   if (!data || !data.ok) return;
+  // WARM UP is a client-local park. Poll applies hangar; this path must not wire-gate practice.
+  if (!S.warmup) applyRoomHangar(data);
   S.room = data.code;
   S.host = data.host === S.player;
   S.playlist = "5v5";
@@ -275,6 +287,7 @@ async function lobbyPoll() {
       const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
       const data = await res.json();
       if (!data.ok) return;
+      applyRoomHangar(data);
       if (data.phase === "bay") {
         reportSharedBayPose();
         applySharedBay(data);
@@ -287,6 +300,7 @@ async function lobbyPoll() {
     const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
     const data = await res.json();
     if (!data.ok) return;
+    applyRoomHangar(data);
     if (phase === "lobby" || S.warmup) paintLobby(data);
     if (data.phase === "bay" && !lobbyStarting) {
       S.warmup = false;

@@ -15,8 +15,8 @@ def main() -> int:
     if not a.get("ok") or a.get("slot") != 0 or len(a["code"]) != 4:
         print(f"FAIL create {a}", file=sys.stderr)
         return 1
-    if "hangar" in a:
-        print("FAIL server snapshot grew hangar — client-only this cut", file=sys.stderr)
+    if a.get("hangar") != "wait_practice":
+        print(f"FAIL create hangar {a.get('hangar')}", file=sys.stderr)
         return 1
     b = lobby.join(a["code"], "P2")
     if not b.get("ok") or b.get("slot") != 1 or b["filled"] != 2:
@@ -26,8 +26,11 @@ def main() -> int:
     if g["slots"][0]["name"] != "HOST" or g["slots"][1]["name"] != "P2":
         print(f"FAIL get {g}", file=sys.stderr)
         return 1
+    if g.get("hangar") != "wait_practice" or b.get("hangar") != "wait_practice":
+        print(f"FAIL join hangar split {g.get('hangar')} {b.get('hangar')}", file=sys.stderr)
+        return 1
     warm = lobby.warmup(a["code"], b["player"])
-    if not warm.get("ok") or warm.get("phase") != "wait":
+    if not warm.get("ok") or warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice":
         print(f"FAIL warmup phase {warm}", file=sys.stderr)
         return 1
     slots = lobby.get(a["code"])["slots"]
@@ -46,7 +49,7 @@ def main() -> int:
         return 1
     lobby.warmup(a["code"], a["player"])
     still = lobby.get(a["code"])
-    if still.get("phase") != "wait" or still.get("filled") != 2:
+    if still.get("phase") != "wait" or still.get("filled") != 2 or still.get("hangar") != "wait_practice":
         print(f"FAIL warmup must keep wait + seats {still}", file=sys.stderr)
         return 1
     bad = lobby.start(a["code"], b["player"])
@@ -54,7 +57,7 @@ def main() -> int:
         print("FAIL non-host started", file=sys.stderr)
         return 1
     st = lobby.start(a["code"], a["player"])
-    if not st.get("ok") or st.get("phase") != "range":
+    if not st.get("ok") or st.get("phase") != "range" or st.get("hangar") != "match_live":
         print(f"FAIL start {st}", file=sys.stderr)
         return 1
     if st.get("seed") is None or not st.get("plates") or st["plates"][0]["id"] != "p0":

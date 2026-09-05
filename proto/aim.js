@@ -97,7 +97,8 @@ export let W = 1280, H = 720, dpr = 1, phase = "boot";
 
 // Durable hangar session — not the screen/sim phase.
 // hangar: boot / Offline gallery. wait_practice: HUD-on-Yard + WARM UP.
-// match_live: shared ENTER RANGE. Server room.phase stays wait|range|bay.
+// match_live: shared ENTER RANGE. Room owns hangar
+// (wait→wait_practice, range→match_live; Bay parked). Poll is a view.
 export const HANGAR_PHASES = ["hangar", "wait_practice", "match_live"];
 
 export function assignView(w, h, ratio) {

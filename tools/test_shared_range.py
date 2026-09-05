@@ -35,7 +35,7 @@ def test_two_clients_share_seed_and_ray_hit() -> None:
     b = lobby.join(a["code"], "P2")
     t0 = 1_000.0
     st = lobby.start(a["code"], a["player"], now=t0, seed=0xC0FFEE)
-    if not st.get("ok") or st.get("phase") != "range":
+    if not st.get("ok") or st.get("phase") != "range" or st.get("hangar") != "match_live":
         raise AssertionError(f"start {st}")
     if st.get("seed") != 0xC0FFEE:
         raise AssertionError(f"seed {st.get('seed')}")
@@ -143,7 +143,7 @@ def test_warmup_stays_local() -> None:
     a = lobby.create("HOST")
     b = lobby.join(a["code"], "P2")
     warm = lobby.warmup(a["code"], b["player"])
-    if warm.get("phase") != "wait" or "seed" in warm or warm.get("plates"):
+    if warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice" or "seed" in warm or warm.get("plates"):
         raise AssertionError(f"warmup must not open the shared sim {warm}")
     g = lobby.get(a["code"])
     if g.get("phase") != "wait" or "seed" in g or g.get("plates"):

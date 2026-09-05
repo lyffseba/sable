@@ -36,4 +36,4 @@ python3 tools/serve_proto.py
 | **WASD** | Bay PAD move (locked while lifted) |
 | **L** | Bay: cycle CANCHO style |
 
-Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. Gallery SableHUD chips: hangar `WAIT` / `READY` / `LIVE` from `S.hangar`, thin `ROOM` on `wait_practice` / `match_live`, then `SCORE` / `ROUND` / `60s GALLERY`. Lift plays a quiet mint-tell chirp (`Mint. Lift.`).
+Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. Gallery SableHUD chips: hangar `WAIT` / `READY` / `LIVE` from `S.hangar` (room snapshot owns hangar on the wire), thin `ROOM` on `wait_practice` / `match_live`, then `SCORE` / `ROUND` / `60s GALLERY`. Lift plays a quiet mint-tell chirp (`Mint. Lift.`).
