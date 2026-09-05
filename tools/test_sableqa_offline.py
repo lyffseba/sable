@@ -158,10 +158,12 @@ def main() -> int:
         if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
             _fail_only_gun("lobby lost ENTER RANGE")
         start_room = _js_fn(js, "lobbyStartRange")
-        if 'play("range")' not in start_room:
+        if "enterRangePreserve()" not in start_room and 'play("range")' not in start_room:
             _fail_only_gun("ENTER RANGE no longer starts the Salt House")
         if "/api/lobby/start" not in start_room:
             _fail_only_gun("host ENTER RANGE no longer shares the house")
+        if re.search(r"await\s+", start_room):
+            _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
 
         if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
             _fail("boot still offers BAY — Yard is the sole active map")

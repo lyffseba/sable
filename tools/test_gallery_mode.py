@@ -150,10 +150,12 @@ def test_practice_and_bay_survive() -> None:
     if 'play("bay")' in warm or 'setPhase("bay")' in warm:
         _fail_only_gun("WARM UP dropped into Bay")
     start_room = _js_fn(js, "lobbyStartRange")
-    if 'play("range")' not in start_room:
+    if "enterRangePreserve()" not in start_room and 'play("range")' not in start_room:
         _fail_only_gun("ENTER RANGE no longer starts the Salt House")
     if "/api/lobby/start" not in start_room:
         _fail_only_gun("host ENTER RANGE no longer shares the house")
+    if re.search(r"await\s+", start_room):
+        _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
     start_bay = _js_fn(js, "lobbyStartBay")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
         _fail("parked lobbyStartBay lost the booth drop")

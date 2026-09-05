@@ -176,8 +176,10 @@ def test_enter_bay_soft_lock() -> None:
     if 'play("bay")' in warm or 'setPhase("bay")' in warm:
         _fail_only_gun("WARM UP dropped into Bay")
     start_range = _js_fn(js, "lobbyStartRange")
-    if 'play("range")' not in start_range or "/api/lobby/start" not in start_range:
+    if ("enterRangePreserve()" not in start_range and 'play("range")' not in start_range) or "/api/lobby/start" not in start_range:
         _fail_only_gun("ENTER RANGE no longer shares the Salt House")
+    if re.search(r"await\s+", start_range):
+        _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
     poll = _js_fn(js, "lobbyPoll")
     if 'phase === "bay"' not in poll:
         _fail("lobby poll must not yank Bay into shared Range")

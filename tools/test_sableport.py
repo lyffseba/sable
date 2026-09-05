@@ -179,6 +179,11 @@ def test_soft_locks_hold() -> None:
         _fail("playlist lost a Yard path")
     if 'id="btn-bay"' in html or "ENTER BAY" in html:
         _fail("playlist still offers Bay — Yard is the sole active map")
+    start = _js_fn(js, "lobbyStartRange")
+    if "enterRangePreserve()" not in start:
+        _fail("ENTER RANGE lost phase-preserve — calib/lock would trap HID")
+    if re.search(r"await\s+", start):
+        _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
 
 
 def test_bible_and_ci() -> None:
