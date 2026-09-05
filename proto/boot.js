@@ -44,6 +44,7 @@ import {
   Bay,
   speak,
   unlockAudio,
+  afterLiftState,
   hitBlip,
   init3D,
   renderer,
@@ -828,6 +829,7 @@ function frame(t) {
     updateAim();
     maybePinchFire(S.handLm);
   }
+  afterLiftState();
 
   if (phase === "lock") tickLock(t);
   if (phase === "range" || phase === "bay") {
@@ -955,11 +957,12 @@ window.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("keydown", (e) => {
-  if (e.code === "Space") { e.preventDefault(); S.forceGun = true; }
+  if (e.code === "Space") { e.preventDefault(); S.forceGun = true; afterLiftState(); }
   if (e.code === "KeyT") {
-    if (phase === "lock") { goDesktopRange(); return; }
+    if (phase === "lock") { goDesktopRange(); afterLiftState(); return; }
     S.desktop = !S.desktop;
     if (S.desktop) S.mode = "DESKTOP";
+    afterLiftState();
   }
   if (e.code === "KeyW") Bay.keys.w = true;
   if (e.code === "KeyA") Bay.keys.a = true;

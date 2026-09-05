@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""SableAudio contract: sparse gallery dry-tick miss + hit punch.
+"""SableAudio contract: sparse gallery dry-tick miss + hit punch + lift mint.
 
 Fail loud on silence (verbs gone), a music/ambience bed, third-party
-audio packs, or audio that gates HID fire. Does not change SableQA floors.
+audio packs, or audio that gates HID fire. Lift mint-tell must stay
+quieter than miss/hit. Does not change SableQA floors.
 """
 
 from __future__ import annotations
@@ -80,6 +81,8 @@ def test_module_and_bar() -> None:
         _fail("SableAudio must stay quieter than SableHUD chips (gain cap 0.12)")
     miss = _js_fn(src, "missTick")
     hit = _js_fn(src, "hitBlip")
+    lift = _js_fn(src, "liftMint")
+    tell = _js_fn(src, "mintTell")
     tap = _js_fn(src, "tap")
     if "createOscillator" not in tap:
         _fail("SableAudio tap silenced — original oscillators died")
@@ -87,18 +90,26 @@ def test_module_and_bar() -> None:
         _fail("missTick silenced — dry tick died")
     if "tap(" not in hit and "createOscillator" not in hit:
         _fail("hitBlip silenced — hit punch died")
+    if "tap(" not in lift and "createOscillator" not in lift:
+        _fail("liftMint silenced — mint-tell chirp died")
+    if "liftMint" not in tell:
+        _fail("mintTell hook must call liftMint")
     if "SABLE_AUDIO_MISS_HZ" not in miss:
         _fail("missTick must use the 1850 Hz dry-tick const")
+    if "SABLE_AUDIO_LIFT_GAIN" not in lift:
+        _fail("liftMint must use the dedicated lift gain")
+    if '"Mint. Lift."' not in src or "SABLE_AUDIO_MINT_TELL" not in src:
+        _fail("locked SableCancho mint-tell line Mint. Lift. must live in audio.js")
     if "Math.random" in src:
         _fail("SableAudio must not hide aim noise with RNG")
     if "speechSynthesis" in src:
-        _fail("mint-tell VO is out of scope")
+        _fail("mint-tell must not use speechSynthesis / third-party voices")
     bang = _js_fn(src, "bang")
     if "createOscillator" in bang or "createGain" in bang:
         _fail("bang() must stay a silent SablePerf hook — shot verbs are after resolve")
     whistle = _js_fn(src, "pullWhistle")
     if "createOscillator" in whistle or "createGain" in whistle:
-        _fail("pullWhistle must stay silent — this cut is miss + hit only")
+        _fail("pullWhistle must stay silent — lift mint is liftMint, not a spawn whistle")
 
 
 def test_no_bed_or_third_party() -> None:
@@ -128,6 +139,14 @@ def test_gains_stay_thin() -> None:
     for raw in re.findall(r"gain\.gain\.setValueAtTime\(([0-9.]+)", src):
         if float(raw) > 0.12:
             _fail(f"gain {raw} louder than SableHUD chips")
+    lift_g = _js_const(src, "SABLE_AUDIO_LIFT_GAIN")
+    miss_g = _js_const(src, "SABLE_AUDIO_MISS_GAIN")
+    hit_g = _js_const(src, "SABLE_AUDIO_HIT_GAIN")
+    cap = _js_const(src, "SABLE_AUDIO_GAIN_CAP")
+    if lift_g >= miss_g or lift_g >= hit_g:
+        _fail("lift mint must stay quieter than dry-tick miss and hit punch")
+    if lift_g > cap or miss_g > cap or hit_g > cap:
+        _fail("SableAudio gains must stay under SABLE_AUDIO_GAIN_CAP")
     js = proto_js()
     house = (ROOT / "proto" / "house.js").read_text(encoding="utf-8")
     if "gain.gain.setValueAtTime(0.42" in js or "setValueAtTime(0.42" in house:
@@ -161,6 +180,8 @@ def test_after_resolve_not_a_gate() -> None:
         _fail("gallery hit punch / dry-tick miss left fire() after hitscan")
     if mark_at < 0 or hit_at < mark_at or miss_at < mark_at:
         _fail("hit/miss audio must stay after shot resolve (markHid / hitscan)")
+    if "liftMint" in fire or "mintTell" in fire or "afterLiftState" in fire:
+        _fail("lift mint must not enter fire() — never a fire gate")
     ranged = _js_fn(js, "updateRange")
     if "missTick" not in ranged:
         _fail("escape / dry miss must still play the dry tick")
@@ -193,6 +214,30 @@ def test_playlist_untouched() -> None:
         _fail("playlist chrome lost a practice / Bay path")
 
 
+def test_lift_mint_after_state() -> None:
+    js = proto_js()
+    after = _js_fn(js, "afterLiftState")
+    if "mintTell" not in after and "liftMint" not in after:
+        _fail("afterLiftState must play the mint-tell after lift")
+    frame_at = js.find("function frame(")
+    if frame_at < 0:
+        _fail("frame() missing")
+    mode_at = js.find("updateMode", frame_at)
+    tell_at = js.find("afterLiftState", frame_at)
+    if tell_at < 0:
+        _fail("frame must cue lift mint after lift state")
+    if mode_at >= 0 and tell_at < mode_at:
+        _fail("lift mint must run after updateMode writes lift, never before")
+    if "afterLiftState();" not in js:
+        _fail("lift mint rising-edge helper left the client")
+    keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
+    if "afterLiftState" not in keys:
+        _fail("Space / T lift must still cue mint-tell (DESKTOP / force GUN)")
+    fire = _js_fn(js, "fire")
+    if re.search(r"await\s+", fire):
+        _fail("fire() awaits — audio must not gate HID")
+
+
 def test_docs() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "SableAudio" not in bible:
@@ -201,11 +246,20 @@ def test_docs() -> None:
         _fail("PRODUCTION.md must name the dry-tick miss")
     if "hit punch" not in bible.lower():
         _fail("PRODUCTION.md must name the hit punch")
+    if "mint-tell" not in bible.lower() and "mint tell" not in bible.lower():
+        _fail("PRODUCTION.md must name the mint-tell lift cue")
+    if "Mint. Lift." not in bible:
+        _fail("PRODUCTION.md must lock the SableCancho mint-tell line")
     if "v0.20.0" not in bible:
         _fail("do not drop the SableHUD v0.20.0 stand")
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     if "SableAudio" not in modes:
         _fail("docs/modes.md must note sparse gallery audio")
+    if "Mint. Lift." not in modes:
+        _fail("docs/modes.md must lock the mint-tell line")
+    cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
+    if "Mint. Lift." not in cancho:
+        _fail("cancho.md must record the locked mint-tell VO copy")
 
 
 def test_ci_wires_the_lock() -> None:
@@ -225,6 +279,7 @@ def main() -> int:
         test_no_bed_or_third_party()
         test_gains_stay_thin()
         test_after_resolve_not_a_gate()
+        test_lift_mint_after_state()
         test_playlist_untouched()
         test_docs()
         test_ci_wires_the_lock()
