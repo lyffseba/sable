@@ -24,7 +24,7 @@ python3 tools/serve_proto.py
 Open **http://127.0.0.1:8080** in your browser.
 
 - **OFFLINE**: Straight into the 60s Salt House gallery on the Yard — one click. Score the clock. End state is GALLERY CLEAR.
-- **ONLINE**: Waiting-arena lobby. **WARM UP** is practice in the same gallery without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** starts the shared house. Bay booth is parked — not a player mode.
+- **ONLINE**: Waiting arena is HUD-on-Yard always-practice (thin chips, live plates). **WARM UP** is one-click local 60s without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** shares the Yard gallery. Bay booth is parked — not a player mode.
 - **HANDS**: MediaPipe fingertip lock. PLAY ANYWAY if the camera misses. Pinch or trackpad fires.
 
 ### Keys

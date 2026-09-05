@@ -8,7 +8,7 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 |-------|----------|-------|-----------|
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
-| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates | host starts the house |
+| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates | host shares the live Yard |
 
 Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / `house.js` booth may remain; boot `btn-bay` and lobby **ENTER BAY** stay off player chrome.
 
@@ -18,7 +18,7 @@ Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / 
 - Score + combo are the mode. Escape (`ESC`) is a miss. Sit plates dwell, then drop. Clays leave.
 - End state is **GALLERY CLEAR** (score / hits / accuracy / combo / 60 s round).
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
-- Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby.
+- Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby. Waiting arena stays HUD-on-Yard (`startWaitingYard`) — local plates, no 60 s lock, no net on the click.
 - Sparse **SableAudio**: dry-tick miss (escape / dry fire) and hit punch on shatter. Quiet mint-tell lift cue (`Mint. Lift.` — oscillator this cut) after GUN. Audio only — do not paint VO over the cuff. Feedback after resolve / lift state, never a fire gate. No bed, no ambience.
 - Stand still. WASD is Bay only (parked booth).
 
@@ -45,5 +45,5 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire.
 - Do not bloom the reticle. Charcoal / bone / mint / rust only.
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
-- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE.
+- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin chips — not a match-start screen.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.

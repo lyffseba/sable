@@ -39,6 +39,7 @@ python3 tools/test_shared_bay.py
 python3 tools/test_gallery_mode.py
 python3 tools/test_sablehud.py
 python3 tools/test_sableaudio.py
+python3 tools/test_sablelobby.py
 # SablePort: fail loud if Valve/Epic DNA lands in runtime art.
 python3 tools/test_sableport.py
 ./tools/run_cv_tests.sh

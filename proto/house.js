@@ -619,7 +619,7 @@ function fireBay3D(raycaster, muzzleWorld) {
   }
 }
 function sharedMatch() {
-  return !!(S.online && !S.warmup && S.room && S.player && !S.bayMatch);
+  return !!(S.online && !S.warmup && !S.waitingYard && S.room && S.player && !S.bayMatch);
 }
 
 function sharedBay() {
@@ -840,6 +840,7 @@ function restoreYardLook() {
 }
 
 function startBay() {
+  S.waitingYard = false;
   S.simTick = 0;
   Bay.fireMs = 0;
   Bay.active = true;
@@ -865,7 +866,32 @@ function startBay() {
   }
 }
 
+function startWaitingYard() {
+  // Waiting-arena always-practice: local Yard plates, no 60s lock, no net.
+  S.waitingYard = true;
+  S.warmup = false;
+  S.enteringRange = false;
+  restoreYardLook();
+  if (rangeTargetGroup) rangeTargetGroup.visible = true;
+  if (rangeHallGroup) rangeHallGroup.visible = true;
+  if (bayGroup) bayGroup.visible = false;
+  while (rangeTargetGroup && rangeTargetGroup.children.length > 0) {
+    rangeTargetGroup.remove(rangeTargetGroup.children[0]);
+  }
+  S.orbs = []; S.parts = []; S.pops = [];
+  S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
+  S.rangeStart = performance.now();
+  S.simTick = 0;
+  S.recoil = 0; S.punch = 0; S.flash = 0;
+  S.sharedDead = new Set();
+  S.sharedPending = new Set();
+  const first = spawnOrb3D({ kind: "sit", worth: 100, hue: 165 });
+  first.mesh.position.set(0.2, 0.35, -6.6);
+  first.baseY = 0.35;
+}
+
 function startRange() {
+  S.waitingYard = false;
   restoreYardLook();
   S.enteringRange = false;
   while (rangeTargetGroup && rangeTargetGroup.children.length > 0) {
@@ -949,7 +975,7 @@ function baySessionLabel() {
 
 function updateRange(dt, elapsed) {
   // dt + elapsed are the 128 Hz sim clock. Render does not own plates.
-  if (galleryOver(elapsed)) { setPhase("results"); return; }
+  if (!S.waitingYard && galleryOver(elapsed)) { setPhase("results"); return; }
   const shared = sharedMatch();
   if (!shared) {
     const want = desiredOrbCount(elapsed);
@@ -1134,6 +1160,7 @@ export {
   pullSharedSim,
   restoreYardLook,
   startBay,
+  startWaitingYard,
   startRange,
   randomOrb,
   popup,

@@ -105,7 +105,19 @@ html, body {
   text-align: center;
   gap: 12px;
   padding: 24px 16px 40px;
-  background: linear-gradient(180deg, rgba(5, 8, 14, 0.08) 0%, rgba(5, 8, 14, 0.82) 62%);
+  background: linear-gradient(180deg, rgba(5, 8, 14, 0) 0%, rgba(5, 8, 14, 0.55) 78%);
+}
+
+#screen-lobby.screen-pass .lobby-inner {
+  pointer-events: none;
+}
+#screen-lobby.screen-pass .btn,
+#screen-lobby.screen-pass input {
+  pointer-events: auto;
+}
+#screen-lobby.screen-pass .slots,
+#screen-lobby.screen-pass .tag {
+  display: none;
 }
 
 .lobby-actions {

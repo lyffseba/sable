@@ -127,6 +127,7 @@ const S = {
   slot: -1,
   host: false,
   warmup: false,
+  waitingYard: false,
   seed: 0,
   sharedDead: null,
   sharedPending: null,
@@ -254,7 +255,7 @@ function publishAim(x, y) {
 function updateAim() {
   if (S.desktop) return;
   if (!S.smooth) return;
-  if (phase !== "range" && phase !== "calibrate" && phase !== "bay" && phase !== "lock") return;
+  if (phase !== "range" && phase !== "calibrate" && phase !== "bay" && phase !== "lock" && phase !== "lobby") return;
   if (S.H || S.camPts.every(Boolean)) {
     const p = camToScreen(S.smooth.x, S.smooth.y);
     if (!p.lost) publishAim(p.x, p.y);
@@ -265,7 +266,7 @@ function updateAim() {
 }
 // --- HID Fire Contract & Hitscan ---
 function fire() {
-  if (phase !== "range" && phase !== "bay" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
+  if (phase !== "range" && phase !== "bay" && phase !== "lobby" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
   // Peek first. Never wait on a camera frame. Never recompute aim on click.
   const shot = aimBus.fire();
   const now = performance.now();

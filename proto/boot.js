@@ -60,6 +60,7 @@ import {
   bayGroup,
   tracerLines,
   startRange,
+  startWaitingYard,
   startBay,
   restoreYardLook,
   applyLockerLook,
@@ -192,12 +193,12 @@ function paintLobby(data) {
   const room = $("lobby-room");
   if (room) room.textContent = "ROOM  " + data.code;
   const kicker = $("lobby-kicker");
-  if (kicker) kicker.textContent = data.phase === "wait" ? "5v5  ·  WAITING ARENA" : "5v5  ·  GALLERY";
+  if (kicker) kicker.textContent = data.phase === "wait" ? "5v5  ·  YARD" : "5v5  ·  GALLERY";
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
-      ? "WARM UP is practice. ENTER RANGE shares the Yard gallery."
-      : "WARM UP anytime. Host ENTER RANGE shares the Yard.";
+      ? "Yard is live. WARM UP is practice. ENTER RANGE shares the gallery."
+      : "Yard is live. WARM UP anytime. Host ENTER RANGE shares the gallery.";
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
@@ -315,6 +316,7 @@ async function lobbyPoll() {
 
 async function lobbyStartRange() {
   S.warmup = false;
+  S.waitingYard = false;
   syncWarmupChrome();
   if (!S.room || !S.player) {
     play("range");
@@ -352,6 +354,7 @@ async function lobbyWarmup() {
     return;
   }
   S.warmup = true;
+  S.waitingYard = false;
   S.online = true;
   syncWarmupChrome();
   // Seat mark is best-effort. Do not wait on net to practice.
@@ -382,6 +385,7 @@ function syncBayChrome() {
 function lobbyStartBay() {
   S.playlist = "bay";
   S.warmup = false;
+  S.waitingYard = false;
   syncWarmupChrome();
   if (S.room && S.player) {
     S.bayMatch = true;
@@ -407,6 +411,7 @@ function leaveBay() {
 
 async function returnToLobby() {
   S.warmup = false;
+  S.waitingYard = false;
   S.bayMatch = false;
   S.bayFoe = "";
   S.baySeat = "A";
@@ -441,6 +446,7 @@ async function lobbyLeave() {
   S.room = "";
   S.host = false;
   S.warmup = false;
+  S.waitingYard = false;
   S.bayMatch = false;
   S.bayFoe = "";
   S.baySeat = "A";
@@ -502,7 +508,7 @@ function setPhase(next) {
   for (const k of Object.keys(screens)) {
     if (screens[k]) screens[k].hidden = k !== next;
   }
-  if (rangeTargetGroup) rangeTargetGroup.visible = (next === "range");
+  if (rangeTargetGroup) rangeTargetGroup.visible = (next === "range" || next === "lobby");
   if (rangeHallGroup) rangeHallGroup.visible = (next !== "bay");
   if (bayGroup) bayGroup.visible = (next === "bay");
 
@@ -513,6 +519,7 @@ function setPhase(next) {
   }
   if (next === "range") startRange();
   else if (next === "bay") startBay();
+  else if (next === "lobby") startWaitingYard();
   else if (next !== "lock" && next !== "calibrate") restoreYardLook();
   syncWarmupChrome();
   syncBayChrome();
@@ -815,6 +822,18 @@ function draw2D(now) {
     }
     drawCrosshair(S.aim.x, S.aim.y);
     drawHUD(now);
+  } else if (phase === "lobby") {
+    for (const p of S.pops) {
+      const a = 1 - p.age / p.life;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "hsla(" + p.hue + ",100%,70%,1)";
+      ctx.font = "700 16px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
+    drawCrosshair(S.aim.x, S.aim.y);
+    drawModeChip();
   } else if (phase === "bay") {
     drawCrosshair(S.aim.x, S.aim.y);
     drawBayHUD();
@@ -828,7 +847,7 @@ function simMs() {
 function stepSim() {
   // Plates / Bay pose only. HID fire is not here. No rAF present.
   S.simTick += 1;
-  if (phase === "range") updateRange(SIM_DT, simMs());
+  if (phase === "range" || phase === "lobby") updateRange(SIM_DT, simMs());
   if (phase === "bay") tickBay(SIM_DT);
 }
 
@@ -847,7 +866,7 @@ function frame(t) {
   afterLiftState();
 
   if (phase === "lock") tickLock(t);
-  if (phase === "range" || phase === "bay") {
+  if (phase === "range" || phase === "bay" || phase === "lobby") {
     simAcc += dt;
     if (simAcc > 0.25) simAcc = 0.25;
     while (simAcc >= SIM_DT) {
@@ -958,7 +977,7 @@ canvasHUD.addEventListener("pointerdown", (e) => {
     else fire();
     return;
   }
-  if (phase === "range" || phase === "bay") {
+  if (phase === "range" || phase === "bay" || phase === "lobby") {
     e.preventDefault();
     fire();
   }
@@ -1002,6 +1021,7 @@ window.addEventListener("resize", fit);
 $("btn-play").addEventListener("click", () => {
   S.online = false;
   S.warmup = false;
+  S.waitingYard = false;
   S.playlist = "gallery";
   play("range");
 });
@@ -1059,7 +1079,7 @@ $("btn-recal").addEventListener("click", () => {
 });
 
 function syncCursor() {
-  const hide = phase === "range" || phase === "bay" || phase === "calibrate" || phase === "lock";
+  const hide = phase === "range" || phase === "bay" || phase === "lobby" || phase === "calibrate" || phase === "lock";
   canvas3D.classList.toggle("nocursor", hide);
   canvasHUD.classList.toggle("nocursor", hide);
   const v = hide ? "none" : "";
