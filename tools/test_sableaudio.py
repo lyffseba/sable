@@ -2,8 +2,9 @@
 """SableAudio contract: sparse gallery dry-tick miss + hit punch + lift mint.
 
 Fail loud on silence (verbs gone), a music/ambience bed, third-party
-audio packs, or audio that gates HID fire. Lift mint-tell must stay
-quieter than miss/hit. Does not change SableQA floors.
+audio packs, audio that gates HID fire, or mint-tell VO that hides the
+gun. Lift mint-tell must stay a short cue quieter than miss/hit/HUD.
+Does not change SableQA floors.
 """
 
 from __future__ import annotations
@@ -98,6 +99,8 @@ def test_module_and_bar() -> None:
         _fail("missTick must use the 1850 Hz dry-tick const")
     if "SABLE_AUDIO_LIFT_GAIN" not in lift:
         _fail("liftMint must use the dedicated lift gain")
+    if _js_const(src, "SABLE_AUDIO_LIFT_MS") > 28:
+        _fail("lift mint must stay a short cue — not longer than the dry-tick")
     if '"Mint. Lift."' not in src or "SABLE_AUDIO_MINT_TELL" not in src:
         _fail("locked SableCancho mint-tell line Mint. Lift. must live in audio.js")
     if "Math.random" in src:
@@ -236,6 +239,46 @@ def test_lift_mint_after_state() -> None:
     fire = _js_fn(js, "fire")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — audio must not gate HID")
+    after = _js_fn(js, "afterLiftState")
+    if re.search(r"await\s+", after) or "async function afterLiftState" in js:
+        _fail("afterLiftState awaits — lift mint must not stall Offline/HID")
+    play = _js_fn(js, "play")
+    if "mintTell" in play or "liftMint" in play or "afterLiftState" in play:
+        _fail("play() must not wait on the mint-tell — Offline stays one-click")
+
+
+def test_vo_does_not_hide_the_gun() -> None:
+    js = proto_js()
+    hud = _js_fn(js, "drawHUD")
+    if "Mint. Lift." in hud or "SABLE_AUDIO_MINT_TELL" in hud or "voText" in hud:
+        _fail("gallery HUD painted mint-tell VO over the cuff")
+    if "Impact" in hud or "H * 0.78" in hud or "H*0.78" in hud:
+        _fail("VO/HUD hides the gun")
+    after = _js_fn(js, "afterLiftState")
+    if "fillText" in after or "fillRect" in after or "Bay.vo" in after:
+        _fail("afterLiftState painted VO over the gun")
+    for name in ("liftMint", "mintTell"):
+        body = _js_fn(js, name)
+        if "fillText" in body or "fillRect" in body:
+            _fail(f"{name} drew VO over the cuff")
+    if "Bay.vo(Locker.operator.vo.lift)" in js:
+        _fail("lift VO chip hides the gun — mint-tell is the short audio cue only")
+    bay_at = js.find("function drawBayHUD")
+    if bay_at < 0:
+        _fail("drawBayHUD missing")
+    bay = js[bay_at : bay_at + 2800]
+    if "Impact" in bay:
+        _fail("Bay VO billboard hides the gun")
+    if "H * 0.5" in bay or "H*0.5" in bay or "H * 0.78" in bay:
+        _fail("Bay VO painted over the reticle / cuff")
+    if re.search(r"(?:italic )?700 (?:3[0-9]|[4-9][0-9]|[1-9][0-9]{2,})px", bay):
+        _fail("Bay VO type grew over the cuff")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
 
 
 def test_docs() -> None:
@@ -250,6 +293,10 @@ def test_docs() -> None:
         _fail("PRODUCTION.md must name the mint-tell lift cue")
     if "Mint. Lift." not in bible:
         _fail("PRODUCTION.md must lock the SableCancho mint-tell line")
+    if "test_sableaudio.py" not in bible:
+        _fail("PRODUCTION.md must fail loud through test_sableaudio.py")
+    if "hide the gun" not in bible.lower() and "hides the gun" not in bible.lower():
+        _fail("PRODUCTION.md must fail loud if mint-tell VO hides the gun")
     if "v0.20.0" not in bible:
         _fail("do not drop the SableHUD v0.20.0 stand")
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
@@ -257,9 +304,13 @@ def test_docs() -> None:
         _fail("docs/modes.md must note sparse gallery audio")
     if "Mint. Lift." not in modes:
         _fail("docs/modes.md must lock the mint-tell line")
+    if "cuff" not in modes.lower() and "hide the gun" not in modes.lower():
+        _fail("docs/modes.md must refuse mint-tell VO over the cuff")
     cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
     if "Mint. Lift." not in cancho:
         _fail("cancho.md must record the locked mint-tell VO copy")
+    if "cuff" not in cancho.lower() and "hide" not in cancho.lower():
+        _fail("cancho.md must refuse painting mint-tell over the cuff")
 
 
 def test_ci_wires_the_lock() -> None:
@@ -280,6 +331,7 @@ def main() -> int:
         test_gains_stay_thin()
         test_after_resolve_not_a_gate()
         test_lift_mint_after_state()
+        test_vo_does_not_hide_the_gun()
         test_playlist_untouched()
         test_docs()
         test_ci_wires_the_lock()

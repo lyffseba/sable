@@ -50,16 +50,17 @@ Lines belong to CANCHO. Swapping a look does not change VO.
 
 | Event | Line |
 |-------|------|
-| lift mint-tell (`AimSample.lifted` / GUN edge) | `Mint. Lift.` (SableAudio; oscillator chirp this cut — no browser TTS / third-party voices) |
+| lift mint-tell (`AimSample.lifted` / GUN edge) | `Mint. Lift.` (SableAudio; oscillator chirp this cut — no browser TTS, no VO chip over the cuff) |
 | hit | `Claro.` |
 | drop (`!lifted` edge) | `Al suelo.` |
 | first-to-5 | `Se escribió.` |
 
-HUD `VoChip` holds a line for **0.70 s**. Miss is a **dry tick** (generated click + HUD tick). No trash talk. Cancho does not comment a miss.
+HUD `VoChip` holds hit / drop / win for **0.70 s**. Lift mint-tell is the short SableAudio chirp only — do not paint `Mint. Lift.` over the cuff. Miss is a **dry tick** (generated click + HUD tick). No trash talk. Cancho does not comment a miss.
 
 ## Do not
 
 - Do not touch `AimSample` or the tracker.
+- Do not hide the gun with mint-tell VO.
 - Do not add a second art repo.
 - Do not invent a body mesh, face, beanie, glasses, or gun.
 - Do not treat a style id as a new operator.
