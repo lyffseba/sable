@@ -30,7 +30,7 @@ We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, map
 |------|------------|----------|
 | **Salt House / Range** | 60 s gallery. Sit plates, crossing clays, rising flushes. Escape = miss. | Playable now — plates drop, clays leave |
 | **Waiting arena** | Room code, 10 slots, WARM UP anytime, host ENTER RANGE | Rooms work; ENTER RANGE shares plates |
-| **Bay 1v1** | Original booth, cover vs open middle, first to 5 | Geometry exists; not the front door |
+| **Bay 1v1** | Original booth, cover vs open middle, first to 5 | Playlist from lobby / boot — local first-to-5 |
 
 v1 is **not** an on-rails walk through a mall. If we ever add a “house walk,” it is a later mode with original rooms, not a clone.
 
@@ -53,6 +53,8 @@ Desktop **T** is a debug gun, not the product. Space is force-lift for developme
 
 Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/house.js` must match. Blender (`art/blender/build_sable_kit.py`) rebuilds the same kit for stills/GLB. No Marketplace packs, no scans, no third-party guns.
 
+Runtime Look is unshaded/baked CANCHO (charcoal / bone / mint / rust). `MeshBasic` / `bayUnshaded`, no ACES, no mint emissive bloom. Bay and Salt House share this bible. Aim noise stays readable.
+
 CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 ## Tech that is already right
@@ -74,7 +76,7 @@ Hand tracking: MediaPipe Hands (Apache-2.0, landmark 8) is the primary muzzle; s
 
 Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss.
 
-**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Shared house is not the only way to shoot. Lift/HID must not wait on net — if the lobby POST hangs, local practice still fires. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). `tools/test_sableqa_offline.py` fails loud if Offline shoot dies, HID waits, or lock shows the OS cursor. **`v0.11.0` stands.** Next proto tag only after R1 is on `main` tip and this gate is green.
+**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Bay is a second playlist (first to 5, `AimBus` peek) — never the only gun. Shared house is not the only way to shoot. Lift/HID must not wait on net — if the lobby POST hangs, local practice still fires. Lock-never-cursor: the OS pointer writes `AimSample` only in **DESKTOP** (`T`). `tools/test_sableqa_offline.py` fails loud if Offline / WARM UP die, HID waits, lock shows the OS cursor, or Bay becomes the only gun. **`v0.12.0` stands.** Next proto tag only after Bay is on `main` tip and this gate is green.
 
 Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose). The click does **not** call `coastTrack` / `updateAim` — hitscan uses the last committed `S.aim` / mailbox sample. Optional `?sableperf=1` records HID→hitscan p50/p99 vs the 8 ms bar (`window.SablePerf.stats()`).
 
@@ -89,7 +91,7 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **merge to main when CI green**. **`v0.11.0` stands** — do not cut a zip/tag from this split. Next tag after R1 tip + SableQA clear. R1 is the file split only — same fire verb, no Bay playlist start, no R6 tick unify. Next code: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
+Recommend **merge to main when CI green**. **`v0.12.0` stands** — do not cut a zip/tag from this Bay playlist. Next tag after Bay tip + SableQA clear (Offline / WARM UP / Bay-not-only-gun). R1 is the file split only — same fire verb, no R6 tick unify. **M4** is the Bay playlist (lobby / boot entry, local first-to-5 booth). Shared Range stays the online house. Next after M4: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
 
 ## Milestones
 
@@ -97,7 +99,7 @@ Recommend **merge to main when CI green**. **`v0.11.0` stands** — do not cut a
 - **M1:** Arcade gallery loop (plates/clays escape). Waiting-room WARM UP. Fire peeks only (no aim recompute on click). Sticky lift shipped. **Done.**
 - **M2:** Landmarks + lift verb that allows trackpad fire. **Done** (Hands + R3).
 - **M3:** Two clients, same plates, same house. **Done** for the room (seed + fire-tick ray). Offline / WARM UP stay local. Zip held until tip + SableQA offline-shoot gate.
-- **M4:** Bay as a second playlist from the lobby, still one art bible.
+- **M4:** Bay as a second playlist from the lobby, still one art bible. **Done** (boot **BAY** + lobby **ENTER BAY**; original booth; first to 5). Offline / WARM UP stay local one-click. Zip held until tip + SableQA (Bay must not be the only gun). **`v0.12.0` stands.**
 
 ## Non-goals (v1)
 

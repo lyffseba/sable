@@ -80,7 +80,8 @@ html, body {
 .screen[hidden] { display: none; }
 
 .screen-pass { pointer-events: none; }
-.screen-pass .calib-top { pointer-events: auto; }
+.screen-pass .calib-top,
+.screen-pass .range-bar { pointer-events: auto; }
 
 .boot-inner, .results-inner {
   position: absolute;

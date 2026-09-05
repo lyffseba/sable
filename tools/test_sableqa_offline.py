@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SableQA product gate: fail LOUD if Offline / WARM UP shoot dies or waits on net."""
+"""SableQA product gate: fail LOUD if Offline / WARM UP die, HID waits, or Bay is the only gun."""
 
 from __future__ import annotations
 
@@ -21,6 +21,10 @@ def _js_fn(src: str, name: str) -> str:
 
 def _fail(msg: str) -> None:
     raise AssertionError(f"SABLEQA FAIL: offline shoot died — {msg}")
+
+
+def _fail_only_gun(msg: str) -> None:
+    raise AssertionError(f"SABLEQA FAIL: Bay became the only gun — {msg}")
 
 
 def main() -> int:
@@ -100,6 +104,33 @@ def main() -> int:
 
         if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
             _fail("waiting room lost WARM UP — shared house would be the only way to shoot")
+        if 'play("bay")' in warm or 'setPhase("bay")' in warm:
+            _fail_only_gun("WARM UP dropped into Bay instead of local Range")
+
+        if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
+            _fail_only_gun("lobby lost ENTER RANGE")
+        start_room = _js_fn(js, "lobbyStartRange")
+        if 'play("range")' not in start_room:
+            _fail_only_gun("ENTER RANGE no longer starts the Salt House")
+        if "/api/lobby/start" not in start_room:
+            _fail_only_gun("host ENTER RANGE no longer shares the house")
+
+        if 'play("bay")' in play.group(0):
+            _fail_only_gun("OFFLINE was rerouted into Bay")
+
+        to_win = re.search(r"const BAY_TO_WIN = ([0-9.]+)", js)
+        if not to_win or float(to_win.group(1)) != 5:
+            _fail("Bay first-to-5 peek rule left the booth")
+        if "fireBay3D" not in fire:
+            _fail("Bay fire no longer peeks through fire() → fireBay3D")
+        bay_fire = _js_fn(js, "fireBay3D")
+        if "fetch(" in bay_fire or "/api/lobby" in bay_fire:
+            _fail("Bay fire talks to net — lift/HID is behind the lobby")
+        start_bay = _js_fn(js, "lobbyStartBay")
+        if "/api/lobby/start" in start_bay:
+            _fail("ENTER BAY started the shared house")
+        if re.search(r"await\s+", start_bay):
+            _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
         return 1

@@ -2,11 +2,18 @@
 
 Original booth. Not a third-party map. Specs live in this repo.
 
+Live client is `proto/` (`house.js` booth + combat, `boot.js` playlist). Godot paths below are the original layout spec and may be stale.
+
 Scene: `godot/scenes/bay/Bay.tscn`. Controller: `godot/src/app/bay_controller.gd`. App state: `App.State.BAY`.
 
 ## Run
 
-Godot **4.7.2** → import `godot/`.
+`python3 tools/serve_proto.py` → **http://127.0.0.1:8080**
+
+- Boot **BAY**, or lobby **ENTER BAY** (local first-to-5; does not start the shared house)
+- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** stay the Salt House paths
+
+Godot **4.7.2** → import `godot/` (spec reference):
 
 - **F5** → Boot → **Enter Bay**
 - **F6** on `godot/scenes/bay/Bay.tscn`

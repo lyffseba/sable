@@ -24,7 +24,8 @@ python3 tools/serve_proto.py
 Open **http://127.0.0.1:8080** in your browser.
 
 - **OFFLINE**: Straight into the Range — one click.
-- **ONLINE**: Waiting-arena lobby. **WARM UP** is practice in the same Range without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** starts the room.
+- **BAY**: Original booth, cover vs open middle, first to 5. Same lock / HID fire. Local playlist.
+- **ONLINE**: Waiting-arena lobby. **WARM UP** is practice in the same Range without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** starts the shared house. **ENTER BAY** is a local first-to-5 booth — it does not replace shared Range.
 - **HANDS**: MediaPipe fingertip lock. PLAY ANYWAY if the camera misses. Pinch or trackpad fires.
 
 ### Keys
