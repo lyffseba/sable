@@ -94,6 +94,7 @@ const HUD_PAD = 16;
 const CORNER_NAMES = ["TOP LEFT", "TOP RIGHT", "BOTTOM RIGHT", "BOTTOM LEFT"];
 const LOCK_SAMPLE_MS = 1200;
 const LOCK_CONFIRM_MS = 200;
+const LOCK_GIVE_MS = 4000;
 const TPL_FAIL_MS = 2200;
 const COAST_MS = 100;
 const OUTLIER_FRAC = 0.18;
@@ -1077,6 +1078,62 @@ function buildRange3D() {
     w.position.set(x, -0.4, -4);
     rangeHallGroup.add(w);
   }
+
+  buildYardBunkers(rangeHallGroup);
+}
+
+function inflateMat(hex) {
+  return sableStd(hex, { roughness: 0.32, metalness: 0.12 });
+}
+
+function addYard(group, mesh, x, y, z, rotY) {
+  mesh.position.set(x, y, z);
+  if (rotY) mesh.rotation.y = rotY;
+  group.add(mesh);
+  return mesh;
+}
+
+function buildYardBunkers(group) {
+  const bone = inflateMat(Locker.colors.boneHex);
+  const rust = inflateMat(Locker.colors.rustHex);
+  const mint = inflateMat(Locker.colors.mintHex);
+  const floorY = -1.64;
+
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 1.2), rust);
+  addYard(group, pad, 0, floorY + 0.04, 1.4, 0);
+
+  const tape = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.1), mint);
+  addYard(group, tape, 0, floorY + 0.03, -16.5, 0);
+
+  const beamGeo = new THREE.CylinderGeometry(0.28, 0.28, 2.4, 12);
+  const beamL = new THREE.Mesh(beamGeo, bone);
+  beamL.rotation.z = Math.PI / 2;
+  addYard(group, beamL, -3.4, floorY + 0.28, -4.2, 0);
+  const beamR = new THREE.Mesh(beamGeo, bone);
+  beamR.rotation.z = Math.PI / 2;
+  addYard(group, beamR, 3.4, floorY + 0.28, -4.2, 0);
+
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.7, 14), rust);
+  addYard(group, drum, -1.6, floorY + 0.85, -7.0, 0);
+
+  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.8, 4), bone);
+  addYard(group, peak, 2.2, floorY + 0.9, -8.5, 0.4);
+
+  const stack = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.2, 1.3), rust);
+  addYard(group, stack, -2.8, floorY + 0.6, -11.0, 0.15);
+
+  const wingA = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 0.55), bone);
+  addYard(group, wingA, 0, floorY + 0.35, -12.5, 0);
+  const wingB = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.0, 0.7), bone);
+  addYard(group, wingB, 0, floorY + 0.55, -12.5, 0);
+
+  const crossA = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 0.45), mint);
+  addYard(group, crossA, 3.0, floorY + 0.45, -14.0, 0);
+  const crossB = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.7, 1.8), mint);
+  addYard(group, crossB, 3.0, floorY + 0.45, -14.0, 0);
+
+  const drumFar = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5, 14), bone);
+  addYard(group, drumFar, -3.2, floorY + 0.75, -14.5, 0);
 }
 
 function buildBay3D() {
@@ -1517,8 +1574,7 @@ async function play(target = "range") {
   S.lockStart = performance.now();
   const ok = await enableCamera();
   if (!ok) {
-    const st = $("lock-status");
-    if (st) st.textContent = "SEEKING";
+    goDesktopRange();
     return;
   }
   S.lockStart = performance.now();
@@ -1566,7 +1622,7 @@ function startRange() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.recoil = 0; S.punch = 0; S.flash = 0;
-  spawnOrb3D({ x: W / 2, y: H * 0.46, r: 38, kind: "static", worth: 100, hue: 180 });
+  spawnOrb3D({ x: W / 2, y: H * 0.46, r: 38, kind: "sit", worth: 100, hue: 180 });
 }
 
 function showResults() {
@@ -1581,6 +1637,12 @@ function tickLock(t) {
   const st = $("lock-status");
   if (!camReady) {
     if (st) st.textContent = "SEEKING";
+    if (t - (S.lockStart || t) > LOCK_GIVE_MS) goDesktopRange();
+    return;
+  }
+  if (t - (S.lockStart || t) > LOCK_GIVE_MS && !S.lockAdvance) {
+    if (S.smooth || S.tpl) goCalib();
+    else goDesktopRange();
     return;
   }
   if (S.tpl && !detGood() && S.lockTplAt && t - S.lockTplAt > TPL_FAIL_MS) {
@@ -2218,6 +2280,11 @@ if (btnLobbyBack) btnLobbyBack.addEventListener("click", () => lobbyLeave());
 
 const btnGemini = $("btn-gemini-lock");
 if (btnGemini) btnGemini.addEventListener("click", () => { requestGeminiLock(); });
+const btnSkipLock = $("btn-skip-lock");
+if (btnSkipLock) btnSkipLock.addEventListener("click", () => {
+  if (S.smooth || S.tpl) goCalib();
+  else goDesktopRange();
+});
 
 $("btn-redo").addEventListener("click", () => {
   let last = -1;
