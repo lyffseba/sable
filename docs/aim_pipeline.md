@@ -2,7 +2,7 @@
 
 SABLE is a physical-aim FPS. The unique verb is **raise your hand, point the fingertip at the monitor, click**. A MacBook webcam is enough. Everything else in this repo exists to serve that pose.
 
-This document is the contract. The live tracker is `proto/game.js`: MediaPipe Hands (`mpTrack`, landmark 8) then `fallbackSkin` (`findHand` + NCC) + One Euro. `native/cv_input` holds the filter / AimSample tests. Fire is HID. See `research/HANDS.md`.
+This document is the contract. The live tracker is `proto/hands.js`: MediaPipe Tasks Vision HandLandmarker (`mpTrack` kicks `proto/hands_worker.js`, landmark 8) then `fallbackSkin` (`findHand` + NCC) + One Euro on UV before the mailbox. `native/cv_input` holds the filter / AimSample tests. Fire is HID and must not wait on the worker. See `research/HANDS.md`.
 
 ## Hardware
 

@@ -68,11 +68,11 @@ CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 ## What is proto (honest)
 
-`proto/game.js` is the module entry (`import "./boot.js"`). Ownership is split: `aim.js` (mailbox / fire peek / sticky lift / SablePerf / desktop), `hands.js` (MediaPipe + skin/NCC + One Euro), `house.js` (Salt House / Yard plates / shared match hooks / Bay), `boot.js` (lobby UI / phase machine / rAF glue).
+`proto/game.js` is the module entry (`import "./boot.js"`). Ownership is split: `aim.js` (mailbox / fire peek / sticky lift / SablePerf / desktop), `hands.js` (MediaPipe + skin/NCC + One Euro; `detectForVideo` in `hands_worker.js`), `house.js` (Salt House / Yard plates / shared match hooks / Bay), `boot.js` (lobby UI / phase machine / rAF glue).
 
 Docs disagree: `docs/tick.md` says 64 Hz, `server/tick.py` is 128 Hz, Range is `requestAnimationFrame`. Pick one before netcode.
 
-Hand tracking: MediaPipe Hands (Apache-2.0, landmark 8) is the primary muzzle; skin/NCC is the else path when landmarks die.
+Hand tracking: MediaPipe Tasks Vision HandLandmarker (Apache-2.0, published float16/1 `.task`, landmark 8) is the primary muzzle. Detect runs in a Web Worker (GPU, then CPU). Main applies One Euro, then the mailbox. skin/NCC is the else path when landmarks die. Fire never waits on the worker.
 
 Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss.
 

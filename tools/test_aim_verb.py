@@ -248,6 +248,8 @@ def test_proto_mailbox() -> None:
         raise AssertionError("fire must not coastTrack / updateAim — last committed sample only")
     if re.search(r"await\s+|requestVideoFrameCallback", fire):
         raise AssertionError("fire must not wait on a camera frame")
+    if re.search(r"postMessage|createImageBitmap|detectForVideo|hands_worker", fire):
+        raise AssertionError("fire must not wait on the Hands worker")
 
     move = re.search(r"pointermove[\s\S]{0,280}", src)
     if not move or "if (S.desktop)" not in move.group(0):
@@ -278,6 +280,16 @@ def test_pointing_filter() -> None:
         raise AssertionError("initHands must wait for the model, not return early")
     if "function indexExtended" not in src:
         raise AssertionError("muzzle requires an extended index, not a fist")
+    if "new Worker" not in src or "hands_worker.js" not in src:
+        raise AssertionError("HandLandmarker detect must run in a Worker")
+    apply_lm = _js_fn(src, "applyMpLandmarks")
+    if "applyEuroPoint" not in apply_lm:
+        raise AssertionError("One Euro must run on UV after worker landmarks, before mailbox")
+    mp = _js_fn(src, "mpTrack")
+    if "kickAndFresh" not in mp and "kickWorkerDetect" not in mp:
+        raise AssertionError("mpTrack must kick the worker, not detect on rAF")
+    if "detectForVideo" in mp:
+        raise AssertionError("mpTrack happy path must not call detectForVideo on main")
     frame = _js_fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybePinchFire"):
         raise AssertionError("pinch must run after updateMode so lifted is current")

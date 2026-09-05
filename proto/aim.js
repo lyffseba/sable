@@ -114,6 +114,7 @@ const S = {
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false, hands: false },
   handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null, rvfc: false,
+  mpBusy: false, mpDelegate: "",
   online: false,
   playlist: "range",
   room: "",
