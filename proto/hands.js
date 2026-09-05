@@ -643,7 +643,8 @@ function startHandsWorker() {
   return new Promise((resolve, reject) => {
     let worker;
     try {
-      worker = new Worker(new URL("./hands_worker.js", import.meta.url), { type: "module" });
+      // Classic worker: MediaPipe wasm glue calls importScripts (illegal in type:module).
+      worker = new Worker(new URL("./hands_worker.js", import.meta.url));
     } catch (e) {
       reject(e);
       return;
@@ -669,6 +670,7 @@ function startHandsWorker() {
         S.mpBusy = false;
         S.handsOn = true;
         S.engine.hands = true;
+        S.engine.handsWorker = true;
         worker.onmessage = onHandsWorkerMsg;
         worker.onerror = onHandsWorkerErr;
         resolve(true);
