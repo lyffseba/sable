@@ -219,6 +219,14 @@ def main() -> int:
             _fail("SableHUD thickened over the cuff")
         if '"GALLERY CLEAR"' not in hud:
             _fail("HUD lost the gallery end state")
+        if '"SCORE "' not in hud:
+            _fail("HUD lost the SCORE chip")
+        if '"ROUND "' not in hud and '"ROUND"' not in hud:
+            _fail("HUD lost the ROUND chip")
+        css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
+        lobby = re.search(r"\.lobby-inner \{([^}]+)\}", css)
+        if not lobby or "padding: 24px 16px 40px" not in lobby.group(1):
+            _fail("lobby was thickened")
         if "ACESFilmicToneMapping" in js:
             _fail("Look trapped aim noise with ACES")
 

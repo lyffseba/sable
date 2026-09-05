@@ -35,6 +35,7 @@ python3 tools/test_hands_worker.py
 python3 tools/test_sableperf.py
 python3 tools/test_bay_playlist.py
 python3 tools/test_gallery_mode.py
+python3 tools/test_sablehud.py
 ./tools/run_cv_tests.sh
 
 python3 tools/test_mojo_python.py
