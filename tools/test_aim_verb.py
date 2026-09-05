@@ -328,6 +328,8 @@ def test_gallery_escape() -> None:
         raise AssertionError("SIT_BOB_RATE drifted from the shared house")
     if _js_const(src, "SIT_BOB_AMP") != 0.07:
         raise AssertionError("SIT_BOB_AMP drifted from the shared house")
+    if _js_const(src, "GRAVITY") != 4.6:
+        raise AssertionError("GRAVITY drifted from the shared house")
     if dwell <= 0 or dwell > 8:
         raise AssertionError("sit plates need a short dwell, then escape")
     if drop >= 0:
@@ -341,8 +343,15 @@ def test_gallery_escape() -> None:
     body = _js_fn(src, "updateRange")
     if "sitPoseY" not in body:
         raise AssertionError("updateRange must use closed-form sitPoseY — not an unsynced phase")
+    if "flyerPose" not in body:
+        raise AssertionError("updateRange must use closed-form flyerPose — not Euler")
+    if "o.vy -=" in body or "o.mesh.position.y +=" in body:
+        raise AssertionError("updateRange Euler-integrated flyers — friends would split")
     if "o.phase" in body:
         raise AssertionError("updateRange must not accumulate a local sit phase")
+    fly = _js_fn(src, "flyerPose")
+    if "GRAVITY" not in fly or "0.5" not in fly:
+        raise AssertionError("flyerPose must own closed-form gravity")
     for needle in ("PLATE_MAX_LIFE_S", '"ESC"'):
         if needle not in body:
             raise AssertionError(f"updateRange must escape plates ({needle})")

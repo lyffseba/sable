@@ -21,7 +21,7 @@ Render stays `requestAnimationFrame`. Shared house is **not** this stepper.
 
 1. **Render (rAF).** Paint, recoil decay, shards, tracers, gun pose, HUD. Variable frame `dt` (capped). Never chooses the shot UV or `fire_ms`.
 2. **Sim (128 Hz).** Dedicated headless peek (`server/tick.py`). Client `stepSim` increments `S.simTick` and advances local Range plates and Bay pose at `SIM_DT`. This loop does not shoot.
-3. **Shared house / Bay (rewind, not a tick).** Lobby Range is closed-form pose at `elapsed_ms` plus fire-tick rewind (`tools/lobby.py` `_pose_at` / `hit`). Sit plates use the same closed-form as local practice (`sit_pose_y` / `sitPoseY`: bob from life, then drop) — not a per-client phase that would split two friends. Shared Bay is a last-committed pose mailbox plus the same `fire_ms` rewind (`start_bay` / `_bay_hit`). `fire_ms` is quantized to `SIM_HZ`. Clients poll a lazy snapshot. Inventing a 128 Hz friend loop would lie about how two tabs already share plates and first-to-5.
+3. **Shared house / Bay (rewind, not a tick).** Lobby Range is closed-form pose at `elapsed_ms` plus fire-tick rewind (`tools/lobby.py` `_pose_at` / `hit`). Sit plates use the same closed-form as local practice (`sit_pose_y` / `sitPoseY`: bob from life, then drop) — not a per-client phase that would split two friends. Flyers use the same closed-form (`flyer_pose` / `flyerPose`: `y0 + vy0*t - 0.5*g*t^2`) — not a local Euler step that would miss the rewind sphere. Shared Bay is a last-committed pose mailbox plus the same `fire_ms` rewind (`start_bay` / `_bay_hit`). `fire_ms` is quantized to `SIM_HZ`. Clients poll a lazy snapshot. Inventing a 128 Hz friend loop would lie about how two tabs already share plates and first-to-5.
 
 ## HID fire
 

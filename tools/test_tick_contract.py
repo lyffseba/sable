@@ -222,12 +222,21 @@ def test_shared_house_is_rewind_not_a_loop() -> None:
         _fail("_pose_at must stay closed-form at elapsed_ms")
     if "sit_pose_y" not in pose:
         _fail("_pose_at must use closed-form sit_pose_y — sit Y is house authority")
+    if "flyer_pose" not in pose:
+        _fail("_pose_at must use closed-form flyer_pose — flyer Y is house authority")
     if "for " in pose and "range(" in pose:
         _fail("_pose_at stepped a tick loop — rewind died")
     if abs(lobby.sit_pose_y(0.35, 0.0) - 0.35) > 1e-12:
         _fail("sit_pose_y(life 0) must stay on the pad")
     if "def sit_pose_y" not in src or "math.sin" not in src:
         _fail("sit_pose_y must stay closed-form")
+    born = lobby.flyer_pose(0.0, 1.0, -6.0, 0.0, 1.4, 0.0, 0.0)
+    if abs(born["y"] - 1.0) > 1e-12:
+        _fail("flyer_pose(life 0) must stay on birth")
+    if abs(lobby.flyer_pose(0.0, 1.0, -6.0, 0.0, 1.4, 0.0, 1.0)["y"] - (1.0 + 1.4 - 0.5 * lobby.GRAVITY)) > 1e-12:
+        _fail("flyer_pose must stay closed-form y0+vy0*t-0.5*g*t^2")
+    if "def flyer_pose" not in src or "0.5 * GRAVITY" not in src:
+        _fail("flyer_pose must stay closed-form")
     sync = re.search(r"def _sync_sim\([\s\S]*?return elapsed_ms\n", src)
     if not sync:
         _fail("missing _sync_sim")
