@@ -114,8 +114,10 @@ def main() -> int:
             _fail("fire() waits on the sim/rAF tick")
         if "performance.now() - S.rangeStart" in fire:
             _fail("fire() couples to present")
-        if "intersectObjects" not in fire:
+        if "hitscanRange" not in fire:
             _fail("local hitscan gone")
+        if "intersectObjects" in fire:
+            _fail("local hitscan must be the house sphere, not the spun hex mesh")
         hid_at = fire.find("SablePerf.markHid")
         report_at = fire.find("reportSharedFire")
         if hid_at < 0 or report_at < 0 or hid_at > report_at:

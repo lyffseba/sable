@@ -173,9 +173,11 @@ def test_after_resolve_not_a_gate() -> None:
     bang_at = fire.find("bang();")
     if begin_at < 0 or bang_at < 0 or begin_at > bang_at:
         _fail("SablePerf t0 must stay before bang()")
-    intersect = fire.find("intersectObjects")
+    intersect = fire.find("hitscanRange")
     if intersect < 0:
         _fail("gallery hitscan left fire()")
+    if "intersectObjects" in fire:
+        _fail("gallery hitscan must be the house sphere, not the spun hex mesh")
     hit_at = fire.find("hitBlip", intersect)
     miss_at = fire.find("missTick", intersect)
     mark_at = fire.find("SablePerf.markHid", intersect)

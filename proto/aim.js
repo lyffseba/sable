@@ -14,6 +14,7 @@ import {
   camera,
   rangeTargetGroup,
   fireBay3D,
+  hitscanRange,
   addBulletTracer,
   shatterTarget3D,
   worldToHud,
@@ -301,15 +302,17 @@ function fire() {
     gunGroup.rotation.x += 0.15;
   }
 
-  // Hitscan uses last committed S.aim / AimBus sample. Track loop already published.
-  const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(mouseNorm, camera);
+  // Hitscan peeks last committed AimBus UV. Track loop already published.
+  // Range uses the house sphere (hitscanRange) — not the spun hex mesh.
+  const uv = shot && shot.uv ? shot.uv : { x: S.aim.x / W, y: S.aim.y / H };
 
   const muzzleWorld = new THREE.Vector3();
   gunMuzzleLight.getWorldPosition(muzzleWorld);
 
   if (phase === "bay") {
+    const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouseNorm, camera);
     fireBay3D(raycaster, muzzleWorld);
     SablePerf.markHid(t0);
     // Shared Bay POST is after the 8 ms HID→hitscan mark — fire-and-forget.
@@ -334,14 +337,9 @@ function fire() {
   }
 
   S.shots++;
-  let hit = null;
-  const hits = raycaster.intersectObjects(rangeTargetGroup.children, true);
+  const scan = hitscanRange(uv.x, uv.y, W / H);
   SablePerf.markHid(t0);
-  if (hits.length) {
-    let obj = hits[0].object;
-    while (obj && !obj.userData.orb) obj = obj.parent;
-    hit = obj && obj.userData.orb;
-  }
+  const hit = scan.hit;
 
   if (hit && hit.mesh) {
     S.combo++;
@@ -359,7 +357,7 @@ function fire() {
     S.orbs = S.orbs.filter((o) => o !== hit);
   } else {
     S.combo = 0;
-    const farPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(20));
+    const farPoint = new THREE.Vector3(scan.point.x, scan.point.y, scan.point.z);
     missTick(farPoint.x);
     addBulletTracer(muzzleWorld, farPoint);
   }

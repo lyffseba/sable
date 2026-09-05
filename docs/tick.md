@@ -11,7 +11,7 @@ Render stays `requestAnimationFrame`. Shared house is **not** this stepper.
 ## Soft-lock bars
 
 - **Fixed sim Hz owns plates / hitscan.** `S.simTick` advances only in `stepSim`. Local plates and Bay pose integrate at `SIM_DT`. Hitscan peeks that last committed pose. Render (rAF) is a consumer — paint, recoil, shards, HUD. It does not choose plate time.
-- **HID fire outside both.** `fire()` peeks `AimBus` only. It never waits on rAF, the next sim step, the Hands worker, or a camera frame.
+- **HID fire outside both.** `fire()` peeks `AimBus` only. It never waits on rAF, the next sim step, the Hands worker, or a camera frame. Range hitscan peeks that UV against the last committed plate pose with the same sphere as lobby rewind (`hitscanRange` / `plateRadius`) — not the spun hex mesh.
 - **`fire_ms` speaks sim Hz, not rAF.** Shared rewind snaps to the 128 Hz grid (`quantize_fire_ms`). Local Bay stamps `Bay.fireMs = committedSimMs()` on the HID peek. Shared Bay uses the same stamp plus a pose mailbox — not a 128 Hz friend loop. The lobby snapshot stays a view. Room hangar is that view (`wait`→`wait_practice`, `range`→`match_live`) — not a tick.
 - **Fail loud** if sim steps hitch to frame time (`updateRange(dt)` / rAF `now`) or fire couples to present (`performance.now() - S.rangeStart`).
 - **Offline one-click stays.** No warm-up tax. Fire at tick 0 is legal — the first plate is already on the pad.
@@ -29,7 +29,7 @@ Fire is an HID event. It peeks the latest `AimSample` on `AimBus` and does not w
 
 Camera capture is asynchronous. It publishes `AimSample` whenever a frame finishes.
 
-Gameplay motion belongs in the 128 Hz step (or the closed-form rewind). Hitscan resolution belongs in the input event that already carries the sample, against the last committed sim pose. Bay first-to-5 is the same contract: `tickBay(SIM_DT)` owns pose; `fireBay3D` peeks that pose and stamps `fire_ms`. Shared Bay rewinds that stamp on the room.
+Gameplay motion belongs in the 128 Hz step (or the closed-form rewind). Hitscan resolution belongs in the input event that already carries the sample, against the last committed sim pose — the same sphere the room rewinds (`hitscanRange`). The hex plate is Look only; mesh-testing it would let a HID peek hit locally and miss the rewind sphere (and the reverse). Bay first-to-5 is the same contract: `tickBay(SIM_DT)` owns pose; `fireBay3D` peeks that pose and stamps `fire_ms`. Shared Bay rewinds that stamp on the room.
 
 Dedicated server boots headless at the same 128 Hz rate. Browser fire stays HID-local; that process is the sim peek, not a gate on the shot.
 
