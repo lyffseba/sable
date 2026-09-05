@@ -54,6 +54,7 @@ const aimBus = new AimBus();
 
 // HID→hitscan probe. Off unless ?sableperf=1 or localStorage SablePerf=1.
 // Not a HUD. window.SablePerf.stats() → { n, p50, p99, ok } vs 8 ms budget.
+// Shared Bay report / pose / lobby poll stay after markHid — never inside this bar.
 const SablePerf = {
   on: false,
   budgetMs: 8,
@@ -296,6 +297,7 @@ function fire() {
   if (phase === "bay") {
     fireBay3D(raycaster, muzzleWorld);
     SablePerf.markHid(t0);
+    // Shared Bay POST is after the 8 ms HID→hitscan mark — fire-and-forget.
     if (sharedBay()) {
       try { reportSharedBayFire(shot); } catch (e) { /* local already resolved */ }
     }

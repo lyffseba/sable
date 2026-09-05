@@ -2,7 +2,8 @@
 """Post-Worker SablePerf / gun contract.
 
 Fail loud if HandLandmarker detect sneaks back onto main rAF, if the
-HID→hitscan probe is missing or reordered, or if fire waits on the worker.
+HID→hitscan probe is missing or reordered, if fire waits on the worker,
+or if Shared Bay net lands inside the 8 ms HID→hitscan bar.
 """
 
 from __future__ import annotations
@@ -185,8 +186,11 @@ def test_sableperf_probe_order() -> None:
     bay = fire.find('phase === "bay"')
     bay_fire = fire.find("fireBay3D", bay) if bay >= 0 else -1
     bay_mark = fire.find("SablePerf.markHid", bay) if bay >= 0 else -1
+    bay_report = fire.find("reportSharedBayFire", bay) if bay >= 0 else -1
     if bay < 0 or bay_fire < 0 or bay_mark < 0 or bay_fire > bay_mark:
         _fail("Bay HID→hitscan must mark after fireBay3D, still under the 8 ms probe")
+    if bay_report < 0 or bay_mark > bay_report:
+        _fail("reportSharedBayFire must stay after markHid — Shared Bay must not tax the 8 ms bar")
 
 
 def test_sableperf_budget_math() -> None:
@@ -216,6 +220,125 @@ def test_fire_never_waits_on_worker_or_net() -> None:
         _fail("fire() talks to the tracker")
     if "/api/lobby" in fire:
         _fail("fire() talks to the lobby")
+
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+
+
+def test_shared_bay_never_taxes_hid_probe() -> None:
+    """Shared Bay net stays fire-and-forget after markHid — never on the click."""
+    js = proto_js()
+    html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
+
+    probe = _object(js, "SablePerf")
+    if "budgetMs: 8" not in probe:
+        _fail("SablePerf 8 ms bar died after Shared Bay")
+    if "p99 < this.budgetMs" not in probe:
+        _fail("SablePerf.stats() must still fail loud when p99 leaves 8 ms")
+    if "sableperf=1" not in js:
+        _fail("SablePerf must stay flag-gated (?sableperf=1)")
+    if "globalThis.SablePerf" not in js and "window.SablePerf" not in js:
+        _fail("window.SablePerf / globalThis.SablePerf probe missing")
+    if "drawModeChip" in probe:
+        _fail("SablePerf must not paint a HUD")
+
+    fire = _fn(js, "fire")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    if WORKER_WAIT.search(fire):
+        _fail("fire() waits on the worker or net — Shared Bay taxed HID")
+    if "/api/lobby" in fire or re.search(r"\bfetch\s*\(", fire):
+        _fail("fire() talks to net — HID is behind the lobby")
+    if re.search(r"await\s+", fire):
+        _fail("fire() awaits — HID is behind a promise")
+    if "reportSharedBayPose" in fire:
+        _fail("reportSharedBayPose leaked onto the click")
+    if "lobbyPoll" in fire or "pullSharedBay" in fire or "lobbyPost" in fire:
+        _fail("lobby poll / snapshot leaked onto the click")
+    if "Math.random" in fire or re.search(r"\bbloom\b", fire, re.I):
+        _fail("fire hid noise with RNG or bloom")
+    if "coastTrack" in fire or "updateAim" in fire:
+        _fail("fire() recomputes aim")
+
+    bay = fire.find('phase === "bay"')
+    bay_fire = fire.find("fireBay3D", bay) if bay >= 0 else -1
+    bay_mark = fire.find("SablePerf.markHid", bay) if bay >= 0 else -1
+    bay_report = fire.find("reportSharedBayFire", bay) if bay >= 0 else -1
+    if bay < 0 or bay_fire < 0 or bay_mark < 0 or bay_report < 0:
+        _fail("Bay HID→hitscan must mark, then fire-and-forget the room")
+    if not (bay_fire < bay_mark < bay_report):
+        _fail("reportSharedBayFire landed inside the HID→hitscan probe — Shared Bay taxed the 8 ms bar")
+
+    report = _fn(js, "reportSharedBayFire")
+    if "async function reportSharedBayFire" in js:
+        _fail("reportSharedBayFire must not be async")
+    if re.search(r"await\s+", report):
+        _fail("reportSharedBayFire must be fire-and-forget")
+    if "fetch(" not in report or ".then(" not in report:
+        _fail("reportSharedBayFire must POST then continue")
+    if "/api/lobby/hit" not in report:
+        _fail("shared Bay fire must POST the intent")
+    if "committedSimMs" not in report:
+        _fail("shared Bay fire_ms must speak sim Hz")
+    if "performance.now()" in report:
+        _fail("shared Bay fire_ms couples to present")
+
+    pose = _fn(js, "reportSharedBayPose")
+    if "async function reportSharedBayPose" in js or re.search(r"await\s+", pose):
+        _fail("reportSharedBayPose must be fire-and-forget")
+    if "/api/lobby/pose" not in pose:
+        _fail("shared Bay must POST last committed pose on the lazy poll")
+
+    poll = _fn(js, "lobbyPoll")
+    if "reportSharedBayPose" not in poll:
+        _fail("pose mailbox must stay on the lazy lobby poll")
+    if "setInterval(lobbyPoll" not in js:
+        _fail("lobby poll must stay a lazy interval, not a click")
+    if re.search(r"setInterval\(\s*lobbyPoll\s*,\s*(\d+)", js):
+        interval = int(re.search(r"setInterval\(\s*lobbyPoll\s*,\s*(\d+)", js).group(1))
+        if interval < 200:
+            _fail("lobby poll must not become a friend loop")
+
+    step = _fn(js, "stepSim")
+    if "reportSharedBayPose" in step or "reportSharedBayFire" in step or "lobbyPoll" in step:
+        _fail("shared Bay net leaked onto the 128 Hz step")
+
+    bay_local = _fn(js, "fireBay3D")
+    if "fetch(" in bay_local or "/api/lobby" in bay_local:
+        _fail("local fireBay3D talks to net — boot BAY would wait on the lobby")
+
+    if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
+        _fail("boot lost one-click OFFLINE GALLERY")
+    offline = re.search(
+        r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
+        js,
+    )
+    if not offline or "S.online = false" not in offline.group(0):
+        _fail("OFFLINE GALLERY must stay local one-click")
+    if 'play("bay")' in offline.group(0):
+        _fail("OFFLINE was rerouted into Bay")
+
+    if 'id="btn-bay"' not in html or ">BAY<" not in html:
+        _fail("boot lost one-click local BAY")
+    boot_bay = re.search(r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)', js)
+    if not boot_bay or "S.online = false" not in boot_bay.group(0):
+        _fail("local BAY trapped HID behind a room")
+    if "/api/lobby" in boot_bay.group(0):
+        _fail("local BAY must stay free of /api/lobby/*")
+
+    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
+        _fail("lobby lost ENTER BAY")
+    start_bay = _fn(js, "lobbyStartBay")
+    if re.search(r"await\s+", start_bay) or "async function lobbyStartBay" in js:
+        _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
+    if "/api/lobby/start\"" in start_bay or "/api/lobby/start'" in start_bay:
+        _fail("ENTER BAY started the shared house")
+    if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
+        _fail("ENTER BAY no longer drops into the booth")
 
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
     if not sample:
@@ -269,6 +392,7 @@ def main() -> int:
         test_sableperf_probe_order()
         test_sableperf_budget_math()
         test_fire_never_waits_on_worker_or_net()
+        test_shared_bay_never_taxes_hid_probe()
         test_offline_warmup_lock_never_cursor()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

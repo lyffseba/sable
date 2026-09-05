@@ -64,7 +64,7 @@ WASD (`move_left` / `move_right` / `move_forward` / `move_back`) **only while PA
 
 Same hitscan as Range: `AimSample.uv` → screen → camera ray vs the foe sphere (radius **0.46**). Peek `AimBus` / `HidFire.shot_from_bus`. Miss = dry tick (1850 Hz, 28 ms) + HUD tick. No VO. No trash talk.
 
-`fireBay3D` stamps `Bay.fireMs = committedSimMs()` — the last 128 Hz tick, not rAF present. Local first-to-5 does not talk to `/api/lobby/*`. Shared Bay posts the peeked UV + last committed pose + `fire_ms` fire-and-forget; the room rewinds. Pose / expose / freeze integrate only in `tickBay(SIM_DT)` from `stepSim`.
+`fireBay3D` stamps `Bay.fireMs = committedSimMs()` — the last 128 Hz tick, not rAF present. Local first-to-5 does not talk to `/api/lobby/*`. Shared Bay posts the peeked UV + last committed pose + `fire_ms` fire-and-forget **after** `SablePerf.markHid`; the room rewinds. Pose mailbox and lobby poll stay off the click. `?sableperf=1` HID→hitscan p99 < 8 ms still holds. Pose / expose / freeze integrate only in `tickBay(SIM_DT)` from `stepSim`.
 
 Hit: you score, VO `Claro.`, freeze (or match-over). Open-middle death: them score, no VO, freeze (or match-over).
 
