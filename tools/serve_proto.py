@@ -114,7 +114,11 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                     lobby_api.hit(
                         str(d.get("code") or ""),
                         str(d.get("player") or ""),
-                        str(d.get("plate") or ""),
+                        uv=d.get("uv"),
+                        fire_ms=d.get("fire_ms"),
+                        t_hw=d.get("t_hw"),
+                        aspect=d.get("aspect"),
+                        lifted=d.get("lifted"),
                     )
                 )
                 return

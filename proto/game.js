@@ -176,6 +176,7 @@ const S = {
   warmup: false,
   seed: 0,
   sharedDead: null,
+  sharedPending: null,
 };
 
 // --- Bay 1v1 Arena State ---
@@ -1597,13 +1598,13 @@ function fire() {
 
     rangeTargetGroup.remove(hit.mesh);
     S.orbs = S.orbs.filter((o) => o !== hit);
-    if (hit.id) reportSharedHit(hit.id);
   } else {
     S.combo = 0;
     missTick();
     const farPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(20));
     addBulletTracer(muzzleWorld, farPoint);
   }
+  if (sharedMatch()) reportSharedFire(shot, hit && hit.id);
 }
 
 function fireBay3D(raycaster, muzzleWorld) {
@@ -1685,14 +1686,29 @@ function sharedMatch() {
   return !!(S.online && !S.warmup && S.room && S.player);
 }
 
-function reportSharedHit(plateId) {
-  if (!sharedMatch() || !plateId || !S.room || !S.player) return;
+function reportSharedFire(shot, localPlateId) {
+  if (!sharedMatch() || !S.room || !S.player) return;
+  if (!S.sharedPending) S.sharedPending = new Set();
   if (!S.sharedDead) S.sharedDead = new Set();
-  S.sharedDead.add(plateId);
+  if (localPlateId) S.sharedPending.add(localPlateId);
+  const uv = shot && shot.uv ? [shot.uv.x, shot.uv.y] : [S.aim.x / W, S.aim.y / H];
   fetch("/api/lobby/hit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: S.room, player: S.player, plate: plateId }),
+    body: JSON.stringify({
+      code: S.room,
+      player: S.player,
+      uv: uv,
+      lifted: !!(shot && shot.lifted),
+      t_hw: shot && shot.t_hw != null ? shot.t_hw : 0,
+      fire_ms: performance.now() - S.rangeStart,
+      aspect: W / H,
+    }),
+  }).then(function (res) { return res.json(); }).then(function (data) {
+    if (localPlateId && S.sharedPending) S.sharedPending.delete(localPlateId);
+    if (!data || !data.ok) return;
+    if (data.hit) S.sharedDead.add(data.hit);
+    applySharedSim(data);
   }).catch(function () { /* snapshot poll is the authority */ });
 }
 
@@ -1721,6 +1737,7 @@ function applySharedSim(data) {
     S.rangeStart = performance.now() - data.elapsed_ms;
   }
   if (!S.sharedDead) S.sharedDead = new Set();
+  if (!S.sharedPending) S.sharedPending = new Set();
   const deadList = data.dead || [];
   for (const d of deadList) {
     const id = typeof d === "string" ? d : d.id;
@@ -1728,7 +1745,7 @@ function applySharedSim(data) {
   }
   const live = [];
   for (const p of (data.plates || [])) {
-    if (p && p.id && !S.sharedDead.has(p.id)) live.push(p);
+    if (p && p.id && !S.sharedDead.has(p.id) && !S.sharedPending.has(p.id)) live.push(p);
   }
   const liveIds = new Set(live.map((p) => p.id));
   const gone = [];
@@ -2050,6 +2067,7 @@ function startRange() {
   S.rangeStart = performance.now();
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
+  S.sharedPending = new Set();
   if (sharedMatch()) {
     pullSharedSim();
     ensureLobbyPoll();

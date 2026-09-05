@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import secrets
 import threading
 import time
@@ -18,6 +19,12 @@ SIT_DWELL_S = 4.2
 SIT_DROP_VY = -3.2
 PLATE_MAX_LIFE_S = 7.5
 GRAVITY = 4.6
+REWIND_MAX_MS = 350.0
+CAM_EYE = (0.0, 1.64, 2.05)
+CAM_AT = (0.0, 0.55, -12.0)
+CAM_UP = (0.0, 1.0, 0.0)
+FOV_Y_DEG = 62.0
+DEFAULT_ASPECT = 1280.0 / 720.0
 YARD_PEEKS = (
     (-3.4, -0.7, -3.9),
     (3.4, -0.7, -3.9),
@@ -65,25 +72,104 @@ def _desired(elapsed_ms: float) -> int:
     return 4
 
 
+def _vec_sub(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def _vec_add(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+
+
+def _vec_mul(a: tuple[float, float, float], s: float) -> tuple[float, float, float]:
+    return (a[0] * s, a[1] * s, a[2] * s)
+
+
+def _vec_dot(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _vec_cross(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def _vec_norm(a: tuple[float, float, float]) -> tuple[float, float, float]:
+    length = math.sqrt(_vec_dot(a, a)) or 1.0
+    return _vec_mul(a, 1.0 / length)
+
+
+def _cam_basis() -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]:
+    z_axis = _vec_norm(_vec_sub(CAM_EYE, CAM_AT))
+    x_axis = _vec_norm(_vec_cross(CAM_UP, z_axis))
+    y_axis = _vec_cross(z_axis, x_axis)
+    return x_axis, y_axis, z_axis
+
+
+def ray_from_uv(uv_x: float, uv_y: float, aspect: float = DEFAULT_ASPECT) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """World ray from last-committed UV. Same 62° yard camera as the client. Does not invent pose."""
+    ndc_x = float(uv_x) * 2.0 - 1.0
+    ndc_y = 1.0 - float(uv_y) * 2.0
+    tan_h = math.tan(math.radians(FOV_Y_DEG) * 0.5)
+    asp = float(aspect) if aspect and aspect > 0.2 else DEFAULT_ASPECT
+    cam_x, cam_y, cam_z = _cam_basis()
+    local = (ndc_x * tan_h * asp, ndc_y * tan_h, -1.0)
+    world = _vec_add(_vec_add(_vec_mul(cam_x, local[0]), _vec_mul(cam_y, local[1])), _vec_mul(cam_z, local[2]))
+    return CAM_EYE, _vec_norm(world)
+
+
+def uv_for_world(x: float, y: float, z: float, aspect: float = DEFAULT_ASPECT) -> tuple[float, float]:
+    """Project a yard point to UV. Test helper — not a new aim sample."""
+    cam_x, cam_y, cam_z = _cam_basis()
+    w = _vec_sub((x, y, z), CAM_EYE)
+    view_z = _vec_dot(w, cam_z)
+    if view_z >= -1e-6:
+        return (0.5, 0.5)
+    tan_h = math.tan(math.radians(FOV_Y_DEG) * 0.5)
+    asp = float(aspect) if aspect and aspect > 0.2 else DEFAULT_ASPECT
+    ndc_x = _vec_dot(w, cam_x) / (-view_z * tan_h * asp)
+    ndc_y = _vec_dot(w, cam_y) / (-view_z * tan_h)
+    return ((ndc_x + 1.0) * 0.5, (1.0 - ndc_y) * 0.5)
+
+
+def _ray_sphere(
+    origin: tuple[float, float, float],
+    direction: tuple[float, float, float],
+    center: tuple[float, float, float],
+    radius: float,
+) -> float | None:
+    oc = _vec_sub(origin, center)
+    b = 2.0 * _vec_dot(oc, direction)
+    c = _vec_dot(oc, oc) - radius * radius
+    disc = b * b - 4.0 * c
+    if disc < 0.0:
+        return None
+    t = (-b - math.sqrt(disc)) * 0.5
+    if t <= 0.0:
+        return None
+    return t
+
+
+def _plate_radius(kind: str) -> float:
+    return 0.50 if kind in ("clay", "rise") else 0.62
+
+
 def _add_plate(sim: dict, kind: str, x: float, y: float, z: float, **extra) -> dict:
     pid = f"p{sim['seq']}"
     sim["seq"] += 1
-    plate = {
+    rec = {
         "id": pid,
         "kind": kind,
-        "x": float(x),
-        "y": float(y),
-        "z": float(z),
-        "vx": float(extra.get("vx", 0.0)),
-        "vy": float(extra.get("vy", 0.0)),
-        "vz": float(extra.get("vz", 0.0)),
+        "x0": float(x),
+        "y0": float(y),
+        "z0": float(z),
+        "vx0": float(extra.get("vx", 0.0)),
+        "vy0": float(extra.get("vy", 0.0)),
+        "vz0": float(extra.get("vz", 0.0)),
         "baseY": float(extra.get("baseY", y)),
         "worth": int(extra.get("worth", 100)),
         "born_ms": float(extra.get("born_ms", 0.0)),
-        "life": float(extra.get("life", 0.0)),
     }
-    sim["plates"][pid] = plate
-    return plate
+    sim["spawned"].append(rec)
+    return rec
 
 
 def _spawn_random(sim: dict, elapsed_ms: float, hard: bool) -> dict:
@@ -134,41 +220,82 @@ def _spawn_random(sim: dict, elapsed_ms: float, hard: bool) -> dict:
     )
 
 
-def _escaped(p: dict) -> bool:
-    if p["life"] >= PLATE_MAX_LIFE_S:
+def _pose_at(rec: dict, elapsed_ms: float) -> dict:
+    life = max(0.0, (float(elapsed_ms) - float(rec["born_ms"])) / 1000.0)
+    if rec["kind"] in ("clay", "rise"):
+        x = rec["x0"] + rec["vx0"] * life
+        y = rec["y0"] + rec["vy0"] * life - 0.5 * GRAVITY * life * life
+        z = rec["z0"] + rec["vz0"] * life
+        vy = rec["vy0"] - GRAVITY * life
+        vx, vz = rec["vx0"], rec["vz0"]
+    elif life >= SIT_DWELL_S:
+        x, z = rec["x0"], rec["z0"]
+        y = rec["baseY"] + SIT_DROP_VY * (life - SIT_DWELL_S)
+        vx = vy = vz = 0.0
+    else:
+        x, y, z = rec["x0"], rec["baseY"], rec["z0"]
+        vx = vy = vz = 0.0
+    return {
+        "id": rec["id"],
+        "kind": rec["kind"],
+        "x": x,
+        "y": y,
+        "z": z,
+        "vx": vx,
+        "vy": vy,
+        "vz": vz,
+        "baseY": rec["baseY"],
+        "worth": rec["worth"],
+        "born_ms": rec["born_ms"],
+        "life": life,
+    }
+
+
+def _escaped_at(rec: dict, elapsed_ms: float) -> bool:
+    pose = _pose_at(rec, elapsed_ms)
+    if pose["life"] >= PLATE_MAX_LIFE_S:
         return True
-    if p["kind"] in ("clay", "rise"):
-        return p["y"] < -1.7 or p["x"] < -10 or p["x"] > 10 or p["z"] < -18 or p["z"] > 3
-    return p["y"] < -1.7
+    if rec["kind"] in ("clay", "rise"):
+        return pose["y"] < -1.7 or pose["x"] < -10 or pose["x"] > 10 or pose["z"] < -18 or pose["z"] > 3
+    return pose["y"] < -1.7
 
 
-def _advance_sim(sim: dict, now: float) -> None:
-    last = float(sim["last"])
-    dt = max(0.0, now - last)
-    sim["last"] = now
-    elapsed_ms = max(0.0, (now - float(sim["t0"])) * 1000.0)
-    if dt > 0:
-        gone: list[str] = []
-        for pid, p in sim["plates"].items():
-            p["life"] += dt
-            if p["kind"] in ("clay", "rise"):
-                p["x"] += p["vx"] * dt
-                p["y"] += p["vy"] * dt
-                p["z"] += p["vz"] * dt
-                p["vy"] -= GRAVITY * dt
-            elif p["life"] >= SIT_DWELL_S:
-                p["y"] += SIT_DROP_VY * dt
-            if _escaped(p):
-                gone.append(pid)
-        for pid in gone:
-            sim["plates"].pop(pid, None)
-            sim["escaped"].append(pid)
+def _dead_ids_at(sim: dict, elapsed_ms: float) -> set[str]:
+    return {d["id"] for d in sim["dead"] if float(d.get("at_ms", 0.0)) <= float(elapsed_ms)}
+
+
+def _live_at(sim: dict, elapsed_ms: float) -> list[dict]:
+    dead = _dead_ids_at(sim, elapsed_ms)
+    live = []
+    for rec in sim["spawned"]:
+        if float(rec["born_ms"]) > float(elapsed_ms):
+            continue
+        if rec["id"] in dead:
+            continue
+        if _escaped_at(rec, elapsed_ms):
+            continue
+        live.append(_pose_at(rec, elapsed_ms))
+    live.sort(key=lambda row: row["id"])
+    return live
+
+
+def _advance_spawns(sim: dict, elapsed_ms: float) -> None:
     if elapsed_ms >= RANGE_MS:
         return
     want = _desired(elapsed_ms)
     hard = elapsed_ms > 35000
-    while len(sim["plates"]) < want and (elapsed_ms >= 2000 or len(sim["plates"]) == 0):
+    while True:
+        live = _live_at(sim, elapsed_ms)
+        if not (len(live) < want and (elapsed_ms >= 2000 or len(live) == 0)):
+            return
         _spawn_random(sim, elapsed_ms, hard)
+
+
+def _sync_sim(sim: dict, now: float) -> float:
+    sim["last"] = now
+    elapsed_ms = max(0.0, (now - float(sim["t0"])) * 1000.0)
+    _advance_spawns(sim, elapsed_ms)
+    return elapsed_ms
 
 
 def _new_sim(seed: int, now: float) -> dict:
@@ -178,17 +305,17 @@ def _new_sim(seed: int, now: float) -> dict:
         "last": now,
         "seq": 0,
         "rng": _Rng(seed),
-        "plates": {},
+        "spawned": [],
         "dead": [],
-        "escaped": [],
     }
     _add_plate(sim, "sit", 0.2, 0.35, -6.6, worth=100, born_ms=0.0, baseY=0.35)
     return sim
 
 
 def _sim_view(sim: dict, now: float) -> dict:
+    elapsed_ms = max(0.0, (now - float(sim["t0"])) * 1000.0)
     plates = []
-    for p in sim["plates"].values():
+    for p in _live_at(sim, elapsed_ms):
         plates.append(
             {
                 "id": p["id"],
@@ -205,13 +332,32 @@ def _sim_view(sim: dict, now: float) -> dict:
                 "life": p["life"],
             }
         )
-    plates.sort(key=lambda row: row["id"])
     return {
         "seed": sim["seed"],
-        "elapsed_ms": int(max(0.0, (now - float(sim["t0"])) * 1000.0)),
+        "elapsed_ms": int(elapsed_ms),
         "plates": plates,
         "dead": list(sim["dead"]),
     }
+
+
+def _parse_uv(raw: object) -> tuple[float, float] | None:
+    if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+        return float(raw[0]), float(raw[1])
+    if isinstance(raw, dict) and "x" in raw and "y" in raw:
+        return float(raw["x"]), float(raw["y"])
+    return None
+
+
+def _hitscan(live: list[dict], uv: tuple[float, float], aspect: float) -> dict | None:
+    origin, direction = ray_from_uv(uv[0], uv[1], aspect)
+    best: tuple[float, dict] | None = None
+    for plate in live:
+        t = _ray_sphere(origin, direction, (plate["x"], plate["y"], plate["z"]), _plate_radius(plate["kind"]))
+        if t is None:
+            continue
+        if best is None or t < best[0]:
+            best = (t, plate)
+    return best[1] if best else None
 
 
 def _seat(room: dict, player: str) -> dict | None:
@@ -355,7 +501,7 @@ def start(
             room["phase"] = "range"
             room["sim"] = _new_sim(secrets.randbits(32) if seed is None else seed, t)
         else:
-            _advance_sim(room["sim"], t)
+            _sync_sim(room["sim"], t)
         return snapshot(room, t)
 
 
@@ -367,15 +513,39 @@ def get(code: str, now: float | None = None) -> dict:
         if not room:
             return {"ok": False, "error": "no room"}
         if room["phase"] == "range" and room.get("sim"):
-            _advance_sim(room["sim"], t)
+            _sync_sim(room["sim"], t)
         return snapshot(room, t)
 
 
-def hit(code: str, player: str, plate: str, now: float | None = None) -> dict:
-    """Apply a client HID hit. Validates seat + live plate. Ignores tracker quality."""
+def hit(
+    code: str,
+    player: str,
+    uv: object = None,
+    fire_ms: object = None,
+    t_hw: object = None,
+    aspect: object = None,
+    lifted: object = None,
+    now: float | None = None,
+    plate: object = None,
+) -> dict:
+    """Resolve a HID fire intent. Rewind to fire_ms, ray-test the peeked UV. Ignore plate id and tracker quality."""
+    del plate  # never authority
+    del lifted  # FSM stays on the owning client; not a server gate
     code = (code or "").strip().upper()
-    pid = (plate or "").strip()
     t = time.time() if now is None else now
+    parsed = _parse_uv(uv)
+    try:
+        aspect_f = float(aspect) if aspect is not None else DEFAULT_ASPECT
+    except (TypeError, ValueError):
+        aspect_f = DEFAULT_ASPECT
+    try:
+        fire_tick = float(fire_ms) if fire_ms is not None else None
+    except (TypeError, ValueError):
+        fire_tick = None
+    try:
+        stamp = int(t_hw) if t_hw is not None else 0
+    except (TypeError, ValueError):
+        stamp = 0
     with _LOCK:
         room = _ROOMS.get(code)
         if not room:
@@ -385,13 +555,38 @@ def hit(code: str, player: str, plate: str, now: float | None = None) -> dict:
         if not _seat(room, player):
             return {"ok": False, "error": "not in room"}
         sim = room["sim"]
-        _advance_sim(sim, t)
-        live = sim["plates"].pop(pid, None)
-        if not live:
-            known_dead = any(d.get("id") == pid for d in sim["dead"])
-            return {"ok": False, "error": "already dead" if known_dead else "no plate"}
-        sim["dead"].append({"id": pid, "by": player, "kind": live["kind"]})
+        elapsed_now = _sync_sim(sim, t)
         snap = snapshot(room, t)
-    snap["hit"] = pid
+        if parsed is None:
+            snap["miss"] = True
+            return snap
+        if fire_tick is None:
+            fire_tick = elapsed_now
+        if fire_tick > elapsed_now:
+            fire_tick = elapsed_now
+        if elapsed_now - fire_tick > REWIND_MAX_MS:
+            snap["miss"] = True
+            snap["stale"] = True
+            return snap
+        live = _live_at(sim, fire_tick)
+        struck = _hitscan(live, parsed, aspect_f)
+        if not struck:
+            snap["miss"] = True
+            return snap
+        if any(d["id"] == struck["id"] for d in sim["dead"]):
+            snap["miss"] = True
+            snap["error"] = "already dead"
+            return snap
+        sim["dead"].append(
+            {
+                "id": struck["id"],
+                "by": player,
+                "kind": struck["kind"],
+                "at_ms": fire_tick,
+                "t_hw": stamp,
+            }
+        )
+        snap = snapshot(room, t)
+    snap["hit"] = struck["id"]
     snap["by"] = player
     return snap
