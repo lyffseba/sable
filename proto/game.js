@@ -1039,11 +1039,13 @@ function buildRange3D() {
   scene.add(rangeTargetGroup);
   scene.add(shardGroup);
 
-  const turf = sableStd(0x1a2218, { roughness: 0.95, metalness: 0.02, flatShading: true });
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(28, 42), turf);
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -1.64;
-  rangeHallGroup.add(floor);
+  for (let i = 0; i < 10; i++) {
+    const g = sableStd(i % 2 ? 0x182218 : 0x1e2a1c, { roughness: 0.96, metalness: 0.02, flatShading: true });
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(26, 2.2), g);
+    strip.rotation.x = -Math.PI / 2;
+    strip.position.set(0, -1.64, 3.2 - i * 2.2);
+    rangeHallGroup.add(strip);
+  }
 
   const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
   const lane = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 20), mint);
@@ -1053,27 +1055,59 @@ function buildRange3D() {
   const post = sableStd(0x2a241c, { roughness: 0.8 });
   for (const x of [-8.2, 8.2]) {
     for (let i = 0; i < 6; i++) {
-      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 2.4, 6), post);
-      p.position.set(x, -0.44, 1.5 - i * 3.4);
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 2.6, 6), post);
+      p.position.set(x, -0.34, 1.5 - i * 3.4);
       rangeHallGroup.add(p);
     }
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 18), post);
-    rail.position.set(x, 0.5, -7);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 18), post);
+    rail.position.set(x, 0.72, -7);
     rangeHallGroup.add(rail);
   }
+
+  const net = new THREE.Mesh(
+    new THREE.PlaneGeometry(18, 5.2, 16, 5),
+    new THREE.MeshBasicMaterial({ color: 0x4a5c50, transparent: true, opacity: 0.28, wireframe: true })
+  );
+  net.position.set(0, 0.9, -17.1);
+  rangeHallGroup.add(net);
+
+  const flood = new THREE.PointLight(0xffe8c8, 1.1, 22, 2);
+  flood.position.set(-5, 5.5, -3);
+  rangeHallGroup.add(flood);
+  const flood2 = flood.clone();
+  flood2.position.set(5, 5.5, -9);
+  rangeHallGroup.add(flood2);
 
   buildYardBunkers(rangeHallGroup);
 }
 
 function inflateMat(hex) {
-  return sableStd(hex, { roughness: 0.32, metalness: 0.12 });
+  return new THREE.MeshStandardMaterial({
+    color: hex, roughness: 0.22, metalness: 0.08, flatShading: false,
+  });
 }
 
 function addYard(group, mesh, x, y, z, rotY) {
   mesh.position.set(x, y, z);
   if (rotY) mesh.rotation.y = rotY;
+  mesh.castShadow = false;
   group.add(mesh);
   return mesh;
+}
+
+function sausageX(radius, length, mat) {
+  const cyl = Math.max(0.05, length - radius * 2);
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(radius, cyl, 5, 14), mat);
+  m.rotation.z = Math.PI / 2;
+  return m;
+}
+
+function capEnds(group, x, y, z, alongX, radius, capMat) {
+  const a = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.02, 12, 10), capMat);
+  const b = a.clone();
+  a.position.set(x - alongX, y, z);
+  b.position.set(x + alongX, y, z);
+  group.add(a); group.add(b);
 }
 
 function buildYardBunkers(group) {
@@ -1082,41 +1116,49 @@ function buildYardBunkers(group) {
   const mint = inflateMat(Locker.colors.mintHex);
   const floorY = -1.64;
 
-  const pad = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 1.2), rust);
-  addYard(group, pad, 0, floorY + 0.04, 1.4, 0);
+  const pad = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.1, 1.3), rust);
+  addYard(group, pad, 0, floorY + 0.05, 1.35, 0);
+  const padLip = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.03, 1.34), mint);
+  addYard(group, padLip, 0, floorY + 0.11, 1.35, 0);
 
-  const tape = new THREE.Mesh(new THREE.BoxGeometry(16, 0.05, 0.1), mint);
-  addYard(group, tape, 0, floorY + 0.03, -16.5, 0);
+  const tape = new THREE.Mesh(new THREE.BoxGeometry(16.5, 0.06, 0.12), mint);
+  addYard(group, tape, 0, floorY + 0.04, -16.5, 0);
 
-  const beamGeo = new THREE.CylinderGeometry(0.28, 0.28, 2.4, 12);
-  const beamL = new THREE.Mesh(beamGeo, bone);
-  beamL.rotation.z = Math.PI / 2;
-  addYard(group, beamL, -3.4, floorY + 0.28, -4.2, 0);
-  const beamR = new THREE.Mesh(beamGeo, bone);
-  beamR.rotation.z = Math.PI / 2;
-  addYard(group, beamR, 3.4, floorY + 0.28, -4.2, 0);
+  const beamL = sausageX(0.32, 2.6, bone);
+  addYard(group, beamL, -3.4, floorY + 0.32, -4.2, 0);
+  capEnds(group, -3.4, floorY + 0.32, -4.2, 1.15, 0.32, rust);
+  const beamR = sausageX(0.32, 2.6, bone);
+  addYard(group, beamR, 3.4, floorY + 0.32, -4.2, 0);
+  capEnds(group, 3.4, floorY + 0.32, -4.2, 1.15, 0.32, rust);
 
-  const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.7, 14), rust);
-  addYard(group, drum, -1.6, floorY + 0.85, -7.0, 0);
+  const drum = new THREE.Mesh(new THREE.CapsuleGeometry(0.58, 0.7, 6, 16), rust);
+  addYard(group, drum, -1.6, floorY + 0.93, -7.0, 0);
+  const drumRing = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.05, 8, 18), mint);
+  drumRing.rotation.x = Math.PI / 2;
+  addYard(group, drumRing, -1.6, floorY + 1.55, -7.0, 0);
 
-  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.85, 1.8, 4), bone);
-  addYard(group, peak, 2.2, floorY + 0.9, -8.5, 0.4);
+  const peak = new THREE.Mesh(new THREE.ConeGeometry(0.92, 1.85, 5), bone);
+  addYard(group, peak, 2.2, floorY + 0.92, -8.5, 0.35);
+  const peakBase = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 10), rust);
+  addYard(group, peakBase, 2.2, floorY + 0.28, -8.5, 0);
 
-  const stack = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.2, 1.3), rust);
-  addYard(group, stack, -2.8, floorY + 0.6, -11.0, 0.15);
+  const stack = new THREE.Mesh(new THREE.CapsuleGeometry(0.72, 0.35, 4, 12), rust);
+  stack.scale.set(1.15, 1, 1.15);
+  addYard(group, stack, -2.8, floorY + 0.72, -11.0, 0.12);
 
-  const wingA = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 0.55), bone);
-  addYard(group, wingA, 0, floorY + 0.35, -12.5, 0);
-  const wingB = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.0, 0.7), bone);
-  addYard(group, wingB, 0, floorY + 0.55, -12.5, 0);
+  const wing = sausageX(0.28, 2.7, bone);
+  addYard(group, wing, 0, floorY + 0.3, -12.5, 0);
+  const wingStem = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.55, 4, 12), bone);
+  addYard(group, wingStem, 0, floorY + 0.7, -12.5, 0);
 
-  const crossA = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 0.45), mint);
-  addYard(group, crossA, 3.0, floorY + 0.45, -14.0, 0);
-  const crossB = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.7, 1.8), mint);
-  addYard(group, crossB, 3.0, floorY + 0.45, -14.0, 0);
+  const crossA = sausageX(0.28, 2.0, mint);
+  addYard(group, crossA, 3.0, floorY + 0.42, -14.0, 0);
+  const crossB = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.44, 5, 14), mint);
+  crossB.rotation.x = Math.PI / 2;
+  addYard(group, crossB, 3.0, floorY + 0.42, -14.0, 0);
 
-  const drumFar = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5, 14), bone);
-  addYard(group, drumFar, -3.2, floorY + 0.75, -14.5, 0);
+  const drumFar = new THREE.Mesh(new THREE.CapsuleGeometry(0.52, 0.55, 5, 14), bone);
+  addYard(group, drumFar, -3.2, floorY + 0.8, -14.5, 0);
 }
 
 const YARD_PEEKS = [
@@ -1201,13 +1243,17 @@ function buildBay3D() {
 // --- 3D Target Spawn & Shatter ---
 function createTargetMesh(kind, hue) {
   const group = new THREE.Group();
-  const bone = sableStd(Locker.colors.boneHex, { roughness: 0.42 });
-  const mint = new THREE.MeshBasicMaterial({ color: Locker.colors.mintHex });
+  const bone = new THREE.MeshStandardMaterial({
+    color: Locker.colors.boneHex, roughness: 0.38, metalness: 0.06, flatShading: false,
+  });
+  const mint = new THREE.MeshStandardMaterial({
+    color: Locker.colors.mintHex, emissive: Locker.colors.mintHex, emissiveIntensity: 0.45, roughness: 0.3,
+  });
   const fly = kind === "clay" || kind === "rise";
-  const plate = new THREE.Mesh(hexPlateGeo(fly ? 0.46 : 0.55, 0.07), bone);
+  const plate = new THREE.Mesh(hexPlateGeo(fly ? 0.5 : 0.62, 0.08), bone);
   group.add(plate);
-  const core = new THREE.Mesh(hexPlateGeo(fly ? 0.2 : 0.24, 0.09), mint);
-  core.position.y = 0.01;
+  const core = new THREE.Mesh(hexPlateGeo(fly ? 0.22 : 0.26, 0.1), mint);
+  core.position.y = 0.02;
   group.add(core);
   const wire = plate;
   return { group, core, wire };
@@ -1616,6 +1662,7 @@ function startRange() {
   S.recoil = 0; S.punch = 0; S.flash = 0;
   const first = spawnOrb3D({ kind: "sit", worth: 100, hue: 165 });
   first.mesh.position.set(0.2, 0.35, -6.6);
+  first.baseY = 0.35;
 }
 
 function showResults() {
@@ -1689,6 +1736,7 @@ function randomOrb(hard) {
     pullWhistle();
   } else {
     o.mesh.position.set(p[0], p[1], p[2]);
+    o.baseY = p[1];
   }
   return o;
 }
@@ -1722,6 +1770,11 @@ function updateRange(dt, now) {
       o.vy -= 4.6 * dt;
       const p = o.mesh.position;
       if (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3) gone.push(o);
+    } else if (o.kind === "sit") {
+      if (o.baseY == null) o.baseY = o.mesh.position.y;
+      if (o.phase == null) o.phase = 0;
+      o.phase += dt * 1.6;
+      o.mesh.position.y = o.baseY + Math.sin(o.phase) * 0.07;
     }
     if (gone.indexOf(o) < 0) {
       o.mesh.lookAt(camera.position);
