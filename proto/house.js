@@ -5,6 +5,7 @@
 import * as THREE from "./vendor/three.module.js";
 import { S, W, H, dpr, phase, aimBus, clamp } from "./aim.js";
 import { $, canvas3D, setPhase, ensureLobbyPoll } from "./boot.js";
+import { unlockAudio, bang, hitBlip, missTick, pullWhistle } from "./audio.js";
 
 // --- Operator Identity & Locker Catalog ---
 const OP_CANCHO = "cancho";
@@ -143,77 +144,6 @@ function speak(text) {
     // Audio synthesis fallback
   }
 }
-// --- Audio Synthesizer ---
-let actx = null;
-function unlockAudio() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === "suspended") actx.resume();
-}
-
-function bang() {
-  if (!actx) return;
-  const t = actx.currentTime;
-  const osc = actx.createOscillator();
-  const gain = actx.createGain();
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(320, t);
-  osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-  gain.gain.setValueAtTime(0.42, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-  osc.connect(gain);
-  gain.connect(actx.destination);
-  osc.start(t);
-  osc.stop(t + 0.15);
-}
-
-function hitBlip(combo) {
-  if (!actx) return;
-  const t = actx.currentTime;
-  const osc = actx.createOscillator();
-  const gain = actx.createGain();
-  const baseFreq = 540 + Math.min(600, combo * 70);
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(baseFreq, t);
-  osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, t + 0.08);
-  gain.gain.setValueAtTime(0.3, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-  osc.connect(gain);
-  gain.connect(actx.destination);
-  osc.start(t);
-  osc.stop(t + 0.11);
-}
-
-function missTick() {
-  if (!actx) return;
-  const t = actx.currentTime;
-  const osc = actx.createOscillator();
-  const gain = actx.createGain();
-  osc.type = "triangle";
-  osc.frequency.setValueAtTime(140, t);
-  gain.gain.setValueAtTime(0.18, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
-  osc.connect(gain);
-  gain.connect(actx.destination);
-  osc.start(t);
-  osc.stop(t + 0.04);
-}
-
-function pullWhistle() {
-  if (!actx) return;
-  const t = actx.currentTime;
-  const osc = actx.createOscillator();
-  const gain = actx.createGain();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(740, t);
-  osc.frequency.exponentialRampToValueAtTime(1480, t + 0.11);
-  gain.gain.setValueAtTime(0.12, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-  osc.connect(gain);
-  gain.connect(actx.destination);
-  osc.start(t);
-  osc.stop(t + 0.15);
-}
-
 // ==========================================
 // --- Three.js 3D Engine Architecture ---
 // ==========================================
@@ -642,7 +572,7 @@ function fireBay3D(raycaster, muzzleWorld) {
     Bay.foe.alive = false;
     if (foeGroup) foeGroup.visible = false;
     Bay.vo(Locker.operator.vo.hit);
-    hitBlip(Bay.you);
+    hitBlip(Bay.you, hitPt.x);
     S.hitstop = 1;
     shatterTarget3D(hitPt, 160);
 
@@ -653,9 +583,9 @@ function fireBay3D(raycaster, muzzleWorld) {
       Bay.vo(Locker.operator.vo.win);
     }
   } else {
-    missTick();
-    Bay.missT = 0.06;
     const farPt = origin.clone().add(dir.clone().multiplyScalar(24));
+    missTick(farPt.x);
+    Bay.missT = 0.06;
     addBulletTracer(muzzleWorld, farPt);
   }
 }
@@ -706,7 +636,6 @@ function spawnSharedPlate(p) {
   o.mesh.position.set(p.x, p.y, p.z);
   o.baseY = p.baseY != null ? p.baseY : p.y;
   o.life = typeof p.life === "number" ? p.life : 0;
-  if (p.kind === "clay" || p.kind === "rise") pullWhistle();
   return o;
 }
 
@@ -839,11 +768,9 @@ function randomOrb(hard) {
     o.vx = (left ? 1 : -1) * (4.2 + Math.random() * (hard ? 5 : 2.2));
     o.vy = 1.4 + Math.random();
     o.vz = -0.8 - Math.random();
-    pullWhistle();
   } else if (kind === "rise") {
     o.mesh.position.set(p[0], -1.45, p[2]);
     o.vy = 3.4 + Math.random() * 1.4;
-    pullWhistle();
   } else {
     o.mesh.position.set(p[0], p[1], p[2]);
     o.baseY = p[1];
@@ -916,7 +843,7 @@ function updateRange(dt, elapsed) {
     }
   }
   for (const o of gone) {
-    missTick();
+    missTick(o.mesh ? o.mesh.position.x : 0);
     S.combo = 0;
     if (o.mesh) {
       const hud = worldToHud(o.mesh.position);
