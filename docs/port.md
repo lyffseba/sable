@@ -26,7 +26,7 @@ Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), **WARM U
 
 ## Soft-lock (do not touch on this path)
 
-Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips. SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Behavior unchanged.
+Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Bay stays local — no lobby friend tick. Behavior unchanged.
 
 ## What a later port may take
 

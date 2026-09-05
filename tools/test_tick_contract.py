@@ -182,6 +182,11 @@ def test_fire_ms_speaks_sim_hz_not_present() -> None:
         _fail("fire_ms couples to rAF rangeStart")
     if "committedSimMs" not in report and "simTick" not in report:
         _fail("fire_ms must speak the last committed sim tick")
+    bay = _fn(js, "fireBay3D")
+    if "committedSimMs" not in bay or "Bay.fireMs" not in bay:
+        _fail("Bay fire_ms must stamp the last committed sim tick")
+    if "performance.now" in bay or "S.rangeStart" in bay:
+        _fail("Bay fire_ms couples to present")
     fire = _fn(js, "fire")
     if "performance.now() - S.rangeStart" in fire:
         _fail("fire couples to present")

@@ -99,7 +99,7 @@ Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns G
 | HID click → hitscan           | **< 8 ms**    |
 | Filter-only lag (pointing)    | 8–20 ms       |
 
-The shot reads `AimBus` on the click. It does not wait for the next 128 Hz sim step, the next rAF, the Hands worker, or net. It does not recompute aim. Shared `fire_ms` is the last committed sim tick, not rAF present. `?sableperf=1` (or `localStorage.SablePerf=1`) records HID→hitscan samples (`t0` before `bang()`); `SablePerf.stats()` reports p50/p99 against this 8 ms bar.
+The shot reads `AimBus` on the click. It does not wait for the next 128 Hz sim step, the next rAF, the Hands worker, or net. It does not recompute aim. Shared `fire_ms` is the last committed sim tick, not rAF present. Local Bay stamps the same grid (`Bay.fireMs = committedSimMs()`). `?sableperf=1` (or `localStorage.SablePerf=1`) records HID→hitscan samples (`t0` before `bang()`); `SablePerf.stats()` reports p50/p99 against this 8 ms bar.
 
 ## Desktop fallback
 

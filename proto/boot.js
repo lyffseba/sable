@@ -70,6 +70,8 @@ import {
   bayCoverChip,
   galleryLeftMs,
   gallerySessionLabel,
+  bayOver,
+  baySessionLabel,
   HUD_PAD,
 } from "./house.js";
 
@@ -706,64 +708,33 @@ function drawHUD(now) {
 }
 
 function drawBayHUD() {
+  // Same thin SableHUD bar as gallery. Score / round / first-to-5. No tutorial wall.
+  const bone = Locker.colors.bone;
+  const mint = Locker.colors.mint;
+  const rust = Locker.colors.rust;
+  const cover = bayCoverChip(Bay.pos.x, Bay.pos.z, S.lifted, Bay.frozen, Bay.over);
+  const coverCol = cover === "OPEN" ? rust : cover === "DROP" ? bone : mint;
+  const state = baySessionLabel();
+  const chips = [
+    ["YOU " + Bay.you, bone],
+    ["THEM " + Bay.them, rust],
+    ["ROUND " + Bay.round, mint],
+    [cover, coverCol],
+    [state, bayOver() ? rust : mint],
+  ];
+  if (Bay.voT > 0 && Bay.voText) chips.push([Bay.voText, bone]);
   ctx.save();
-  const op = Locker.operator;
-  ctx.font = "700 22px system-ui, sans-serif";
-  ctx.fillStyle = Locker.colors.bone;
-  ctx.textAlign = "left";
-  ctx.fillText(
-    op.displayName + "  " + Bay.you + "  —  " + Bay.them + "  ·  " + Locker.equippedStyle,
-    HUD_PAD,
-    HUD_PAD + 20
-  );
-
-  const chip = bayCoverChip(Bay.pos.x, Bay.pos.z, S.lifted, Bay.frozen, Bay.over);
-  const chipCol = chip === "OPEN" ? "#c45c3a" : chip === "DROP" ? "#e6e0d1" : Locker.colors.mint;
-  ctx.font = "700 12px system-ui, sans-serif";
-  ctx.letterSpacing = "0.16em";
-  ctx.fillStyle = chipCol;
-  ctx.fillText(chip, HUD_PAD, HUD_PAD + 46);
-  ctx.fillStyle = Locker.colors.mint;
-  ctx.fillText("FIRST TO 5", HUD_PAD, HUD_PAD + 66);
-
-  if (Bay.expose > 0 && !Bay.frozen) {
-    ctx.letterSpacing = "0";
-    ctx.fillStyle = "rgba(196, 92, 58, 0.25)";
-    ctx.fillRect(HUD_PAD, HUD_PAD + 76, 120, 6);
-    ctx.fillStyle = "#c45c3a";
-    ctx.fillRect(HUD_PAD, HUD_PAD + 76, 120 * clamp(Bay.expose / Bay.exposeMax, 0, 1), 6);
-  }
-
-  drawModeChip();
-
-  if (Bay.voT > 0 && Bay.voText) {
-    ctx.letterSpacing = "0";
-    ctx.font = "italic 700 24px system-ui, sans-serif";
-    ctx.fillStyle = Locker.colors.bone;
-    ctx.textAlign = "center";
-    ctx.fillText(Bay.voText, W * 0.5, H - 70);
-  }
-
-  ctx.letterSpacing = "0";
-  ctx.font = "500 13px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(232, 246, 255, 0.55)";
-  ctx.textAlign = "center";
-  if (Bay.over) {
-    ctx.fillText(
-      (Bay.you >= Bay.toWin ? "YOU" : "THEM") + "  ·  " + op.vo.win + "  ·  BOOT",
-      W * 0.5,
-      H - 32
-    );
-  } else if (Bay.frozen) {
-    ctx.fillText("DROP  ·  LOWER THE CUFF TO CONTINUE", W * 0.5, H - 32);
-  } else {
-    ctx.fillText(
-      "WASD on PAD  ·  LIFT to aim  ·  CLICK fires  ·  L cycles " + Locker.equippedStyle,
-      W * 0.5,
-      H - 32
-    );
+  const gap = 8;
+  let total = 0;
+  for (let i = 0; i < chips.length; i++) total += sableChipWidth(chips[i][0]) + gap;
+  total -= gap;
+  let x = Math.round((W - total) * 0.5);
+  const y = HUD_PAD;
+  for (let i = 0; i < chips.length; i++) {
+    x += drawSableChip(chips[i][0], chips[i][1], x, y) + gap;
   }
   ctx.restore();
+  drawModeChip();
 }
 
 function drawCalib(now) {
