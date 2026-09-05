@@ -56,6 +56,25 @@ def ray_sphere_intersect(
 
     return RayHit(False, 0.0, Vec3(0, 0, 0))
 
+
+def batch_sphere_hits(
+    origin: Vec3,
+    ray_dir: Vec3,
+    targets: List[Vec3],
+    radius: Float32,
+) -> Int:
+    """Count hits against a target list (arena tick)."""
+    var n = 0
+    var i = 0
+    var count = len(targets)
+    while i < count:
+        var h = ray_sphere_intersect(origin, ray_dir, targets[i], radius)
+        if h.hit:
+            n += 1
+        i += 1
+    return n
+
+
 def main():
     var origin = Vec3(0, 1.64, 10)
     var target = Vec3(0, 0.89, -10)

@@ -8,7 +8,9 @@ Apache-2.0. Built with Pixi against Modular Mojo 1.0.
 | `aim_bus.mojo` | Latest-sample mailbox. `fire()` peeks; never waits |
 | `one_euro.mojo` | Adaptive pointing filter (Casiez 2012) |
 | `moments.mojo` | Soft-mask spatial moments / sub-pixel centroid |
-| `hitscan.mojo` | 3D ray–sphere intersection |
+| `hitscan.mojo` | 3D ray–sphere + batch arena tick |
+| `ncc.mojo` | SIMD normalized cross-correlation (muzzle lock) |
+| `sable_kern.mojo` | Python extension (`mojo.importer`) |
 | `test_aim.mojo` | Unit suite |
 | `bench.mojo` | Hardware-limit microbenchmarks |
 

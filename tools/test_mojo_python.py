@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from sable_mojo import centroid, hitscan, load, one_euro, ping  # noqa: E402
+from sable_mojo import arena_tick, centroid, hitscan, load, ncc_selftest, one_euro, ping  # noqa: E402
 
 
 def main() -> int:
@@ -34,6 +34,14 @@ def main() -> int:
     e = one_euro(100.0, 0.016, 100.0, -1.0)
     if not e.get("ok") or abs(e["value"] - 100.0) > 1e-6:
         print(f"FAIL: one_euro {e}", file=sys.stderr)
+        return 1
+    n = ncc_selftest()
+    if not n.get("ok") or n.get("score", 0) < 0.95:
+        print(f"FAIL: ncc {n}", file=sys.stderr)
+        return 1
+    a = arena_tick()
+    if not a.get("ok"):
+        print(f"FAIL: arena_tick {a}", file=sys.stderr)
         return 1
     print("mojo python bindings ok")
     return 0

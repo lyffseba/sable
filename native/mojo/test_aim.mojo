@@ -4,7 +4,8 @@ from aim_sample import AimSample
 from aim_bus import AimBus
 from one_euro import OneEuro
 from moments import compute_moments_simd
-from hitscan import Vec3, ray_sphere_intersect
+from hitscan import Vec3, ray_sphere_intersect, batch_sphere_hits
+from ncc import ncc_search, make_blob_frame, extract_tpl
 
 def check(cond: Bool, msg: String) raises:
     if not cond:
@@ -65,6 +66,31 @@ def test_hitscan() raises:
     var miss = ray_sphere_intersect(origin, miss_dir, target, 0.52)
     check(not miss.hit, "Hitscan orthogonal ray misses")
 
+def test_ncc() raises:
+    var w = 160
+    var h = 90
+    var tw = 16
+    var cx = 80
+    var cy = 45
+    var gray = make_blob_frame(w, h, cx, cy, 10)
+    var tpl = extract_tpl(gray, w, cx - tw // 2, cy - tw // 2, tw, tw)
+    var hit = ncc_search(gray, w, h, tpl, tw, tw, 0, 0, w - tw, h - tw, 4)
+    check(hit.score > 0.95, "SIMD NCC peak near 1.0")
+    check(hit.x == cx - tw // 2, "SIMD NCC X locks template origin")
+    check(hit.y == cy - tw // 2, "SIMD NCC Y locks template origin")
+
+
+def test_batch_hitscan() raises:
+    var origin = Vec3(0, 1.64, 10)
+    var target = Vec3(0, 0.89, -10)
+    var dir = target.sub(origin).normalize()
+    var orbs = List[Vec3]()
+    orbs.append(target)
+    orbs.append(Vec3(8, 0.89, -10))
+    var n = batch_sphere_hits(origin, dir, orbs, 0.52)
+    check(n == 1, "Batch hitscan counts only the lined-up orb")
+
+
 def main():
     print("=== SABLE Mojo 1.0 Comprehensive Suite ===")
     try:
@@ -73,6 +99,8 @@ def main():
         test_one_euro()
         test_moments()
         test_hitscan()
+        test_ncc()
+        test_batch_hitscan()
         print("ALL MOJO 1.0 TESTS PASSED!")
     except e:
         print("Mojo test suite failure:", e)

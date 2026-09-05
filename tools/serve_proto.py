@@ -62,6 +62,7 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                     "mojo": mojo_id,
                     "gemini": bool(detect_mouse_in_image),
                     "lobby": bool(lobby_api),
+                    "ncc": "simd" if sable_mojo else None,
                 }
             )
             return
@@ -71,6 +72,12 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                 if part.startswith("code="):
                     code = part.split("=", 1)[1]
             self._json(lobby_api.get(code))
+            return
+        if path == "/api/mojo/ncc" and sable_mojo:
+            self._json(sable_mojo.ncc_selftest())
+            return
+        if path == "/api/mojo/tick" and sable_mojo:
+            self._json(sable_mojo.arena_tick())
             return
         super().do_GET()
 
@@ -105,6 +112,20 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                 else:
                     res = {"detected": False, "error": "Gemini tracker not loaded"}
                 self._json(res)
+                return
+
+            if path == "/api/mojo/ncc":
+                if not sable_mojo:
+                    self._json({"ok": False, "error": "mojo unavailable"}, 503)
+                    return
+                self._json(sable_mojo.ncc_selftest())
+                return
+
+            if path == "/api/mojo/tick":
+                if not sable_mojo:
+                    self._json({"ok": False, "error": "mojo unavailable"}, 503)
+                    return
+                self._json(sable_mojo.arena_tick())
                 return
 
             if path == "/api/mojo/centroid":
