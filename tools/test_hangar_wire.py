@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Hangar on the wire: room snapshot owns hangar. Round-trip + fail loud.
+"""SableNet hangar lock: room owns hangar | wait_practice | match_live.
 
-Fail loud if wait/range/bay omit hangar, two clients split WAIT/LIVE,
-unknown phase is swallowed, applyRoomHangar awaits or gates fire,
-or Offline / WARM UP start waiting on the room field.
+Fail loud if practice promotes the room, poll is not a view of that enum,
+HID waits on hangar, or Offline / WARM UP talk to the room for hangar.
+Bay stays parked. AimSample stays locked.
 """
 
 from __future__ import annotations
@@ -74,18 +74,52 @@ def test_fail_loud() -> None:
     else:
         _fail("hangar_for_phase swallowed an unknown room phase")
     try:
-        lobby.snapshot({"code": "XXXX", "phase": "narnia", "host": "h", "slots": []})
+        lobby.snapshot({"code": "XXXX", "phase": "wait", "host": "h", "slots": []})
     except ValueError as exc:
-        if "unknown room phase" not in str(exc):
-            _fail(f"snapshot must fail loud {exc}")
+        if "missing hangar" not in str(exc):
+            _fail(f"snapshot must fail loud when hangar is omitted {exc}")
     else:
-        _fail("snapshot swallowed an unknown room phase")
+        _fail("snapshot swallowed a missing hangar field")
+    try:
+        lobby.snapshot({"code": "XXXX", "phase": "wait", "hangar": "match_live", "host": "h", "slots": []})
+    except ValueError as exc:
+        if "wait_practice" not in str(exc):
+            _fail(f"wait+LIVE must fail loud {exc}")
+    else:
+        _fail("wait room accepted match_live — practice must not promote")
+    try:
+        lobby.snapshot({"code": "XXXX", "phase": "bay", "hangar": "match_live", "host": "h", "slots": []})
+    except ValueError as exc:
+        if "parked bay" not in str(exc):
+            _fail(f"bay+LIVE must fail loud {exc}")
+    else:
+        _fail("parked bay accepted match_live")
     for phase, want in (("wait", "wait_practice"), ("range", "match_live"), ("bay", "hangar")):
         got = lobby.hangar_for_phase(phase)
         if got != want:
             _fail(f"{phase} hangar {got} want {want}")
         if got not in lobby.HANGAR_PHASES:
             _fail(f"{got} left HANGAR_PHASES")
+
+
+def test_practice_never_promotes() -> None:
+    src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    if src.count('_assign_room_hangar(room, hangar_for_phase("range"))') != 1:
+        _fail("only ENTER RANGE / start() may write match_live")
+    if "_assign_room_hangar" in src[src.find("def _mark_warmup") : src.find("def warmup")]:
+        _fail("warmup wrote hangar — practice never promotes the room")
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    lobby.warmup(a["code"], a["player"])
+    lobby.warmup(a["code"], b["player"])
+    g = lobby.get(a["code"])
+    if g.get("hangar") != "wait_practice" or g.get("phase") != "wait":
+        _fail(f"practice promoted the room {g.get('hangar')} {g.get('phase')}")
+    if g.get("seed") or g.get("plates"):
+        _fail("practice opened the shared sim")
+    late = lobby.warmup(a["code"], a["player"])
+    if late.get("hangar") != "wait_practice":
+        _fail("second WARM UP promoted hangar")
 
 
 def test_client_apply_and_hid() -> None:
@@ -102,9 +136,11 @@ def test_client_apply_and_hid() -> None:
     paint = _js_fn(js, "paintLobby")
     if "applyRoomHangar(data)" not in paint:
         _fail("paintLobby must apply room-owned hangar")
+    if "!S.warmup" not in paint:
+        _fail("paintLobby must not wire-gate WARM UP on hangar")
     poll = _js_fn(js, "lobbyPoll")
     if poll.count("applyRoomHangar(data)") < 1:
-        _fail("lobbyPoll must apply room-owned hangar")
+        _fail("lobbyPoll must apply the hangar view")
     fire = _js_fn(js, "fire")
     if "applyRoomHangar" in fire or "S.hangar" in fire or "hangar_for_phase" in fire:
         _fail("fire() gated on hangar wire — Fire = AimBus HID peek")
@@ -115,10 +151,14 @@ def test_client_apply_and_hid() -> None:
     warm = _js_fn(js, "lobbyWarmup")
     if 'assignHangar("wait_practice")' not in warm:
         _fail("WARM UP must mark wait_practice locally")
+    if "applyRoomHangar" in warm:
+        _fail("WARM UP applied room hangar — client-local park")
     if re.search(r"await\s+", warm):
         _fail("WARM UP awaits — waiting room blocked practice")
     if "/api/lobby/start" in warm:
         _fail("WARM UP started the shared house")
+    if "/api/lobby/hit" in warm:
+        _fail("WARM UP talked to the room hit path")
     offline = re.search(
         r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
         js,
@@ -127,6 +167,8 @@ def test_client_apply_and_hid() -> None:
         _fail("OFFLINE must mark hangar in one click")
     if "applyRoomHangar" in offline.group(0) or "fetch(" in offline.group(0):
         _fail("OFFLINE waited on room hangar")
+    if "/api/lobby" in offline.group(0):
+        _fail("OFFLINE talked to the room")
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
     if not sample:
         _fail("AimSample class missing")
@@ -138,14 +180,18 @@ def test_client_apply_and_hid() -> None:
 def test_docs_own_hangar() -> None:
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
-    if "room snapshot owns hangar" not in modes:
-        _fail("docs/modes.md must note the room snapshot owns hangar")
+    if "SableNet hangar lock" not in modes:
+        _fail("docs/modes.md must name the SableNet hangar lock")
+    if "room snapshot owns hangar" not in modes and "owns that session class" not in modes:
+        _fail("docs/modes.md must note the room owns hangar")
+    if "Practice never promotes" not in modes and "practice never promotes" not in modes:
+        _fail("docs/modes.md must lock practice off match_live")
     if "wait_practice" not in modes or "match_live" not in modes:
         _fail("docs/modes.md must keep hangar | wait_practice | match_live")
     if "S.hangar" not in modes:
         _fail("docs/modes.md must keep HUD on S.hangar")
-    if "room snapshot owns hangar" not in bible and "owns hangar" not in bible:
-        _fail("PRODUCTION.md must note the room snapshot owns hangar")
+    if "SableNet hangar lock" not in bible and "owns hangar" not in bible:
+        _fail("PRODUCTION.md must name the SableNet hangar lock")
     if "test_hangar_wire.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_hangar_wire.py")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
@@ -157,6 +203,7 @@ def main() -> int:
     try:
         test_round_trip()
         test_fail_loud()
+        test_practice_never_promotes()
         test_client_apply_and_hid()
         test_docs_own_hangar()
     except AssertionError as exc:

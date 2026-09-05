@@ -1,7 +1,7 @@
 /* SABLE — boot.js
    Boot, lobby UI wiring, serve entry, phase machine glue.
    Durable hangar session: S.hangar hangar | wait_practice | match_live.
-   Room snapshot owns hangar on the wire; HUD still reads S.hangar.
+   SableNet hangar lock: room owns hangar; poll is a view; HUD reads S.hangar.
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -189,7 +189,7 @@ function slotLabel(slot) {
 }
 
 function applyRoomHangar(data) {
-  // Room snapshot owns hangar. HUD still reads S.hangar. Never await; never fire.
+  // Poll view of room-owned hangar. HUD still reads S.hangar. Never await; never fire.
   if (!data || !data.ok) return;
   if (data.hangar == null || data.hangar === "") throw new Error("SABLE HANGAR: room snapshot missing hangar");
   // Host ENTER RANGE is fire-and-forget. Do not revert LIVE while the POST is in flight.
@@ -199,7 +199,8 @@ function applyRoomHangar(data) {
 
 function paintLobby(data) {
   if (!data || !data.ok) return;
-  applyRoomHangar(data);
+  // WARM UP is a client-local park. Poll applies hangar; this path must not wire-gate practice.
+  if (!S.warmup) applyRoomHangar(data);
   S.room = data.code;
   S.host = data.host === S.player;
   S.playlist = "5v5";

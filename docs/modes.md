@@ -4,7 +4,9 @@
 
 Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The player-facing mode name is **GALLERY**. Do not rename the phase to trap lift/HID or kill Offline.
 
-Durable hangar session is `S.hangar`: `hangar` (boot / Offline gallery) | `wait_practice` (HUD-on-Yard waiting + WARM UP) | `match_live` (shared ENTER RANGE). It is a thin HUD seam so waiting-practice and shared gallery are not overloaded on `lobby` / `range` alone. Screen/sim phase stays `boot` / `lobby` / `lock` / `calibrate` / `range` / `results`. Server room `phase` stays `wait` | `range` | `bay`. The room snapshot owns hangar (`wait`→`wait_practice`, `range`→`match_live`, parked `bay`→`hangar`) and clients apply it to `S.hangar`. Offline / WARM UP stay local — the waiting room never blocks warm-up. Lift/HID never waits on a hangar write.
+Durable hangar session is `S.hangar`: `hangar` (boot / Offline gallery) | `wait_practice` (HUD-on-Yard waiting + WARM UP) | `match_live` (shared ENTER RANGE). It is a thin HUD seam so waiting-practice and shared gallery are not overloaded on `lobby` / `range` alone. Screen/sim phase stays `boot` / `lobby` / `lock` / `calibrate` / `range` / `results`. Server room `phase` stays `wait` | `range` | `bay`.
+
+**SableNet hangar lock:** the room owns that session class (`wait`→`wait_practice`, `range`→`match_live`; Bay stays parked). Practice never promotes the room — only ENTER RANGE writes `match_live`. Poll / snapshot is a view of the enum. Offline Range and WARM UP stay client-local parks (no wire gate). Lift/HID never waits on a hangar write. Fail loud if fire gates on hangar or Offline / WARM UP talk to the room for hangar.
 
 | Entry | Playlist | Rules | Soft-lock |
 |-------|----------|-------|-----------|
@@ -51,4 +53,5 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not force calib/lock on ENTER RANGE when the Yard is already live. Promote is SableNet phase-preserve (`enterRangePreserve`) — lift/HID never waits on the lobby POST.
 - Do not collapse `wait_practice` and `match_live` back onto `lobby` / `range` alone. `S.hangar` is the durable session enum (`assignHangar` / `syncHangar`).
 - Do not let a client invent hangar for a shared room. The room snapshot owns hangar.
+- Do not promote hangar from WARM UP / practice. Only ENTER RANGE writes `match_live`.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.

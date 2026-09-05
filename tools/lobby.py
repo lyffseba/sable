@@ -6,8 +6,9 @@ Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.
 
-Room snapshot owns hangar (wait→wait_practice, range→match_live, bay→hangar).
-Clients apply it to S.hangar. Fire never waits on this field.
+Room owns hangar session class (wait→wait_practice, range→match_live).
+Bay stays parked (hangar, never match_live). Practice never promotes.
+Poll / snapshot is a view of that enum. Fire never waits on this field.
 """
 
 from __future__ import annotations
@@ -59,7 +60,7 @@ HANGAR_PHASES = ("hangar", "wait_practice", "match_live")
 
 
 def hangar_for_phase(phase: str) -> str:
-    """Room-owned hangar. Snapshot view of wait|range|bay. Fail loud on unknown."""
+    """Map today's wait|range onto the hangar session class. Bay stays parked."""
     if phase == "wait":
         hangar = "wait_practice"
     elif phase == "range":
@@ -70,6 +71,29 @@ def hangar_for_phase(phase: str) -> str:
         raise ValueError("SABLE HANGAR: unknown room phase " + str(phase))
     if hangar not in HANGAR_PHASES:
         raise ValueError("SABLE HANGAR: unknown hangar phase " + hangar)
+    return hangar
+
+
+def _assign_room_hangar(room: dict, hangar: str) -> None:
+    if hangar not in HANGAR_PHASES:
+        raise ValueError("SABLE HANGAR: unknown hangar phase " + str(hangar))
+    room["hangar"] = hangar
+
+
+def _hangar_view(room: dict) -> str:
+    """Poll / snapshot view of the room-owned hangar enum. Fail loud on drift."""
+    hangar = room.get("hangar")
+    if hangar is None or hangar == "":
+        raise ValueError("SABLE HANGAR: room snapshot missing hangar")
+    if hangar not in HANGAR_PHASES:
+        raise ValueError("SABLE HANGAR: unknown hangar phase " + str(hangar))
+    phase = room.get("phase")
+    if phase == "wait" and hangar != "wait_practice":
+        raise ValueError("SABLE HANGAR: wait room must stay wait_practice")
+    if phase == "range" and hangar != "match_live":
+        raise ValueError("SABLE HANGAR: range room must be match_live")
+    if phase == "bay" and hangar == "match_live":
+        raise ValueError("SABLE HANGAR: parked bay must not be match_live")
     return hangar
 
 
@@ -597,7 +621,7 @@ def snapshot(room: dict, now: float | None = None) -> dict:
         "ok": True,
         "code": room["code"],
         "phase": room["phase"],
-        "hangar": hangar_for_phase(room["phase"]),
+        "hangar": _hangar_view(room),
         "host": room["host"],
         "filled": filled,
         "slots": room["slots"],
@@ -621,6 +645,7 @@ def create(name: str = "HOST") -> dict:
         room = {
             "code": code,
             "phase": "wait",
+            "hangar": hangar_for_phase("wait"),
             "host": pid,
             "slots": slots,
             "t": time.time(),
@@ -681,7 +706,7 @@ def leave(code: str, player: str) -> dict:
 
 
 def _mark_warmup(code: str, player: str, on: bool) -> dict:
-    """Stay in the room. Phase stays wait. Practice does not start the match."""
+    """Stay in the room. Phase stays wait. Practice never promotes hangar."""
     code = (code or "").strip().upper()
     with _LOCK:
         room = _ROOMS.get(code)
@@ -731,6 +756,8 @@ def start(
             room["sim"] = _new_sim(secrets.randbits(32) if seed is None else seed, t)
         else:
             _sync_sim(room["sim"], t)
+        # SableNet: only ENTER RANGE promotes hangar to match_live.
+        _assign_room_hangar(room, hangar_for_phase("range"))
         return snapshot(room, t)
 
 
@@ -749,6 +776,8 @@ def start_bay(code: str, player: str, now: float | None = None) -> dict:
         if room["phase"] != "bay" or not room.get("bay"):
             room["phase"] = "bay"
             room["bay"] = _new_bay(t, room)
+        # Parked booth. Never promote hangar to match_live.
+        _assign_room_hangar(room, hangar_for_phase("bay"))
         return snapshot(room, t)
 
 
