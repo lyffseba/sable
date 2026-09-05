@@ -1,1 +1,5 @@
 * text=auto eol=lf
+
+# MediaPipe WASM / .task must stay binary (text=auto must not touch them)
+proto/vendor/mediapipe/**/*.wasm binary
+proto/vendor/mediapipe/**/*.task binary

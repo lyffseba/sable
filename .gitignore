@@ -46,9 +46,6 @@ native/cv_input/bin/
 build/
 dist/
 
-# Optional local MediaPipe wasm (not the v1 client path)
-proto/vendor/mediapipe/
-
 # Editor / OS
 .DS_Store
 .idea/

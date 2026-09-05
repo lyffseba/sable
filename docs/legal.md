@@ -12,6 +12,7 @@ Do not write an eventual public title into this repo. Codename only: **SABLE**.
 
 - First-party code, design, and original content: Apache-2.0. See `LICENSE` and `CLA.md`.
 - Three.js (vendored): MIT. Credit in `docs/THIRD_PARTY_NOTICES.md`.
+- MediaPipe Tasks Vision (vendored `@mediapipe/tasks-vision@0.10.21` + Hand Landmarker float16/1): Apache-2.0. Credit in `docs/THIRD_PARTY_NOTICES.md`.
 - Mojo compiler / std (when used via Pixi): Apache-2.0 with LLVM exceptions.
 - OpenCV, when linked: Apache 2.0.
 - **No GPL / AGPL / SSPL** in client or server binaries we ship.
