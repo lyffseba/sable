@@ -125,7 +125,8 @@ const S = {
   tpl: null, ncc: 0, gray: null, skin: null, frame: null, lockHand: null,
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
-  engine: { mojo: null, gemini: false },
+  engine: { mojo: null, gemini: false, hands: false },
+  handsOn: false, hands: null, handsTried: false, mpTs: 0,
   online: false,
   playlist: "range",
   room: "",
@@ -709,6 +710,77 @@ function nccTrack(now) {
 
 function detGood() { return S.det && S.det.conf >= NCC_GOOD; }
 
+function mpTrack(now) {
+  if (!S.handsOn || !S.hands || !cam.videoWidth) return false;
+  const ts = Math.max((S.mpTs || 0) + 1, now);
+  S.mpTs = ts;
+  let res;
+  try {
+    res = S.hands.detectForVideo(cam, ts);
+  } catch (e) {
+    return false;
+  }
+  const lms = res && res.landmarks;
+  if (!lms || !lms.length || !lms[0][8]) return false;
+  const tip = lms[0][8];
+  const x = (1 - tip.x) * (PROC_W - 1);
+  const y = tip.y * (PROC_H - 1);
+  let score = 0.9;
+  const handed = res.handedness && res.handedness[0];
+  if (handed) {
+    if (handed[0] && handed[0].score != null) score = handed[0].score;
+    else if (handed.score != null) score = handed.score;
+    else if (handed.categories && handed.categories[0] && handed.categories[0].score != null) {
+      score = handed.categories[0].score;
+    }
+  }
+  S.det = { x, y, conf: Math.max(0.72, clamp(score, 0, 1)) };
+  S.lastDetAt = now;
+  applyEuroPoint(now, x, y);
+  S.tpl = { w: TPL, h: TPL, fromHands: true };
+  S.lockTplAt = now;
+  S.ncc = S.det.conf;
+  return true;
+}
+
+async function initHands() {
+  if (S.handsTried) return S.handsOn;
+  S.handsTried = true;
+  const cdn = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21";
+  const tries = [
+    {
+      js: "./vendor/mediapipe/vision_bundle.mjs",
+      wasm: "./vendor/mediapipe/wasm",
+      model: "./vendor/mediapipe/hand_landmarker.task",
+    },
+    {
+      js: cdn + "/vision_bundle.mjs",
+      wasm: cdn + "/wasm",
+      model: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+    },
+  ];
+  for (const t of tries) {
+    try {
+      const mod = await import(t.js);
+      const vision = await mod.FilesetResolver.forVisionTasks(t.wasm);
+      const base = { runningMode: "VIDEO", numHands: 1, minHandDetectionConfidence: 0.45, minHandPresenceConfidence: 0.45, minTrackingConfidence: 0.45 };
+      try {
+        S.hands = await mod.HandLandmarker.createFromOptions(vision, Object.assign({ baseOptions: { modelAssetPath: t.model, delegate: "GPU" } }, base));
+      } catch (e) {
+        S.hands = await mod.HandLandmarker.createFromOptions(vision, Object.assign({ baseOptions: { modelAssetPath: t.model, delegate: "CPU" } }, base));
+      }
+      S.handsOn = true;
+      S.engine.hands = true;
+      return true;
+    } catch (e) {
+      console.warn("HandLandmarker try failed", t.js, e);
+    }
+  }
+  S.handsOn = false;
+  S.engine.hands = false;
+  return false;
+}
+
 function runTrack(now) {
   if (!S.euroX) resetTrackFilters();
   const stamp = cam.currentTime;
@@ -718,18 +790,24 @@ function runTrack(now) {
     return;
   }
   S.camStamp = stamp;
-  if (S.tpl) {
+  if (S.handsOn) {
+    if (!mpTrack(now)) {
+      S.det = null;
+      coastTrack(now);
+      if (now - (S.lastDetAt || 0) > QUALITY_LOST_MS) resetTrackFilters();
+    }
+  } else if (S.tpl && !S.tpl.fromHands) {
     nccTrack(now);
+    if (!S.det) {
+      const hand = findHand();
+      if (hand && hand.conf >= 0.42) {
+        S.det = { x: hand.x, y: hand.y, conf: hand.conf };
+        S.lastDetAt = now;
+        applyEuroPoint(now, hand.x, hand.y);
+      }
+    }
   } else {
     sampleLock(S.frame, now);
-  }
-  if (!S.det && S.tpl) {
-    const hand = findHand();
-    if (hand && hand.conf >= 0.42) {
-      S.det = { x: hand.x, y: hand.y, conf: hand.conf };
-      S.lastDetAt = now;
-      applyEuroPoint(now, hand.x, hand.y);
-    }
   }
   updateQuality(now, S.det);
 }
@@ -748,6 +826,7 @@ function sizeProc() {
 function grabFrame() {
   if (!camReady || !cam.videoWidth) return false;
   if (proc.width !== PROC_W) sizeProc();
+  if (S.handsOn) return true;
   pctx.drawImage(cam, 0, 0, PROC_W, PROC_H);
   const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
   S.frame = img;
@@ -1615,6 +1694,7 @@ async function play(target = "range") {
     goDesktopRange();
     return;
   }
+  await initHands();
   S.lockStart = performance.now();
 }
 
@@ -1974,9 +2054,13 @@ function drawModeChip() {
   let ex = W - 16;
   const mojoOn = !!S.engine.mojo;
   const gemOn = !!S.engine.gemini;
+  const handOn = !!S.engine.hands;
   const mLabel = mojoOn ? "MOJO 1.0" : "MOJO OFF";
   const gLabel = gemOn ? "GEMINI" : "GEMINI OFF";
-  ex -= ctx.measureText(gLabel).width + 18;
+  const hLabel = handOn ? "HANDS" : "HANDS OFF";
+  ex -= ctx.measureText(hLabel).width + 18;
+  chip(hLabel, handOn, ex);
+  ex -= 8 + ctx.measureText(gLabel).width + 18;
   chip(gLabel, gemOn, ex);
   ex -= 8 + ctx.measureText(mLabel).width + 18;
   chip(mLabel, mojoOn, ex);
@@ -2350,4 +2434,5 @@ fetch("/api/health").then((r) => r.json()).then((h) => {
   S.engine.mojo = h.mojo || null;
   S.engine.gemini = !!h.gemini;
 }).catch(() => {});
+initHands();
 requestAnimationFrame(frame);

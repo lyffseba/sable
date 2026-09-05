@@ -6,9 +6,13 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import mimetypes
 import os
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+mimetypes.add_type("application/wasm", ".wasm")
+mimetypes.add_type("application/octet-stream", ".task")
 
 here = os.path.dirname(os.path.abspath(__file__))
 if here not in sys.path:
