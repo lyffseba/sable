@@ -362,6 +362,71 @@ def test_room_chip_on_wait_practice() -> None:
         _fail("lobby was thickened — action gap grew")
 
 
+def test_sablehud_soft_lock_bars() -> None:
+    """ROOM chip soft-lock — same PR. Do not merge from the agent."""
+    js = proto_js()
+    hud = _js_fn(js, "drawHUD")
+    chip = _js_fn(js, "roomHudChip")
+    hangar = _js_fn(js, "hangarHudChip")
+    if "roomHudChip" not in hud or "hangarHudChip" not in hud:
+        _fail("ROOM chip must stay thin and additive with WAIT / READY / LIVE")
+    if '"WAIT"' not in hangar or '"READY"' not in hangar or '"LIVE"' not in hangar:
+        _fail("hangar chips must stay WAIT / READY / LIVE")
+    if '"ROOM  "' not in chip:
+        _fail("ROOM chip left the thin ROOM code label")
+    if "if (roomChip) chips.push(roomChip)" not in hud:
+        _fail("ROOM chip must stay additive — hangar chip stays, ROOM pushes next")
+    if re.search(r'if \(phase === "range"\).*roomChip', hud):
+        _fail("ROOM chip must not be RANGE-gated — wait_practice lobby must see it")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    room_at = hud.find("roomHudChip")
+    if mode_at < 0 or hangar_at < 0 or room_at < 0 or mode_at > hangar_at or hangar_at > room_at:
+        _fail("ROOM chip wiped PAD/GUN mode chips")
+    if "clearRect" in hud:
+        _fail("drawHUD wiped the bar — PAD/GUN must stay live")
+    if "shadowBlur" in hud or "glow" in hud.lower() or "shadowBlur" in chip:
+        _fail("ROOM / SableHUD bloomed")
+    if 'if (phase === "range") chips.push(["SCORE "' not in hud:
+        _fail("RANGE SCORE left the range gate — RANGE must stay pinned")
+    if 'if (phase === "range") chips.push(["ROUND "' not in hud:
+        _fail("RANGE ROUND left the range gate — RANGE must stay pinned")
+    if _js_const(js, "SABLE_HUD_H") != 22:
+        _fail("SableHUD bar must stay thin (22px)")
+    plate = _js_fn(js, "drawSableChip")
+    if "rgba(10,12,16" not in plate and "rgba(10, 12, 16" not in plate:
+        _fail("chips must stay charcoal plates")
+    if "Locker.colors.bone" not in hud or "Locker.colors.mint" not in hud or "Locker.colors.rust" not in hud:
+        _fail("chips must stay bone / mint / rust")
+    if "HUD_PAD" not in hud or "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud:
+        _fail("ROOM chip over cuff/reticle")
+    if "Impact" in hud or "RAISE YOUR HAND" in hud:
+        _fail("ROOM chip hid the gun")
+    fire = _js_fn(js, "fire")
+    if "aimBus.fire" not in fire or "roomHudChip" in fire or "hangarHudChip" in fire:
+        _fail("fire() must peek AimBus — ROOM must not gate HID")
+    if re.search(r"await\s+", fire):
+        _fail("fire() awaits — soft-lock trapped HID")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+    html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
+    offline = re.search(
+        r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
+        js,
+    )
+    if not offline or "S.online = false" not in offline.group(0):
+        _fail("OFFLINE must stay one-click local")
+    warm = _js_fn(js, "lobbyWarmup")
+    if re.search(r"await\s+", warm) or "/api/lobby/start" in warm:
+        _fail("WARM UP must stay one-click local")
+    if 'id="btn-bay"' in html or "ENTER BAY" in html:
+        _fail("Bay must stay parked")
+
+
 def main() -> int:
     try:
         test_thin_arcade_chips()
@@ -369,6 +434,7 @@ def main() -> int:
         test_offline_never_only_gun()
         test_hangar_chips_from_s_hangar()
         test_room_chip_on_wait_practice()
+        test_sablehud_soft_lock_bars()
         test_lobby_stays_thin()
         test_docs_lock()
     except AssertionError as exc:

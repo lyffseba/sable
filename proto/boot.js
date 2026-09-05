@@ -773,7 +773,9 @@ function roomHudChip() {
 }
 
 function drawHUD(now) {
-  // PAD/GUN/DESKTOP stay live. Hangar + ROOM chips are additive — no wipe on promote.
+  // Soft-lock: ROOM thin + additive with WAIT/READY/LIVE. No PAD/GUN wipe.
+  // No bloom. RANGE SCORE/ROUND stay range-gated. 22px charcoal/bone/mint/rust.
+  // Never over cuff/reticle. Fire stays AimBus peek. AimSample untouched.
   drawModeChip();
   if (phase !== "range" && phase !== "lobby") return;
   const hangarChip = hangarHudChip();

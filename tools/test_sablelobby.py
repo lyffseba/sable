@@ -393,6 +393,21 @@ def test_room_chip_thin() -> None:
     fields = re.findall(r"this\.(\w+)", sample.group(0))
     if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
         _fail("AimSample fields changed — keep the locked struct")
+    if "if (roomChip) chips.push(roomChip)" not in hud:
+        _fail("ROOM chip must stay additive with WAIT / READY / LIVE")
+    if re.search(r'if \(phase === "range"\).*roomChip', hud):
+        _fail("ROOM chip must not be RANGE-gated — wait_practice lobby must see it")
+    if 'if (phase === "range") chips.push(["SCORE "' not in hud:
+        _fail("RANGE SCORE left the range gate — RANGE must stay pinned")
+    if 'if (phase === "range") chips.push(["ROUND "' not in hud:
+        _fail("RANGE ROUND left the range gate — RANGE must stay pinned")
+    mode_at = hud.find("drawModeChip")
+    if mode_at < 0 or mode_at > hud.find("roomHudChip"):
+        _fail("ROOM chip wiped PAD/GUN — mode chip must stay live")
+    if "clearRect" in hud or "shadowBlur" in hud or "glow" in hud.lower():
+        _fail("ROOM chip bloomed or wiped the bar")
+    if "H * 0.78" in hud or "Impact" in hud:
+        _fail("ROOM chip over cuff/reticle")
 
 
 def main() -> int:
