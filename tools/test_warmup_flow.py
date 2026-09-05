@@ -20,7 +20,10 @@ def _js_fn(src: str, name: str) -> str:
 def main() -> int:
     try:
         html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
+        css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
         js = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+        if ".range-bar[hidden]" not in css:
+            raise AssertionError("range-bar hidden must beat display:flex so OFFLINE has no RETURN TO LOBBY")
 
         if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
             raise AssertionError("boot must keep one-click OFFLINE")

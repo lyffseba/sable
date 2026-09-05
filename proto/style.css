@@ -123,6 +123,7 @@ html, body {
   justify-content: center;
   pointer-events: auto;
 }
+.range-bar[hidden] { display: none; }
 
 .join-row {
   display: flex;
