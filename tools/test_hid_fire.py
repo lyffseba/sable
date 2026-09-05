@@ -9,6 +9,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from proto_src import proto_js  # noqa: E402
 
 
 class AimSample:
@@ -62,7 +64,7 @@ def _js_fn(src: str, name: str) -> str:
 
 
 def test_client_does_not_wait() -> None:
-    src = _read("proto/game.js")
+    src = proto_js()
     fire_src = _js_fn(src, "fire")
     banned = (
         r"await\s+",
@@ -74,7 +76,7 @@ def test_client_does_not_wait() -> None:
         if re.search(pat, fire_src):
             raise AssertionError(f"fire() gates fire on a camera wait ({pat})")
     if "class AimBus" not in src:
-        raise AssertionError("proto/game.js must define class AimBus")
+        raise AssertionError("proto client must define class AimBus")
     if "return this._latest" not in src:
         raise AssertionError("AimBus fire/peek must return this._latest")
     if "aimBus.fire" not in fire_src and "aimBus.peek" not in fire_src:
@@ -107,7 +109,7 @@ def _pct(samples: list[float], p: float) -> float:
 
 
 def test_sableperf_budget() -> None:
-    src = _read("proto/game.js")
+    src = proto_js()
     if "const SablePerf" not in src:
         raise AssertionError("SablePerf probe must exist")
     if "budgetMs: 8" not in src:

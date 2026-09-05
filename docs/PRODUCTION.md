@@ -51,7 +51,7 @@ Desktop **T** is a debug gun, not the product. Space is force-lift for developme
 
 ## Art contract
 
-Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/game.js` must match. Blender (`art/blender/build_sable_kit.py`) rebuilds the same kit for stills/GLB. No Marketplace packs, no scans, no third-party guns.
+Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/house.js` must match. Blender (`art/blender/build_sable_kit.py`) rebuilds the same kit for stills/GLB. No Marketplace packs, no scans, no third-party guns.
 
 CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
@@ -66,7 +66,7 @@ CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 ## What is proto (honest)
 
-`proto/game.js` is a **2.2k-line god module**: boot, lobby, camera, tracker, 3D, HUD, audio, Bay. That is fine for a vertical slice. It is not a production graph.
+`proto/game.js` is the module entry (`import "./boot.js"`). Ownership is split: `aim.js` (mailbox / fire peek / sticky lift / SablePerf / desktop), `hands.js` (MediaPipe + skin/NCC + One Euro), `house.js` (Salt House / Yard plates / shared match hooks / Bay), `boot.js` (lobby UI / phase machine / rAF glue).
 
 Docs disagree: `docs/tick.md` says 64 Hz, `server/tick.py` is 128 Hz, Range is `requestAnimationFrame`. Pick one before netcode.
 
@@ -82,14 +82,14 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 
 | # | Refactor | Why | Cost | When |
 |---|----------|-----|------|------|
-| R1 | Split `proto/game.js` into `aim.js`, `hands.js`, `house.js`, `boot.js` | Production ownership, test seams | 1–2 days | After gallery loop feels good |
+| R1 | Split `proto/game.js` into `aim.js`, `hands.js`, `house.js`, `boot.js` | Production ownership, test seams | ownership files + contract tests read the concat | **Done** (same verb; merge when CI green) |
 | R2 | MediaPipe Hands as primary muzzle (landmark 8), skin/NCC fallback | Blob≠fingertip; face confusion | 1 day + vendor wasm | **Done** |
 | R3 | Hand-visible **beats** trackpad HID for lift; sticky through pad reach | Trackpad click dropped GUN when the hand left frame | Half day + test rewrite | **Done** |
 | R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | seed + rewind ray resolve; not a global tick | **Done** (merge when CI green; zip after tip) |
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **merge to main when CI green**. Zip / public proto wait for tip + `test_sableqa_offline.py`. Next code: **R1**. Do not unify tick (R6) in the same change as a file split. Shared sim is a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
+Recommend **merge to main when CI green**. Zip / public proto wait for tip + `test_sableqa_offline.py`. R1 is the file split only — same fire verb, no Bay playlist start, no R6 tick unify. Next code: R5 when a modeler is in Blender, or gallery polish. Shared sim stays a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
 
 ## Milestones
 

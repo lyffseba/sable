@@ -8,6 +8,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from proto_src import proto_js  # noqa: E402
 
 
 def _js_fn(src: str, name: str) -> str:
@@ -24,7 +26,7 @@ def _fail(msg: str) -> None:
 def main() -> int:
     try:
         html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
-        js = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+        js = proto_js()
 
         if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
             _fail("boot lost one-click OFFLINE")

@@ -11,6 +11,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import lobby  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from proto_src import proto_js  # noqa: E402
 
 
 def _js_fn(src: str, name: str) -> str:
@@ -166,7 +168,7 @@ def test_hit_uses_sample_not_cam() -> None:
 
 
 def test_client_keeps_local_practice_and_hid() -> None:
-    js = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    js = proto_js()
     fire = _js_fn(js, "fire")
     if "await" in fire:
         raise AssertionError("shared fire must not await inside fire()")

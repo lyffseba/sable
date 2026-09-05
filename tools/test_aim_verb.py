@@ -8,6 +8,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from proto_src import proto_js  # noqa: E402
 
 
 def _js_const(src: str, name: str) -> float:
@@ -123,7 +125,7 @@ def test_lift_and_fire() -> None:
 
 def test_pad_click_while_lift_coasts() -> None:
     """Regression: point, hand leaves the lid cam, click the pad. Plates must die."""
-    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    src = proto_js()
     lift_on = _js_const(src, "LIFT_ON_MS")
     sticky = _js_const(src, "LIFT_STICKY_MS")
     hid_hold = _js_const(src, "LIFT_HID_HOLD_MS")
@@ -210,7 +212,7 @@ def _js_fn(src: str, name: str) -> str:
 
 
 def test_proto_mailbox() -> None:
-    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    src = proto_js()
     mode_body = _js_fn(src, "updateMode")
     hid = mode_body.find("if (S.hidMoving)")
     owns = mode_body.find("handOwns")
@@ -258,7 +260,7 @@ def test_proto_mailbox() -> None:
 
 
 def test_pointing_filter() -> None:
-    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    src = proto_js()
     m = re.search(r"EURO_MINCUTOFF = ([0-9.]+)", src)
     if not m or float(m.group(1)) < 2.5:
         raise AssertionError("One Euro mincutoff must be pointing-fast, not 1Hz soup")
@@ -290,7 +292,7 @@ def test_pointing_filter() -> None:
 
 
 def test_range_gate() -> None:
-    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    src = proto_js()
     fire_body = _js_fn(src, "fire")
     if "lifted" not in fire_body:
         raise AssertionError("Range fire must gate on AimSample.lifted")
@@ -302,7 +304,7 @@ def test_range_gate() -> None:
 
 def test_gallery_escape() -> None:
     """Sit plates and clays must be able to miss. Infinite free hits are dishonest."""
-    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    src = proto_js()
     dwell = _js_const(src, "SIT_DWELL_S")
     drop = _js_const(src, "SIT_DROP_VY")
     max_life = _js_const(src, "PLATE_MAX_LIFE_S")
