@@ -105,6 +105,10 @@ const SEARCH_R = 56;
 const FIND_STEP = 8;
 const EURO_MINCUTOFF = 3.0, EURO_BETA = 0.03, EURO_DCUTOFF = 1.0;
 const LIFT_ON_MS = 50;
+// Recent landmark / good AimSample owns GUN through a MacBook pad reach.
+// Coast UV stays 100 ms (do not invent pose). Lift sticks longer.
+const LIFT_STICKY_MS = 550;
+const LIFT_HID_HOLD_MS = 180;
 
 let W = 1280, H = 720, dpr = 1, PROC_H = 270, phase = "boot";
 let stream = null, camReady = false, lastT = 0;
@@ -935,15 +939,19 @@ function updateMode(now) {
   S.hidMoving = now - S.hidLast < HID_IDLE_MS;
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
   const coasting = !!S.smooth && since <= COAST_MS;
+  const recent = !!S.smooth && since <= LIFT_STICKY_MS;
   const locked = detGood() || coasting;
+  const handOwns = detGood() || recent;
   const dtm = S.liftTick ? Math.min(40, now - S.liftTick) : 16;
   S.liftTick = now;
   if (S.desktop) {
     S.mode = "DESKTOP"; S.seeking = false; S.lifted = true; S.liftMs = LIFT_ON_MS; return;
   }
-  const want = S.forceGun || locked;
+  // Hand-visible / recent sample owns lift. HID click must not demote GUN.
+  const want = S.forceGun || handOwns;
+  const holdClick = S.liftMs >= LIFT_ON_MS && S.hidMoving && since <= LIFT_STICKY_MS + LIFT_HID_HOLD_MS;
   if (want) S.liftMs = Math.min(160, S.liftMs + dtm);
-  else S.liftMs = Math.max(0, S.liftMs - dtm);
+  else if (!holdClick) S.liftMs = Math.max(0, S.liftMs - dtm);
   S.lifted = S.forceGun || S.liftMs >= LIFT_ON_MS;
   if (aimBus.peek()) {
     aimBus.peek().lifted = S.lifted;
@@ -951,8 +959,8 @@ function updateMode(now) {
   if (S.forceGun) {
     S.mode = "GUN"; S.seeking = !locked; return;
   }
-  if (locked) {
-    S.mode = "GUN"; S.seeking = false; return;
+  if (S.lifted || handOwns) {
+    S.mode = "GUN"; S.seeking = !locked && !S.lifted; return;
   }
   if (S.hidMoving) {
     S.mode = "PAD"; S.seeking = true; return;
@@ -1477,14 +1485,17 @@ function addBulletTracer(from, to) {
 // --- HID Fire Contract & Hitscan ---
 function fire() {
   if (phase !== "range" && phase !== "bay" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
+  // Peek first. Never wait on a camera frame. Reticle may coast after.
+  const shot = aimBus.fire();
+  const now = performance.now();
+  const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
+  const recent = !!S.smooth && since <= LIFT_STICKY_MS;
+  const busLift = !!(shot && shot.lifted);
+  if (!S.desktop && !S.lifted && !busLift && !recent && !S.forceGun) return;
   if (!S.desktop && S.smooth) {
-    const now = performance.now();
     if (now - (S.trackT || 0) > 0) coastTrack(now);
     updateAim();
   }
-  // Peek the mailbox. Lift is the trigger. Camera already wrote S.aim.
-  const shot = aimBus.fire();
-  if (!S.desktop && !S.lifted) return;
 
   bang();
   S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;

@@ -248,6 +248,54 @@ void test_bus_fire_without_new_frame() {
 	check(again.t_hw == 42, "second fire without a frame still uses last sample");
 }
 
+void test_pad_click_while_lift_coasts() {
+	// MacBook verb: raise hand (area jump), leave the lid cam to reach
+	// the trackpad, click. HID motion must not drop lifted. Fire peeks.
+	sable::AimPipeline pipe;
+	sable::Hsv cyan;
+	cyan.h = 175.0f;
+	cyan.s = 0.85f;
+	cyan.v = 0.90f;
+	pipe.set_calib_hsv(cyan);
+	pipe.set_hid_idle(true);
+
+	std::int64_t t = 5'000'000;
+	const std::int64_t dt = 33333;
+	// Pad baseline: small blob.
+	for (int i = 0; i < 12; ++i) {
+		auto frame = make_frame(320, 240, 160.0f, 200.0f, 5.0f, 1.0f, 1.0f, false, t);
+		pipe.process(frame.view());
+		t += dt;
+	}
+	// Raise: much larger mass than the pad baseline.
+	sable::AimSample raised;
+	for (int i = 0; i < 10; ++i) {
+		auto frame = make_frame(320, 240, 200.0f, 80.0f, 18.0f, 1.0f, 1.0f, false, t);
+		raised = pipe.process(frame.view());
+		t += dt;
+	}
+	check(raised.lifted, "area jump charges lift before the pad reach");
+
+	// Hand leaves the frame. Finger is on the trackpad (HID not idle).
+	pipe.set_hid_idle(false);
+	sable::AimSample coast;
+	for (int i = 0; i < 10; ++i) {
+		coast = pipe.process_missing(t, 1.0f / 30.0f);
+		t += dt;
+	}
+	const sable::AimSample shot = pipe.fire();
+	check(coast.lifted, "lift sticks through ~330 ms hole while pad moves");
+	check(shot.lifted, "HID fire peeks sticky lift, does not wait on a frame");
+	check(shot.uv_x > 0.15f && shot.uv_y > 0.05f, "pad-click shot holds last UV");
+
+	// After sticky + hid-hold expire, rest on the pad drops lift.
+	for (int i = 0; i < 28; ++i) {
+		coast = pipe.process_missing(t, 1.0f / 30.0f);
+		t += dt;
+	}
+	check(!pipe.fire().lifted, "lift drops after sticky window, not forever");
+}
+
 } // namespace
 
 int main() {
@@ -257,6 +305,7 @@ int main() {
 	test_two_frame_dropout_coasts();
 	test_synthetic_path_rms();
 	test_never_snaps_origin_after_loss();
+	test_pad_click_while_lift_coasts();
 	if (g_fails != 0) {
 		std::fprintf(stderr, "\n%d test(s) failed\n", g_fails);
 		return 1;

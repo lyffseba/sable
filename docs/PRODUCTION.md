@@ -70,28 +70,30 @@ CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 Docs disagree: `docs/tick.md` says 64 Hz, `server/tick.py` is 128 Hz, Range is `requestAnimationFrame`. Pick one before netcode.
 
-Hand tracking: skin blob + NCC is shipped; MediaPipe Hands (Apache-2.0, 21 landmarks) is the correct production tracker and is **not** wired as the hot path yet.
+Hand tracking: MediaPipe Hands (Apache-2.0, landmark 8) is the primary muzzle; skin/NCC is the else path when landmarks die.
 
 Online: rooms are real; **the match is not shared**. Two tabs do not see the same plates.
+
+Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose).
 
 ## Proposed refactors (do not start all at once)
 
 | # | Refactor | Why | Cost | When |
 |---|----------|-----|------|------|
 | R1 | Split `proto/game.js` into `aim.js`, `hands.js`, `house.js`, `boot.js` | Production ownership, test seams | 1–2 days | After gallery loop feels good |
-| R2 | MediaPipe Hands as primary muzzle (landmark 8), skin/NCC fallback | Blob≠fingertip; face confusion | 1 day + vendor wasm | **Next** if MacBook is the SKU |
-| R3 | Hand-visible **beats** trackpad HID for lift | Trackpad click currently can drop GUN | Half day + test rewrite | **Next** (blocks MacBook fire) |
-| R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | 2–3 days | After R3 |
+| R2 | MediaPipe Hands as primary muzzle (landmark 8), skin/NCC fallback | Blob≠fingertip; face confusion | 1 day + vendor wasm | **Done** |
+| R3 | Hand-visible **beats** trackpad HID for lift; sticky through pad reach | Trackpad click dropped GUN when the hand left frame | Half day + test rewrite | **Done** |
+| R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | 2–3 days | **Next** |
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **R3 then R2 then gallery tuning**, then R1. Do not split files and change the verb in the same PR.
+Recommend **gallery tuning, then R4**, then R1. Do not split files and change the verb in the same PR.
 
 ## Milestones
 
 - **M0 (now):** Salt House visible, cuff, plates, HID fire, rooms, original IP.
-- **M1:** Arcade gallery loop (clays escape). MacBook: raise hand, click pad, plates die.
-- **M2:** Landmarks + lift verb that allows trackpad fire.
+- **M1:** Arcade gallery loop (clays escape). MacBook: raise hand, click pad, plates die. Sticky lift shipped.
+- **M2:** Landmarks + lift verb that allows trackpad fire. **Done** (Hands + R3).
 - **M3:** Two clients, same plates, same house.
 - **M4:** Bay as a second playlist from the lobby, still one art bible.
 

@@ -74,11 +74,13 @@ Do not bloom the reticle. Do not aim-assist. Do not hide noise with RNG. Filter 
 
 ## Lift FSM
 
-Physical ADS.
+Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns GUN.
 
-- HID idle: ~15–30 ms of near-zero `dx/dy`.
-- Camera: blob in air / **size jump** versus the pad-area baseline (`kLiftAreaScale` = 1.45).
-- Hysteresis: **80–150 ms** (`kLiftHysteresisMs` = 110).
+- Camera: blob in air / **size jump** versus the pad-area baseline (`kLiftAreaScale` = 1.45), or a live / recent fingertip lock in `proto/game.js`.
+- Charge hysteresis: **80–150 ms** native (`kLiftHysteresisMs` = 110); proto `LIFT_ON_MS` = 50.
+- **Sticky lift:** last good sample keeps `lifted` for `kLiftStickyMs` / `LIFT_STICKY_MS` (550 ms) after the hand leaves the lid cam. UV coast stays **100 ms** — do not invent pose. The reticle may lag; the shot peeks the mailbox.
+- Trackpad / HID motion does **not** demote lift during the click (`kLiftHidHoldMs` / `LIFT_HID_HOLD_MS` = 180). HID idle is not required to charge.
+- `fire()` peeks `AimBus` (`shot.lifted` or recent sample). It must not reject a shot only because `S.lifted` flickered while the hand reached the pad.
 
 `Space` force-guns the Range without a camera so the verb can be tested. `T` forces desktop aim (OS cursor → UV).
 
