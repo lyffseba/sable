@@ -124,6 +124,8 @@ def test_pointing_filter() -> None:
         raise AssertionError("hand is the gun: findHand must exist")
     if "function mpTrack" not in src or "function initHands" not in src:
         raise AssertionError("MediaPipe Hands (landmark 8) must be the primary tracker")
+    if "function maybePinchFire" not in src:
+        raise AssertionError("pinch thumb-index must be able to fire")
     lost = _js_fn(src, "nccTrack")
     if "age > COAST_MS && S.euroX" in lost:
         raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")

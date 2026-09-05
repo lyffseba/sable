@@ -126,7 +126,7 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false, hands: false },
-  handsOn: false, hands: null, handsTried: false, mpTs: 0,
+  handsOn: false, hands: null, handsTried: false, mpTs: 0, pinchHeld: false,
   online: false,
   playlist: "range",
   room: "",
@@ -740,7 +740,21 @@ function mpTrack(now) {
   S.tpl = { w: TPL, h: TPL, fromHands: true };
   S.lockTplAt = now;
   S.ncc = S.det.conf;
+  maybePinchFire(lms[0]);
   return true;
+}
+
+function maybePinchFire(lm) {
+  const thumb = lm[4], index = lm[8];
+  if (!thumb || !index) return;
+  const d = Math.hypot(thumb.x - index.x, thumb.y - index.y);
+  if (d < 0.052 && !S.pinchHeld) {
+    S.pinchHeld = true;
+    if (phase === "range" || phase === "bay") fire();
+    else if (phase === "calibrate" && S.calibIndex >= 4) fire();
+  } else if (d > 0.09) {
+    S.pinchHeld = false;
+  }
 }
 
 async function initHands() {
@@ -888,7 +902,7 @@ function publishAim(x, y) {
 function updateAim() {
   if (S.desktop) return;
   if (!S.smooth) return;
-  if (phase !== "range" && phase !== "calibrate" && phase !== "bay") return;
+  if (phase !== "range" && phase !== "calibrate" && phase !== "bay" && phase !== "lock") return;
   if (S.H || S.camPts.every(Boolean)) {
     const p = camToScreen(S.smooth.x, S.smooth.y);
     if (!p.lost) publishAim(p.x, p.y);
@@ -1524,7 +1538,7 @@ function resetLockState() {
   S.lockAcc = null; S.lockBestScore = 0; S.lockBestPatch = null; S.lockBestTL = null;
   S.lockTplAt = 0; S.lockSince = 0; S.locked = false; S.lockAdvance = false;
   S.desktop = false; S.mode = "SEEKING"; S.smooth = null;
-  S.lifted = false; S.liftMs = 0; S.liftTick = 0;
+  S.lifted = false; S.liftMs = 0; S.liftTick = 0; S.pinchHeld = false;
   resetTrackFilters();
 }
 
@@ -2187,6 +2201,7 @@ function drawCalib(now) {
 function draw2D(now) {
   ctx.clearRect(0, 0, W, H);
   if (phase === "lock") {
+    if (S.aim) drawCrosshair(S.aim.x, S.aim.y);
     drawModeChip();
   } else if (phase === "calibrate") {
     drawCalib(now);
