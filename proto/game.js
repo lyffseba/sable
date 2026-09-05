@@ -1530,6 +1530,8 @@ function fire() {
   const busLift = !!(shot && shot.lifted);
   if (!S.desktop && !S.lifted && !busLift && !recent && !S.forceGun) return;
 
+  // Probe HID→hitscan from post-gate, including bang path + gun FX, to first intersect.
+  const t0 = SablePerf.begin();
   bang();
   S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;
 
@@ -1541,7 +1543,6 @@ function fire() {
   }
 
   // Hitscan uses last committed S.aim / AimBus sample. Track loop already published.
-  const t0 = SablePerf.begin();
   const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouseNorm, camera);
