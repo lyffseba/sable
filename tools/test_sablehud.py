@@ -2,9 +2,9 @@
 """SableHUD lock: thin arcade chips over live aim.
 
 Fail loud if gallery SCORE / ROUND / end leave the 22px chip bar, hangar
-WAIT / READY / LIVE leave S.hangar, bloom covers the reticle, Offline
-one-click dies, Salt House becomes the only gun, chips thicken the lobby,
-or HUD copy hides the gun.
+WAIT / READY / LIVE leave S.hangar, the thin ROOM chip leaves wait_practice,
+bloom covers the reticle, Offline one-click dies, Salt House becomes the
+only gun, chips thicken the lobby, or HUD copy / a ROOM chip hides the gun.
 """
 
 from __future__ import annotations
@@ -72,6 +72,8 @@ def test_thin_arcade_chips() -> None:
         _fail("SableHUD must stay a top bar over live aim")
     if "hangarHudChip" not in hud:
         _fail("SableHUD lost hangar chips from S.hangar")
+    if "roomHudChip" not in hud:
+        _fail("SableHUD lost the thin ROOM chip on wait_practice")
     if "Impact" in hud:
         _fail("SableHUD thickened — no Impact billboard")
     if "RAISE YOUR HAND" in hud or "ESC = miss" in hud:
@@ -100,6 +102,8 @@ def test_over_live_aim() -> None:
     hud_fn = _js_fn(js, "drawHUD")
     if "setPhase" in hud_fn or "fire(" in hud_fn or "aimBus" in hud_fn:
         _fail("HUD trapped lift/HID")
+    if "roomHudChip" in _js_fn(js, "fire") or "S.room" in _js_fn(js, "fire"):
+        _fail("fire() gated on room chip — Fire = AimBus HID peek")
     cross = _js_fn(js, "drawCrosshair")
     if "shadowBlur" in cross or "glow" in cross.lower():
         _fail("reticle bloom is forbidden")
@@ -193,6 +197,12 @@ def test_hangar_chips_from_s_hangar() -> None:
         _fail("hangar chips grew a tutorial wall")
     if "setPhase" in hud or "fire(" in hud or "aimBus" in hud:
         _fail("HUD trapped lift/HID")
+    if "roomHudChip" not in hud:
+        _fail("ROOM chip must stay additive with WAIT / READY / LIVE")
+    hangar_at = hud.find("hangarHudChip")
+    room_at = hud.find("roomHudChip")
+    if hangar_at < 0 or room_at < 0 or hangar_at > room_at:
+        _fail("ROOM chip must sit with hangar chips — do not hide the gun")
     d2 = _js_fn(js, "draw2D")
     lobby = d2[d2.find('phase === "lobby"') :]
     if not lobby:
@@ -230,6 +240,8 @@ def test_lobby_stays_thin() -> None:
         _fail("SableHUD must not thicken the lobby with gallery chips")
     if "hangarHudChip" not in hud:
         _fail("waiting arena lost hangar chips")
+    if "roomHudChip" not in hud:
+        _fail("waiting arena lost the thin ROOM chip")
     lobby = re.search(r"\.lobby-inner \{([^}]+)\}", css)
     if not lobby:
         _fail("lobby-inner rule missing")
@@ -259,12 +271,95 @@ def test_docs_lock() -> None:
         _fail("docs/modes.md must name hangar WAIT / READY / LIVE chips")
     if "S.hangar" not in modes:
         _fail("docs/modes.md must paint hangar chips from S.hangar")
+    if "ROOM" not in modes or "wait_practice" not in modes:
+        _fail("docs/modes.md must name the thin ROOM chip on wait_practice")
+    if "Do not hide the gun with a ROOM chip" not in modes:
+        _fail("docs/modes.md must fail loud if a ROOM chip hides the gun")
     if "Do not thicken the lobby" not in modes and "thicken the lobby" not in modes:
         _fail("docs/modes.md must refuse a thicker lobby")
     if "test_sablehud.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_sablehud.py")
+    if "ROOM" not in bible or "wait_practice" not in bible:
+        _fail("PRODUCTION.md must name the thin ROOM chip on wait_practice")
+    if "ROOM chip hides the gun" not in bible:
+        _fail("PRODUCTION.md must fail loud if a ROOM chip hides the gun / thickens the lobby")
     if "v0.20.0" not in bible:
         _fail("PRODUCTION.md must stand v0.20.0 until Build tags this gallery HUD tip")
+
+
+def test_room_chip_on_wait_practice() -> None:
+    js = proto_js()
+    chip = _js_fn(js, "roomHudChip")
+    if "S.hangar" not in chip:
+        _fail("ROOM chip must read S.hangar — wait_practice (and match_live)")
+    if "S.room" not in chip:
+        _fail("ROOM chip must read S.room")
+    if '"ROOM  "' not in chip:
+        _fail("ROOM chip must stay a thin ROOM code label")
+    if "wait_practice" not in chip or "match_live" not in chip:
+        _fail("ROOM chip must map wait_practice / match_live")
+    if "Locker.colors.mint" not in chip and "Locker.colors.bone" not in chip:
+        _fail("ROOM chip must stay bone / mint / rust")
+    if re.search(r"\bphase\b", chip) or "setPhase" in chip or "assignPhase" in chip:
+        _fail("ROOM chip renamed a screen phase — read S.hangar only")
+    if "aimBus" in chip or "fire(" in chip or "AimSample" in chip:
+        _fail("ROOM chip gated fire / touched AimSample")
+    if re.search(r"await\s+", chip) or "fetch(" in chip:
+        _fail("ROOM chip awaits — HUD trapped HID")
+    if "shadowBlur" in chip or "glow" in chip.lower() or "filter" in chip:
+        _fail("ROOM chip bloomed")
+    if "H * 0.78" in chip or "H*0.78" in chip or "H * 0.5" in chip:
+        _fail("ROOM chip hides the gun or the reticle")
+    if "Impact" in chip or "RAISE YOUR HAND" in chip:
+        _fail("ROOM chip grew a tutorial wall")
+    hud = _js_fn(js, "drawHUD")
+    if "roomHudChip" not in hud or "drawSableChip" not in hud:
+        _fail("ROOM chip left the thin SableHUD bar")
+    if "SABLE_HUD_H" not in _js_fn(js, "drawSableChip"):
+        _fail("ROOM chip must stay 22px — do not thicken chrome")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    room_at = hud.find("roomHudChip")
+    if mode_at < 0 or hangar_at < 0 or room_at < 0:
+        _fail("ROOM chip must stay additive with PAD/GUN + WAIT/READY/LIVE")
+    if mode_at > hangar_at or hangar_at > room_at:
+        _fail("ROOM chip wiped PAD/GUN or hangar chips")
+    if 'phase === "range"' not in hud or '"SCORE "' not in hud:
+        _fail("gallery SCORE must stay range-gated — ROOM must not thicken lobby")
+    if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud or "Impact" in hud:
+        _fail("ROOM chip hides the gun")
+    if "setPhase" in hud or "fire(" in hud or "aimBus" in hud:
+        _fail("HUD trapped lift/HID")
+    d2 = _js_fn(js, "draw2D")
+    lobby = d2[d2.find('phase === "lobby"') :]
+    if not lobby:
+        _fail("draw2D lost the waiting-arena path")
+    xh = lobby.find("drawCrosshair")
+    chips = lobby.find("drawHUD")
+    if xh < 0 or chips < 0 or xh > chips:
+        _fail("waiting-arena ROOM chip must paint over live aim — crosshair then chips")
+    fire = _js_fn(js, "fire")
+    if "roomHudChip" in fire or "hangarHudChip" in fire:
+        _fail("fire() gated on ROOM / hangar chips — Fire = AimBus HID peek")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    if re.search(r"await\s+", fire):
+        _fail("fire() awaits — ROOM chip trapped HID")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+    html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
+    css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
+    if 'id="lobby-room"' not in html or "ROOM ———" not in html:
+        _fail("lobby overlay lost ROOM — HUD chip is additive, not a wipe")
+    lobby_css = re.search(r"\.lobby-inner \{([^}]+)\}", css)
+    if not lobby_css or "padding: 24px 16px 40px" not in lobby_css.group(1):
+        _fail("lobby was thickened — ROOM chip must stay on the 22px bar")
+    if "gap: 12px" not in lobby_css.group(1):
+        _fail("lobby was thickened — action gap grew")
 
 
 def main() -> int:
@@ -273,6 +368,7 @@ def main() -> int:
         test_over_live_aim()
         test_offline_never_only_gun()
         test_hangar_chips_from_s_hangar()
+        test_room_chip_on_wait_practice()
         test_lobby_stays_thin()
         test_docs_lock()
     except AssertionError as exc:

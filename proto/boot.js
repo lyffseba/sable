@@ -764,11 +764,20 @@ function hangarHudChip() {
   throw new Error("SABLE HUD: unknown hangar " + h);
 }
 
+// Thin ROOM chip from S.room — wait_practice (and match_live). Overlay stays.
+function roomHudChip() {
+  const h = S.hangar;
+  if (h !== "wait_practice" && h !== "match_live") return null;
+  if (!S.room) return null;
+  return ["ROOM  " + S.room, Locker.colors.mint];
+}
+
 function drawHUD(now) {
-  // PAD/GUN/DESKTOP stay live. Hangar chip is additive — no wipe on promote.
+  // PAD/GUN/DESKTOP stay live. Hangar + ROOM chips are additive — no wipe on promote.
   drawModeChip();
   if (phase !== "range" && phase !== "lobby") return;
   const hangarChip = hangarHudChip();
+  const roomChip = roomHudChip();
   const left = galleryLeftMs(simMs());
   const sec = (left / 1000).toFixed(1);
   const sess = gallerySessionLabel();
@@ -780,6 +789,7 @@ function drawHUD(now) {
   if (left <= 0) stateChip = "GALLERY CLEAR";
   else if (sess !== "GALLERY") stateChip = sess;
   const chips = [hangarChip];
+  if (roomChip) chips.push(roomChip);
   if (phase === "range") chips.push(["SCORE " + S.score, bone]);
   if (phase === "range" && S.combo > 1) chips.push([S.combo + "x", rust]);
   if (phase === "range") chips.push(["ROUND " + sec, timeCol]);

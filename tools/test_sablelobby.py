@@ -4,8 +4,8 @@
 Fail loud if Bay reappears on player chrome, Offline / WARM UP lose
 one-click local practice, ENTER RANGE stops being host shared gallery
 start, promote traps HID behind calib/lock or a lobby POST, hangar
-chips thicken the lobby or hide the gun, or the lobby becomes a
-match-start screen again.
+chips thicken the lobby or hide the gun, a ROOM chip hides the gun
+or thickens the lobby, or the lobby becomes a match-start screen again.
 """
 
 from __future__ import annotations
@@ -147,10 +147,15 @@ def test_waiting_arena_always_practice() -> None:
         _fail("SableHUD must not thicken the waiting arena with gallery chips")
     if "hangarHudChip" not in hud:
         _fail("waiting arena lost hangar chips from S.hangar")
+    if "roomHudChip" not in hud:
+        _fail("waiting arena lost the thin ROOM chip")
     mode_at = hud.find("drawModeChip")
     hangar_at = hud.find("hangarHudChip")
+    room_at = hud.find("roomHudChip")
     if mode_at < 0 or hangar_at < 0 or mode_at > hangar_at:
         _fail("hangar chips wiped PAD/GUN — mode chip must stay live")
+    if room_at < 0 or hangar_at > room_at:
+        _fail("ROOM chip must stay additive with WAIT — do not hide the gun")
     if '"SCORE "' not in hud or ('"ROUND "' not in hud and '"ROUND"' not in hud):
         _fail("RANGE clock/score left drawHUD — hangar chips must not unpin gallery")
     if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud or "Impact" in hud:
@@ -329,9 +334,65 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must name hangar WAIT / READY / LIVE chips")
     if "hangar chips thicken the lobby" not in bible:
         _fail("PRODUCTION.md must fail loud if hangar chips thicken the lobby / hide the gun")
+    if "ROOM" not in modes or "wait_practice" not in modes:
+        _fail("docs/modes.md must name the thin ROOM chip on wait_practice")
+    if "Do not hide the gun with a ROOM chip" not in modes:
+        _fail("docs/modes.md must fail loud if a ROOM chip hides the gun")
+    if "ROOM" not in bible or "ROOM chip hides the gun" not in bible:
+        _fail("PRODUCTION.md must fail loud if a ROOM chip hides the gun / thickens the lobby")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_sablelobby.py" not in ci:
         _fail("ci.sh must run the SableLobby always-practice gate")
+
+
+def test_room_chip_thin() -> None:
+    js = proto_js()
+    html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
+    css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
+    chip = _js_fn(js, "roomHudChip")
+    if "S.hangar" not in chip or "S.room" not in chip:
+        _fail("ROOM chip must read S.hangar + S.room")
+    if "wait_practice" not in chip or '"ROOM  "' not in chip:
+        _fail("wait_practice must paint a thin ROOM code chip")
+    if re.search(r"\bphase\b", chip):
+        _fail("ROOM chip must not rename screen phases")
+    if "aimBus" in chip or "fire(" in chip or "AimSample" in chip:
+        _fail("ROOM chip gated fire — gun never gates on room")
+    if re.search(r"await\s+", chip) or "fetch(" in chip:
+        _fail("ROOM chip awaits — HUD trapped HID")
+    if "H * 0.78" in chip or "H*0.78" in chip or "Impact" in chip:
+        _fail("ROOM chip hides the gun")
+    hud = _js_fn(js, "drawHUD")
+    if "roomHudChip" not in hud or "drawSableChip" not in hud:
+        _fail("ROOM chip left the thin SableHUD bar")
+    if 'phase !== "range"' not in hud:
+        _fail("SableHUD must not thicken the waiting arena with gallery chips")
+    if '"SCORE "' not in hud or ('"ROUND "' not in hud and '"ROUND"' not in hud):
+        _fail("RANGE clock/score left drawHUD — ROOM must not unpin gallery")
+    if "H * 0.78" in hud or "H*0.78" in hud or "H * 0.5" in hud or "Impact" in hud:
+        _fail("ROOM chip hides the gun")
+    lobby = re.search(r"\.lobby-inner \{([^}]+)\}", css)
+    if not lobby or "padding: 24px 16px 40px" not in lobby.group(1):
+        _fail("lobby was thickened — ROOM chip must stay on the 22px bar")
+    if "gap: 12px" not in lobby.group(1):
+        _fail("lobby was thickened — action gap grew")
+    if 'id="lobby-room"' not in html or "ROOM ———" not in html:
+        _fail("lobby overlay lost ROOM — HUD chip is additive")
+    if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
+        _fail("boot lost one-click OFFLINE")
+    if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
+        _fail("lobby lost WARM UP")
+    fire = _js_fn(js, "fire")
+    if "roomHudChip" in fire:
+        _fail("fire() gated on ROOM chip — Fire = AimBus HID peek")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
 
 
 def main() -> int:
@@ -342,6 +403,7 @@ def main() -> int:
         test_enter_range_stays_shared()
         test_hangar_phase_enum()
         test_aimsample_and_docs()
+        test_room_chip_thin()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
         return 1
