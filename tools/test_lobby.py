@@ -15,6 +15,9 @@ def main() -> int:
     if not a.get("ok") or a.get("slot") != 0 or len(a["code"]) != 4:
         print(f"FAIL create {a}", file=sys.stderr)
         return 1
+    if "hangar" in a:
+        print("FAIL server snapshot grew hangar — client-only this cut", file=sys.stderr)
+        return 1
     b = lobby.join(a["code"], "P2")
     if not b.get("ok") or b.get("slot") != 1 or b["filled"] != 2:
         print(f"FAIL join {b}", file=sys.stderr)

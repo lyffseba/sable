@@ -198,6 +198,73 @@ def test_enter_range_stays_shared() -> None:
         _fail("fire() awaits — promote trapped HID")
 
 
+def test_hangar_phase_enum() -> None:
+    """Waiting-practice vs shared gallery must not live on lobby/range alone."""
+    js = proto_js()
+    lobby_py = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    if 'hangar: "hangar"' not in js:
+        _fail("S.hangar default missing — hangar session must boot hangar")
+    if 'HANGAR_PHASES = ["hangar", "wait_practice", "match_live"]' not in js:
+        _fail("HANGAR_PHASES must stay hangar | wait_practice | match_live")
+    assign = _js_fn(js, "assignHangar")
+    if "unknown hangar phase" not in assign:
+        _fail("assignHangar must fail loud on an unknown hangar phase")
+    if re.search(r"await\s+", assign) or "fetch(" in assign:
+        _fail("assignHangar awaits — hangar write trapped HID")
+    if "aimBus" in assign or "fire(" in assign:
+        _fail("assignHangar touched AimBus / fire — hangar is not a fire gate")
+    sync = _js_fn(js, "syncHangar")
+    if 'assignHangar("hangar")' not in sync:
+        _fail("syncHangar(boot/offline range) must write hangar")
+    if 'assignHangar("wait_practice")' not in sync:
+        _fail("syncHangar(lobby / warmup) must write wait_practice")
+    if 'assignHangar("match_live")' not in sync:
+        _fail("syncHangar(shared range) must write match_live")
+    if re.search(r"await\s+", sync) or "fetch(" in sync:
+        _fail("syncHangar awaits — lift/HID would wait on a phase write")
+    if "aimBus" in sync or "fire(" in sync:
+        _fail("syncHangar touched AimBus / fire")
+    phase = _js_fn(js, "setPhase")
+    if "syncHangar(next)" not in phase:
+        _fail("setPhase must sync hangar — screen phase is not the session enum")
+    wait = _js_fn(js, "startWaitingYard")
+    if 'assignHangar("wait_practice")' not in wait:
+        _fail("startWaitingYard must mark wait_practice")
+    warm = _js_fn(js, "lobbyWarmup")
+    if 'assignHangar("wait_practice")' not in warm:
+        _fail("WARM UP must mark wait_practice before the Yard drop")
+    preserve = _js_fn(js, "enterRangePreserve")
+    if 'assignHangar("match_live")' not in preserve:
+        _fail("ENTER RANGE phase-preserve must mark match_live")
+    if 'phase === "lobby"' not in preserve or 'phase === "range"' not in preserve:
+        _fail("phase-preserve must still keep the live Yard the room is already on")
+    start_range = _js_fn(js, "startRange")
+    if 'assignHangar("hangar")' not in start_range:
+        _fail("Offline startRange must mark hangar")
+    if 'assignHangar("wait_practice")' not in start_range:
+        _fail("WARM UP startRange must mark wait_practice")
+    if 'assignHangar("match_live")' not in start_range:
+        _fail("shared startRange must mark match_live")
+    poll = _js_fn(js, "lobbyPoll")
+    if 'assignHangar("match_live")' not in poll:
+        _fail("guest promote must mark match_live without waiting on hangar")
+    fire = _js_fn(js, "fire")
+    if "assignHangar" in fire or "syncHangar" in fire or "S.hangar" in fire:
+        _fail("fire() must not gate on hangar — Fire = AimBus HID peek")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    offline = re.search(
+        r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
+        js,
+    )
+    if not offline or 'assignHangar("hangar")' not in offline.group(0):
+        _fail("OFFLINE must mark hangar in one click")
+    if '"hangar":' in lobby_py or "hangar =" in lobby_py or '["hangar"]' in lobby_py:
+        _fail("server lobby grew a hangar field — client-only this cut")
+    if '"phase": "wait"' not in lobby_py:
+        _fail("server room phase must stay wait | range | bay")
+
+
 def test_aimsample_and_docs() -> None:
     js = proto_js()
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
@@ -220,6 +287,12 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must name ENTER RANGE phase-preserve")
     if "phase-preserve" not in modes and "already lifted" not in modes:
         _fail("docs/modes.md must name ENTER RANGE phase-preserve")
+    if "wait_practice" not in modes or "match_live" not in modes or "S.hangar" not in modes:
+        _fail("docs/modes.md must name the durable hangar session enum")
+    if "no parallel hangar field" not in modes:
+        _fail("docs/modes.md must keep hangar client-only this cut")
+    if "S.hangar" not in bible or "wait_practice" not in bible or "match_live" not in bible:
+        _fail("PRODUCTION.md must name the durable hangar session enum")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_sablelobby.py" not in ci:
         _fail("ci.sh must run the SableLobby always-practice gate")
@@ -231,6 +304,7 @@ def main() -> int:
         test_offline_and_warmup_one_click()
         test_waiting_arena_always_practice()
         test_enter_range_stays_shared()
+        test_hangar_phase_enum()
         test_aimsample_and_docs()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

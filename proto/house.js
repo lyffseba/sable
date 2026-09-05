@@ -5,7 +5,7 @@
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
-import { S, W, H, dpr, phase, aimBus, clamp } from "./aim.js";
+import { S, W, H, dpr, phase, aimBus, clamp, assignHangar } from "./aim.js";
 import { $, canvas3D, setPhase, ensureLobbyPoll } from "./boot.js";
 import {
   unlockAudio,
@@ -870,6 +870,7 @@ function startWaitingYard() {
   // Waiting-arena always-practice: local Yard plates, no 60s lock, no net.
   S.waitingYard = true;
   S.warmup = false;
+  assignHangar("wait_practice");
   S.enteringRange = false;
   restoreYardLook();
   if (rangeTargetGroup) rangeTargetGroup.visible = true;
@@ -892,6 +893,9 @@ function startWaitingYard() {
 
 function startRange() {
   S.waitingYard = false;
+  if (S.warmup) assignHangar("wait_practice");
+  else if (S.online && S.room && S.player && !S.bayMatch) assignHangar("match_live");
+  else assignHangar("hangar");
   restoreYardLook();
   S.enteringRange = false;
   while (rangeTargetGroup && rangeTargetGroup.children.length > 0) {

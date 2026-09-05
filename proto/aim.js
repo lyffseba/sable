@@ -95,12 +95,24 @@ const LIFT_HID_HOLD_MS = 180;
 
 export let W = 1280, H = 720, dpr = 1, phase = "boot";
 
+// Durable hangar session — not the screen/sim phase.
+// hangar: boot / Offline gallery. wait_practice: HUD-on-Yard + WARM UP.
+// match_live: shared ENTER RANGE. Server room.phase stays wait|range|bay.
+export const HANGAR_PHASES = ["hangar", "wait_practice", "match_live"];
+
 export function assignView(w, h, ratio) {
   W = w; H = h; dpr = ratio;
 }
 
 export function assignPhase(next) {
   phase = next;
+}
+
+export function assignHangar(next) {
+  if (next !== "hangar" && next !== "wait_practice" && next !== "match_live") {
+    throw new Error("SABLE HANGAR: unknown hangar phase " + next);
+  }
+  S.hangar = next;
 }
 
 const S = {
@@ -128,6 +140,7 @@ const S = {
   host: false,
   warmup: false,
   waitingYard: false,
+  hangar: "hangar",
   seed: 0,
   sharedDead: null,
   sharedPending: null,
