@@ -1,14 +1,13 @@
 # Aim pipeline — the engine's heart
 
-SABLE is a physical-aim FPS. The unique verb is **lift the mouse and point it at the monitor**. Everything else in this repo exists to serve that pose.
+SABLE is a physical-aim FPS. The unique verb is **raise your hand, point the fingertip at the monitor, click**. A MacBook webcam is enough. Everything else in this repo exists to serve that pose.
 
-This document is the contract. The implementation lives in `native/cv_input` (filter, capture, AimSample) and `godot/src/input` (HID fire, desktop fallback, mode chip).
+This document is the contract. The live tracker is `proto/game.js` (`findHand` + fingertip NCC + One Euro). `native/cv_input` holds the filter / AimSample tests. Fire is HID.
 
 ## Hardware
 
-- Clip-on webcam at the **top-center** of the monitor.
-- Clip-on **2–3-dot** sleeve on the mouse, or a **40 mm ArUco** marker.
-- Neon tape is a temporary single-blob fallback, not the product.
+- Built-in laptop webcam (lid camera). No mouse in the air. No sleeve. No marker.
+- Point the index finger / finger-gun at the screen. Trackpad or HID click fires.
 - Target camera: cheap laptop modules. **720p30, MJPEG, auto-exposure, noisy, rolling shutter.** Immaculate aim must still work here.
 
 Turn **auto-exposure and auto-white-balance off** when the driver allows it (V4L2: `V4L2_CID_EXPOSURE_AUTO` manual, `V4L2_CID_AUTO_WHITE_BALANCE` = 0). If the platform ignores the lock, the pipeline **adapts thresholds every N frames** instead of fighting AE.
@@ -47,10 +46,10 @@ Capture runs on a **worker thread**. Queue depth is effectively **1**: always th
 Once a frame is in:
 
 1. **Lock exposure** if possible. Else adapt HSV / luma floors every `kAdaptEveryNFrames` (15).
-2. **ROI after lock.** Full-frame search only when `Lost`. Once locked, search **~3× blob radius** around the predicted centroid (`p + v·dt`). This is what makes 30 fps cheap cameras viable.
-3. **Adaptive HSV.** Sample a small window at the calib click. Gate on hue distance + min S + min V. If sample saturation is below `kLowSatFallback` (0.18), fall back to **luma-peak** in the ROI (neon tape).
-4. **Sub-pixel centroid.** Spatial moments (zeroth / first) on a **soft mask**. Not bounding-box center. Not argmax pixel.
-5. **2–3 dots** if visible: heading from the principal axis of the constellation; UV from the mean. Else 1-blob. Same `AimSample`.
+2. **ROI after lock.** Full-frame search only when `Lost`. Once locked, search **~3× blob radius** around the predicted fingertip (`p + v·dt`). This is what makes 30 fps cheap cameras viable.
+3. **Skin + hand.** HSV skin mask, connected components, reject the face blob, fingertip = farthest skin pixel from the palm centroid. Gemini may seed the fingertip once.
+4. **Sub-pixel NCC** on a patch around the fingertip, then One Euro. Same `AimSample`.
+5. **Hand reacquire** if NCC drops: `findHand` writes the fingertip and coasts.
 6. **Outlier reject.** If the new centroid jumps more than `kOutlierJumpPx` (28 px) versus the prediction, ignore that frame (rolling shutter / AE pop). After **2** rejects, relock (full-frame).
 7. **One Euro filter** on the centroid **in camera space** (Casiez, Roussel, Vogel 2012), then map through homography (PnP later; same `AimSample` output).
 8. **Constant-velocity coast.** If the blob is missing **≤ 100 ms**, extrapolate with last velocity and decay confidence. After 100 ms: `valid = false`, **hold last UV**, chip `SEEKING`. **Do not snap to (0, 0).**

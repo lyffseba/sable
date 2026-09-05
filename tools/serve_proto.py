@@ -6,9 +6,13 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import mimetypes
 import os
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+mimetypes.add_type("application/wasm", ".wasm")
+mimetypes.add_type("application/octet-stream", ".task")
 
 here = os.path.dirname(os.path.abspath(__file__))
 if here not in sys.path:
@@ -23,6 +27,11 @@ try:
     import sable_mojo
 except ImportError:
     sable_mojo = None
+
+try:
+    import lobby as lobby_api
+except ImportError:
+    lobby_api = None
 
 
 class SableRequestHandler(SimpleHTTPRequestHandler):
@@ -41,7 +50,9 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
         return json.loads(raw.decode("utf-8") or "{}")
 
     def do_GET(self) -> None:
-        path = self.path.split("?", 1)[0]
+        raw = self.path.split("?", 1)
+        path = raw[0]
+        qs = raw[1] if len(raw) > 1 else ""
         if path == "/api/health":
             mojo_id = sable_mojo.ping() if sable_mojo else None
             self._json(
@@ -50,9 +61,17 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                     "game": "sable",
                     "mojo": mojo_id,
                     "gemini": bool(detect_mouse_in_image),
-                    "ncc": "simd",
+                    "lobby": bool(lobby_api),
+                    "ncc": "simd" if sable_mojo else None,
                 }
             )
+            return
+        if path == "/api/lobby" and lobby_api:
+            code = ""
+            for part in qs.split("&"):
+                if part.startswith("code="):
+                    code = part.split("=", 1)[1]
+            self._json(lobby_api.get(code))
             return
         if path == "/api/mojo/ncc" and sable_mojo:
             self._json(sable_mojo.ncc_selftest())
@@ -65,6 +84,23 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0]
         try:
+            if path == "/api/lobby/create" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.create(str(d.get("name") or "HOST")))
+                return
+            if path == "/api/lobby/join" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.join(str(d.get("code") or ""), str(d.get("name") or "PLAYER")))
+                return
+            if path == "/api/lobby/leave" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.leave(str(d.get("code") or ""), str(d.get("player") or "")))
+                return
+            if path == "/api/lobby/start" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.start(str(d.get("code") or ""), str(d.get("player") or "")))
+                return
+
             if path == "/api/gemini/lock":
                 data = self._read_json()
                 img_b64 = data.get("image", "")

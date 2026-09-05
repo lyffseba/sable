@@ -8,13 +8,13 @@ v1 modes (later): offline **Range**, **1v1**, **2v2**. This repository ships the
 
 ## Range (now)
 
-Dark empty volume. One dummy orb. Crosshair follows `AimSample.uv`. Click fires the **latest** sample (desktop fallback = OS cursor). Hits despawn the orb and spawn another. Score in the corner. Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. Confidence meter on screen.
+**Salt House** — original hall: rust ribs, mint centerline, bone plates. Crosshair follows `AimSample.uv`. Click fires the **latest** sample. Hits shatter a plate and spawn another. Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`.
 
-WASD is unused in this pass.
+First-person mesh is CANCHO’s **cuff** (mint rail = muzzle). AimSample is still the gun. WASD unused on Range.
 
 ## Visual bar
 
-Baked / unshaded look. No realtime GI. No hardware RT. No virtualized geometry. No glow bloom on the reticle or the world. 1080p 60 on a GTX 1650 4 GB class floor; 1080p 120 on an RTX 3060 laptop class.
+Flat / unshaded charcoal–bone–mint–rust. No realtime GI. No hardware RT. No glow bloom on the reticle or the world. 1080p 60 on a GTX 1650 4 GB class floor; 1080p 120 on an RTX 3060 laptop class. Paint sheets: `art/concepts/`. Literature: `research/LITERATURE.md`.
 
 ## What this pass is not
 
