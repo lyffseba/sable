@@ -1953,7 +1953,7 @@ function drawModeChip() {
   ctx.letterSpacing = "0.12em";
   const qw = ctx.measureText(qLabel).width + 22;
   const qx = 16 + tw + 8;
-  const qCol = q >= 70 ? "#00f0ff" : q >= 40 ? "#ffd56a" : "#ff2bd6";
+  const qCol = q >= 70 ? Locker.colors.mint : q >= 40 ? "#ffd56a" : Locker.colors.rust;
   ctx.fillStyle = "rgba(5,8,14,0.78)";
   ctx.strokeStyle = qCol;
   ctx.fillRect(qx, 16, qw, 22);
@@ -2078,9 +2078,9 @@ function drawBayHUD() {
   if (Bay.over) {
     ctx.fillText(`${Bay.you >= Bay.toWin ? "VICTORIA" : "DERROTA"} · ${op.vo.win} · Primer a 5`, W * 0.5, H - 32);
   } else if (Bay.frozen) {
-    ctx.fillText("RONDA CONGELADA · BAJA EL RATÓN AL PAD PARA CONTINUAR", W * 0.5, H - 32);
+    ctx.fillText("RONDA CONGELADA · BAJA LA MANO PARA CONTINUAR", W * 0.5, H - 32);
   } else {
-    ctx.fillText(`WASD en pad  ·  LEVANTA para bloquear paso y apuntar  ·  CLIC dispara  ·  L cambia estilo (${Locker.equippedStyle})`, W * 0.5, H - 32);
+    ctx.fillText(`WASD en pad  ·  LEVANTA la mano para apuntar  ·  CLIC dispara  ·  L cambia estilo (${Locker.equippedStyle})`, W * 0.5, H - 32);
   }
   ctx.restore();
 }
