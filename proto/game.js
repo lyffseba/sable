@@ -174,6 +174,8 @@ const S = {
   slot: -1,
   host: false,
   warmup: false,
+  seed: 0,
+  sharedDead: null,
 };
 
 // --- Bay 1v1 Arena State ---
@@ -1595,6 +1597,7 @@ function fire() {
 
     rangeTargetGroup.remove(hit.mesh);
     S.orbs = S.orbs.filter((o) => o !== hit);
+    if (hit.id) reportSharedHit(hit.id);
   } else {
     S.combo = 0;
     missTick();
@@ -1673,6 +1676,100 @@ function stopLobbyPoll() {
   if (lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = 0; }
 }
 
+function ensureLobbyPoll() {
+  if (!S.room || !S.online) return;
+  if (!lobbyTimer) lobbyTimer = setInterval(lobbyPoll, 200);
+}
+
+function sharedMatch() {
+  return !!(S.online && !S.warmup && S.room && S.player);
+}
+
+function reportSharedHit(plateId) {
+  if (!sharedMatch() || !plateId || !S.room || !S.player) return;
+  if (!S.sharedDead) S.sharedDead = new Set();
+  S.sharedDead.add(plateId);
+  fetch("/api/lobby/hit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: S.room, player: S.player, plate: plateId }),
+  }).catch(function () { /* snapshot poll is the authority */ });
+}
+
+function spawnSharedPlate(p) {
+  const o = spawnOrb3D({
+    kind: p.kind,
+    worth: p.worth || 100,
+    hue: 165,
+    id: p.id,
+    vx: p.vx || 0,
+    vy: p.vy || 0,
+    vz: p.vz || 0,
+  });
+  o.mesh.position.set(p.x, p.y, p.z);
+  o.baseY = p.baseY != null ? p.baseY : p.y;
+  o.life = typeof p.life === "number" ? p.life : 0;
+  if (p.kind === "clay" || p.kind === "rise") pullWhistle();
+  return o;
+}
+
+function applySharedSim(data) {
+  if (!data || !data.ok || data.phase !== "range" || data.seed == null) return;
+  if (!rangeTargetGroup) return;
+  S.seed = data.seed;
+  if (typeof data.elapsed_ms === "number") {
+    S.rangeStart = performance.now() - data.elapsed_ms;
+  }
+  if (!S.sharedDead) S.sharedDead = new Set();
+  const deadList = data.dead || [];
+  for (const d of deadList) {
+    const id = typeof d === "string" ? d : d.id;
+    if (id) S.sharedDead.add(id);
+  }
+  const live = [];
+  for (const p of (data.plates || [])) {
+    if (p && p.id && !S.sharedDead.has(p.id)) live.push(p);
+  }
+  const liveIds = new Set(live.map((p) => p.id));
+  const gone = [];
+  for (const o of S.orbs) {
+    if (o.id && !liveIds.has(o.id)) gone.push(o);
+  }
+  for (const o of gone) {
+    if (o.mesh) {
+      if (S.sharedDead.has(o.id)) shatterTarget3D(o.mesh.position.clone(), o.hue);
+      rangeTargetGroup.remove(o.mesh);
+    }
+  }
+  if (gone.length) S.orbs = S.orbs.filter((o) => gone.indexOf(o) < 0);
+  for (const p of live) {
+    let o = null;
+    for (const cur of S.orbs) {
+      if (cur.id === p.id) { o = cur; break; }
+    }
+    if (!o) {
+      spawnSharedPlate(p);
+      continue;
+    }
+    if (typeof p.life === "number") o.life = p.life;
+    if (o.mesh && (o.kind === "clay" || o.kind === "rise")) {
+      o.mesh.position.set(p.x, p.y, p.z);
+      o.vx = p.vx;
+      o.vy = p.vy;
+      o.vz = p.vz;
+    }
+  }
+}
+
+async function pullSharedSim() {
+  if (!sharedMatch() || !S.room) return;
+  try {
+    const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
+    const data = await res.json();
+    if (data && data.ok) applySharedSim(data);
+  } catch (e) { /* next poll */ }
+}
+
 function slotLabel(slot) {
   if (!slot) return "—";
   const you = slot.id === S.player ? "YOU  " : "";
@@ -1692,8 +1789,8 @@ function paintLobby(data) {
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
-      ? "WARM UP is practice now. ENTER RANGE starts the house for the room."
-      : "WARM UP anytime. Waiting on host for the room Range.";
+      ? "WARM UP is practice now. ENTER RANGE shares one house — same plates."
+      : "WARM UP anytime. Waiting on host for the shared house.";
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
@@ -1729,7 +1826,7 @@ async function lobbyCreate() {
   paintLobby(data);
   setPhase("lobby");
   stopLobbyPoll();
-  lobbyTimer = setInterval(lobbyPoll, 400);
+  ensureLobbyPoll();
 }
 
 async function lobbyJoin(code) {
@@ -1755,25 +1852,27 @@ async function lobbyJoin(code) {
   paintLobby(data);
   setPhase("lobby");
   stopLobbyPoll();
-  lobbyTimer = setInterval(lobbyPoll, 400);
+  ensureLobbyPoll();
 }
 
 async function lobbyPoll() {
   if (!S.room || !S.online) return;
-  if (phase !== "lobby" && !S.warmup) return;
+  if (phase !== "lobby" && !S.warmup && !sharedMatch()) return;
   try {
     const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
     const data = await res.json();
     if (!data.ok) return;
-    paintLobby(data);
+    if (phase === "lobby" || S.warmup) paintLobby(data);
     if (data.phase === "range" && !lobbyStarting) {
       S.warmup = false;
       lobbyStarting = true;
-      stopLobbyPoll();
       syncWarmupChrome();
       if (phase === "range") startRange();
       else if (phase === "results") setPhase("range");
       else if (phase === "lobby") play("range");
+    }
+    if (sharedMatch() && phase === "range" && data.phase === "range") {
+      applySharedSim(data);
     }
   } catch (e) { /* keep polling */ }
 }
@@ -1793,7 +1892,7 @@ async function lobbyStartRange() {
     });
   }
   lobbyStarting = true;
-  stopLobbyPoll();
+  ensureLobbyPoll();
   play("range");
 }
 
@@ -1847,7 +1946,7 @@ async function returnToLobby() {
   syncWarmupChrome();
   setPhase("lobby");
   stopLobbyPoll();
-  lobbyTimer = setInterval(lobbyPoll, 400);
+  ensureLobbyPoll();
 }
 
 async function lobbyLeave() {
@@ -1950,6 +2049,12 @@ function startRange() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.recoil = 0; S.punch = 0; S.flash = 0;
+  S.sharedDead = new Set();
+  if (sharedMatch()) {
+    pullSharedSim();
+    ensureLobbyPoll();
+    return;
+  }
   const first = spawnOrb3D({ kind: "sit", worth: 100, hue: 165 });
   first.mesh.position.set(0.2, 0.35, -6.6);
   first.baseY = 0.35;
@@ -2045,9 +2150,12 @@ function desiredOrbCount(elapsed) {
 function updateRange(dt, now) {
   const elapsed = now - S.rangeStart;
   if (elapsed >= RANGE_MS) { setPhase("results"); return; }
-  const want = desiredOrbCount(elapsed);
-  const hard = elapsed > 35000;
-  while (S.orbs.length < want && (elapsed >= 2000 || S.orbs.length === 0)) randomOrb(hard);
+  const shared = sharedMatch();
+  if (!shared) {
+    const want = desiredOrbCount(elapsed);
+    const hard = elapsed > 35000;
+    while (S.orbs.length < want && (elapsed >= 2000 || S.orbs.length === 0)) randomOrb(hard);
+  }
 
   const gone = [];
   for (const o of S.orbs) {
@@ -2059,13 +2167,13 @@ function updateRange(dt, now) {
       o.mesh.position.z += (o.vz || 0) * dt;
       o.vy -= 4.6 * dt;
       const p = o.mesh.position;
-      if (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3 || o.life >= PLATE_MAX_LIFE_S) gone.push(o);
+      if (!shared && (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3 || o.life >= PLATE_MAX_LIFE_S)) gone.push(o);
     } else if (o.kind === "sit") {
       if (o.baseY == null) o.baseY = o.mesh.position.y;
       if (o.phase == null) o.phase = 0;
       if (o.life >= SIT_DWELL_S) {
         o.mesh.position.y += SIT_DROP_VY * dt;
-        if (o.mesh.position.y < -1.7 || o.life >= PLATE_MAX_LIFE_S) gone.push(o);
+        if (!shared && (o.mesh.position.y < -1.7 || o.life >= PLATE_MAX_LIFE_S)) gone.push(o);
       } else {
         o.phase += dt * 1.6;
         o.mesh.position.y = o.baseY + Math.sin(o.phase) * 0.07;
@@ -2301,7 +2409,9 @@ function drawHUD(now) {
   ctx.fillStyle = "#00f0ff";
   const sess = S.warmup
     ? "WARM UP  " + S.room
-    : (!S.online ? "OFFLINE RANGE" : (S.playlist === "5v5" ? "5v5  " + S.room : "ONLINE RANGE"));
+    : (sharedMatch()
+      ? "SHARED  " + S.room
+      : (!S.online ? "OFFLINE RANGE" : (S.playlist === "5v5" ? "5v5  " + S.room : "ONLINE RANGE")));
   ctx.fillText("SCORE  ·  " + sess, W / 2, 52);
   if (S.combo > 1) {
     ctx.fillStyle = "#ff2bd6";

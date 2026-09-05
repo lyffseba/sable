@@ -54,6 +54,9 @@ def main() -> int:
     if not st.get("ok") or st.get("phase") != "range":
         print(f"FAIL start {st}", file=sys.stderr)
         return 1
+    if st.get("seed") is None or not st.get("plates") or st["plates"][0]["id"] != "p0":
+        print(f"FAIL start missing shared sim {st}", file=sys.stderr)
+        return 1
     late = lobby.join(a["code"], "LATE")
     if late.get("ok"):
         print("FAIL join after start", file=sys.stderr)

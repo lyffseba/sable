@@ -26,6 +26,7 @@ python3 tools/test_hid_fire.py
 python3 tools/test_aim_verb.py
 python3 tools/test_lobby.py
 python3 tools/test_warmup_flow.py
+python3 tools/test_shared_range.py
 ./tools/run_cv_tests.sh
 
 python3 tools/test_mojo_python.py
