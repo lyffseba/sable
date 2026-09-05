@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""R4: shared seed + server ray resolve at the fire tick. Warm-up stays local."""
+"""R4: shared seed + server ray resolve at the fire tick. Warm-up stays local.
+
+Seed owns kind / peek / velocity / born_ms. A late first poll must not shift birth.
+"""
 
 from __future__ import annotations
 
@@ -332,7 +335,7 @@ def test_flyer_pose_authority() -> None:
     lobby.join(a["code"], "P2")
     t0 = 4_000.0
     lobby.start(a["code"], a["player"], now=t0, seed=0x51)
-    # First sync past the 2-plate want births p1. Same poll times → same born_ms.
+    # Seed owns p1 birth at the 2s want. First-poll time must not stamp born_ms.
     lobby.get(a["code"], now=t0 + 2.0)
     later_a = lobby.get(a["code"], now=t0 + 3.0)
     later_b = lobby.get(a["code"], now=t0 + 3.0)
@@ -709,6 +712,108 @@ def test_escape_miss_authority() -> None:
         raise AssertionError("WARM UP must stay local after ESC lock")
 
 
+def test_seed_owns_born_ms() -> None:
+    """Seed owns birth. A late first poll must not shift the house."""
+    src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    adv = re.search(r"def _advance_spawns\([\s\S]*?\n\ndef ", src)
+    if not adv:
+        raise AssertionError("missing _advance_spawns")
+    body = adv.group(0)
+    if "_next_spawn_ms" not in body:
+        raise AssertionError("spawns must read the seed schedule, not the observer")
+    if "_spawn_random(sim, elapsed_ms" in body:
+        raise AssertionError("observer elapsed stamped born_ms — seed no longer owns birth")
+    if "range(128)" in body or "range(HZ)" in body:
+        raise AssertionError("_advance_spawns became a 128 Hz friend loop")
+    nxt = re.search(r"def _next_spawn_ms\([\s\S]*?\n\ndef ", src)
+    if not nxt:
+        raise AssertionError("missing _next_spawn_ms")
+    if "2000.0" not in nxt.group(0):
+        raise AssertionError("second plate must be born at the 2s want")
+    note = re.search(r"def _note_escapes\([\s\S]*?\n\ndef ", src)
+    if not note or "_escape_ms" not in note.group(0):
+        raise AssertionError("ESC at_ms must be the closed-form leave, not the poll")
+
+    t0 = 11_000.0
+    a = lobby.create("HOST")
+    lobby.join(a["code"], "P2")
+    lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    b = lobby.create("HOST2")
+    lobby.join(b["code"], "Q2")
+    lobby.start(b["code"], b["player"], now=t0, seed=0x51)
+
+    early_a = lobby.get(a["code"], now=t0 + 2.0)
+    late_b = lobby.get(b["code"], now=t0 + 2.6)
+    later_a = lobby.get(a["code"], now=t0 + 2.6)
+    if _ids(early_a) != ["p0", "p1"]:
+        raise AssertionError(f"2s want must birth p1 on the seed schedule {_ids(early_a)}")
+    p1_early = next(p for p in early_a["plates"] if p["id"] == "p1")
+    p1_a = next(p for p in later_a["plates"] if p["id"] == "p1")
+    p1_b = next(p for p in late_b["plates"] if p["id"] == "p1")
+    if abs(p1_early["born_ms"] - 2000.0) > 1e-9:
+        raise AssertionError(f"p1 must be born at 2000, not the observer {p1_early['born_ms']}")
+    if abs(p1_a["born_ms"] - p1_b["born_ms"]) > 1e-9:
+        raise AssertionError(f"late first poll split born_ms {p1_a['born_ms']} vs {p1_b['born_ms']}")
+    if abs(p1_a["x"] - p1_b["x"]) > 1e-9 or abs(p1_a["y"] - p1_b["y"]) > 1e-9:
+        raise AssertionError(f"late first poll split flyer pose {p1_a} vs {p1_b}")
+    if later_a["seed"] != late_b["seed"] or _ids(later_a) != _ids(late_b):
+        raise AssertionError(f"same seed split the house {_ids(later_a)} vs {_ids(late_b)}")
+
+    c = lobby.create("HOST3")
+    lobby.start(c["code"], c["player"], now=t0, seed=0x51)
+    death = lobby.quantize_fire_ms(90.0)
+    shot = lobby.hit(
+        c["code"],
+        c["player"],
+        uv=_p0_uv(),
+        fire_ms=90.0,
+        t_hw=50,
+        now=t0 + 0.14,
+    )
+    if shot.get("hit") != "p0":
+        raise AssertionError(f"setup hit must still shatter p0 {shot}")
+    p1_hit = next((p for p in shot.get("plates") or [] if p["id"] == "p1"), None)
+    if not p1_hit:
+        raise AssertionError(f"hit snap must carry the seed-schedule replacement {shot}")
+    if abs(float(p1_hit["born_ms"]) - death) > 1e-9:
+        raise AssertionError(
+            f"replacement born_ms must be the death tick {p1_hit['born_ms']} vs {death}"
+        )
+    repl = lobby.get(c["code"], now=t0 + 0.14)
+    p1 = next((p for p in repl.get("plates") or [] if p["id"] == "p1"), None)
+    if not p1:
+        raise AssertionError(f"death must birth a replacement on the schedule {repl}")
+    if abs(float(p1["born_ms"]) - death) > 1e-9:
+        raise AssertionError(
+            f"get() split replacement birth {p1['born_ms']} vs {death}"
+        )
+
+    parked = lobby.create("HOST8")
+    guest = lobby.join(parked["code"], "W2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("seed") or parked_warm.get("plates"):
+        raise AssertionError("wait_practice must not open the shared seed schedule")
+
+    js = proto_js()
+    fire = _js_fn(js, "fire")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — seed schedule is not a fire gate")
+    if "aimBus.fire" not in fire:
+        raise AssertionError("fire() no longer peeks AimBus")
+    start = _js_fn(js, "startRange")
+    if "sharedMatch()" not in start or "spawnOrb3D" not in start:
+        raise AssertionError("Offline / WARM UP must still spawn a local first plate")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after seed lock")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample fields changed — keep the locked struct")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -721,6 +826,7 @@ def main() -> int:
         test_hitscan_sphere_authority()
         test_hit_score_authority()
         test_escape_miss_authority()
+        test_seed_owns_born_ms()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
