@@ -2,6 +2,13 @@
 
 SABLE first-party code is Apache-2.0. The following third-party software is used by the client or native plugins.
 
+## MediaPipe Tasks Vision (Hand Landmarker)
+
+Copyright (c) Google LLC and MediaPipe authors.
+Apache License 2.0. https://github.com/google-ai-edge/mediapipe
+
+Loaded at runtime (local `proto/vendor/mediapipe/` if present, else jsDelivr `@mediapipe/tasks-vision` + Google model host). Used only to read 21 hand landmarks. Not a game asset.
+
 ## Three.js
 
 Copyright (c) 2010-2024 Three.js Authors.
