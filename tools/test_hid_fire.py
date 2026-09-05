@@ -85,6 +85,17 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("hitscan must use last committed S.aim")
     if "SablePerf.begin" not in fire_src or "SablePerf.markHid" not in fire_src:
         raise AssertionError("HID→hitscan must be wrapped by the optional SablePerf probe")
+    begin_at = fire_src.find("SablePerf.begin")
+    bang_at = fire_src.find("bang()")
+    mark_at = fire_src.find("SablePerf.markHid")
+    if begin_at < 0 or bang_at < 0:
+        raise AssertionError("fire() must call SablePerf.begin and bang()")
+    if begin_at > bang_at:
+        raise AssertionError(
+            "SablePerf.begin must start after the lift/desktop gate and before bang()"
+        )
+    if mark_at >= 0 and mark_at < bang_at:
+        raise AssertionError("SablePerf.markHid must stay at first hitscan intersect")
 
 
 def _pct(samples: list[float], p: float) -> float:
