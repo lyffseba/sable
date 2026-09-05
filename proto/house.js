@@ -883,9 +883,8 @@ function tickBay(dt) {
   applyLockerLook();
 
   if (!Bay.over) {
-    if (sample.lifted && !Bay.wasLifted) {
-      Bay.vo(Locker.operator.vo.lift);
-    } else if (!sample.lifted && Bay.wasLifted) {
+    // Lift mint-tell is afterLiftState audio only. Do not paint VO over the cuff.
+    if (!sample.lifted && Bay.wasLifted) {
       Bay.vo(Locker.operator.vo.drop);
     }
   }
