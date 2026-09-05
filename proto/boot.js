@@ -755,9 +755,19 @@ function drawSableChip(text, col, x, y) {
   return w;
 }
 
+// Readable hangar chips from S.hangar only — do not rename screen phases.
+function hangarHudChip() {
+  const h = S.hangar;
+  if (h === "wait_practice") return ["WAIT", Locker.colors.bone];
+  if (h === "match_live") return ["LIVE", Locker.colors.rust];
+  if (h === "hangar") return ["READY", Locker.colors.mint];
+  throw new Error("SABLE HUD: unknown hangar " + h);
+}
+
 function drawHUD(now) {
   drawModeChip();
-  if (phase !== "range") return;
+  if (phase !== "range" && phase !== "lobby") return;
+  const hangarChip = hangarHudChip();
   const left = galleryLeftMs(simMs());
   const sec = (left / 1000).toFixed(1);
   const sess = gallerySessionLabel();
@@ -768,10 +778,11 @@ function drawHUD(now) {
   let stateChip = "60s GALLERY";
   if (left <= 0) stateChip = "GALLERY CLEAR";
   else if (sess !== "GALLERY") stateChip = sess;
-  const chips = [["SCORE " + S.score, bone]];
-  if (S.combo > 1) chips.push([S.combo + "x", rust]);
-  chips.push(["ROUND " + sec, timeCol]);
-  chips.push([stateChip, left <= 10000 ? rust : mint]);
+  const chips = [hangarChip];
+  if (phase === "range") chips.push(["SCORE " + S.score, bone]);
+  if (phase === "range" && S.combo > 1) chips.push([S.combo + "x", rust]);
+  if (phase === "range") chips.push(["ROUND " + sec, timeCol]);
+  if (phase === "range") chips.push([stateChip, left <= 10000 ? rust : mint]);
   ctx.save();
   const gap = 8;
   let total = 0;
@@ -862,7 +873,7 @@ function draw2D(now) {
       ctx.globalAlpha = 1;
     }
     drawCrosshair(S.aim.x, S.aim.y);
-    drawModeChip();
+    drawHUD(now);
   } else if (phase === "bay") {
     drawCrosshair(S.aim.x, S.aim.y);
     drawBayHUD();

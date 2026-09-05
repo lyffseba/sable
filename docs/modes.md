@@ -20,7 +20,7 @@ Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / 
 - Score + combo are the mode. Escape (`ESC`) is a miss. Sit plates dwell, then drop. Clays leave.
 - End state is **GALLERY CLEAR** (score / hits / accuracy / combo / 60 s round).
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
-- Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby. Waiting arena stays HUD-on-Yard (`startWaitingYard`) — local plates, no 60 s lock, no net on the click.
+- Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): hangar chip from `S.hangar` (`WAIT` / `READY` / `LIVE`), then `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby. Waiting arena stays HUD-on-Yard (`startWaitingYard`) — local plates, thin `WAIT` chip, no gallery SCORE / ROUND, no 60 s lock, no net on the click.
 - Sparse **SableAudio**: dry-tick miss (escape / dry fire) and hit punch on shatter. Quiet mint-tell lift cue (`Mint. Lift.` — oscillator this cut) after GUN. Audio only — do not paint VO over the cuff. Feedback after resolve / lift state, never a fire gate. No bed, no ambience.
 - Stand still. WASD is Bay only (parked booth).
 
@@ -47,7 +47,7 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire.
 - Do not bloom the reticle. Charcoal / bone / mint / rust only.
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
-- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin chips — not a match-start screen.
+- Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin `WAIT` chip from `S.hangar` — not a match-start screen. Do not paint hangar chips from screen phase; read `S.hangar` only.
 - Do not force calib/lock on ENTER RANGE when the Yard is already live. Promote is SableNet phase-preserve (`enterRangePreserve`) — lift/HID never waits on the lobby POST.
 - Do not collapse `wait_practice` and `match_live` back onto `lobby` / `range` alone. `S.hangar` is the durable session enum (`assignHangar` / `syncHangar`).
 - Do not touch `AimSample`. Fire peeks `AimBus` only.
