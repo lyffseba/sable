@@ -1,6 +1,7 @@
 /* SABLE — house.js
    Salt House gallery (60s plates/clays), shared match hooks, Bay.
-   Sit pose is closed-form from life (sitPoseY) — same house local and rewind.
+   Sit / flyer pose is closed-form from life (sitPoseY / flyerPose) —
+   same house local and rewind. Do not Euler-integrate flyers.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -62,6 +63,7 @@ const SIT_DWELL_S = 4.2;
 const SIT_DROP_VY = -3.2;
 const SIT_BOB_RATE = 1.6;
 const SIT_BOB_AMP = 0.07;
+const GRAVITY = 4.6;
 const PLATE_MAX_LIFE_S = 7.5;
 
 function sitPoseY(baseY, life) {
@@ -70,6 +72,53 @@ function sitPoseY(baseY, life) {
   // share this house. Do not accumulate an unsynced phase — friends would split.
   if (life >= SIT_DWELL_S) return baseY + SIT_DROP_VY * (life - SIT_DWELL_S);
   return baseY + Math.sin(life * SIT_BOB_RATE) * SIT_BOB_AMP;
+}
+
+function flyerPose(x0, y0, z0, vx0, vy0, vz0, life) {
+  // Closed-form flyer pose from life. Same formula as lobby.flyer_pose.
+  // Euler (y += vy*dt; vy -= g*dt) drifts ~0.5*g*dt*t vs rewind — a HID
+  // peek that hits the mesh can miss the room sphere (and the reverse).
+  return {
+    x: x0 + vx0 * life,
+    y: y0 + vy0 * life - 0.5 * GRAVITY * life * life,
+    z: z0 + vz0 * life,
+    vx: vx0,
+    vy: vy0 - GRAVITY * life,
+    vz: vz0,
+  };
+}
+
+function bindFlyerBirth(o) {
+  if (!o || !o.mesh) return;
+  o.x0 = o.mesh.position.x;
+  o.y0 = o.mesh.position.y;
+  o.z0 = o.mesh.position.z;
+  o.vx0 = o.vx || 0;
+  o.vy0 = o.vy || 0;
+  o.vz0 = o.vz || 0;
+}
+
+function bindFlyerBirthFromPlate(o, p) {
+  if (!o || !p) return;
+  if (p.x0 != null && p.y0 != null && p.z0 != null) {
+    o.x0 = p.x0;
+    o.y0 = p.y0;
+    o.z0 = p.z0;
+    o.vx0 = p.vx0 != null ? p.vx0 : (p.vx || 0);
+    o.vy0 = p.vy0 != null ? p.vy0 : (p.vy || 0);
+    o.vz0 = p.vz0 != null ? p.vz0 : (p.vz || 0);
+    return;
+  }
+  const life = typeof p.life === "number" ? p.life : 0;
+  const vx = p.vx || 0;
+  const vy = p.vy || 0;
+  const vz = p.vz || 0;
+  o.vx0 = vx;
+  o.vz0 = vz;
+  o.vy0 = vy + GRAVITY * life;
+  o.x0 = p.x - vx * life;
+  o.z0 = p.z - vz * life;
+  o.y0 = p.y - vy * life - 0.5 * GRAVITY * life * life;
 }
 
 const HUD_PAD = 16;
@@ -778,6 +827,7 @@ function spawnSharedPlate(p) {
   o.mesh.position.set(p.x, p.y, p.z);
   o.baseY = p.baseY != null ? p.baseY : p.y;
   o.life = typeof p.life === "number" ? p.life : 0;
+  bindFlyerBirthFromPlate(o, p);
   return o;
 }
 
@@ -823,7 +873,8 @@ function applySharedSim(data) {
     }
     if (typeof p.life === "number") o.life = p.life;
     if (p.baseY != null) o.baseY = p.baseY;
-    // Room pose is authority for sit and flyers. Do not keep a local sit bob.
+    // Room pose is authority for sit and flyers. Do not Euler locally.
+    bindFlyerBirthFromPlate(o, p);
     if (o.mesh) o.mesh.position.set(p.x, p.y, p.z);
     if (o.kind === "clay" || o.kind === "rise") {
       o.vx = p.vx;
@@ -955,6 +1006,7 @@ function randomOrb(hard) {
     o.mesh.position.set(p[0], p[1], p[2]);
     o.baseY = p[1];
   }
+  bindFlyerBirth(o);
   return o;
 }
 
@@ -1009,10 +1061,12 @@ function updateRange(dt, elapsed) {
     o.life += dt;
     if (!o.mesh) continue;
     if (o.kind === "clay" || o.kind === "rise") {
-      o.mesh.position.x += o.vx * dt;
-      o.mesh.position.y += o.vy * dt;
-      o.mesh.position.z += (o.vz || 0) * dt;
-      o.vy -= 4.6 * dt;
+      if (o.x0 == null) bindFlyerBirth(o);
+      const pose = flyerPose(o.x0, o.y0, o.z0, o.vx0, o.vy0, o.vz0, o.life);
+      o.mesh.position.set(pose.x, pose.y, pose.z);
+      o.vx = pose.vx;
+      o.vy = pose.vy;
+      o.vz = pose.vz;
       const p = o.mesh.position;
       if (!shared && (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3 || o.life >= PLATE_MAX_LIFE_S)) gone.push(o);
     } else if (o.kind === "sit") {
@@ -1131,7 +1185,9 @@ export {
   SIT_DROP_VY,
   SIT_BOB_RATE,
   SIT_BOB_AMP,
+  GRAVITY,
   sitPoseY,
+  flyerPose,
   PLATE_MAX_LIFE_S,
   HUD_PAD,
   BAY_TO_WIN,

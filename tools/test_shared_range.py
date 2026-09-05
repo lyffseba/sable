@@ -287,6 +287,106 @@ def test_sit_pose_authority() -> None:
         raise AssertionError("wait_practice must not open the shared sit sim")
 
 
+def _euler_flyer_y(y0: float, vy0: float, life: float, dt: float = 1.0 / 128.0) -> float:
+    """Semi-implicit Euler the client used before flyerPose. Prove it drifts."""
+    y = float(y0)
+    vy = float(vy0)
+    t = 0.0
+    while t + dt <= life + 1e-12:
+        y += vy * dt
+        vy -= lobby.GRAVITY * dt
+        t += dt
+    return y
+
+
+def test_flyer_pose_authority() -> None:
+    """Flyer pose is closed-form from life. Two clients agree. Hit uses that pose."""
+    if abs(lobby.GRAVITY - 4.6) > 1e-12:
+        raise AssertionError("GRAVITY drifted from the shared house")
+    born = lobby.flyer_pose(-8.5, 1.089, -5.054, 4.2, 1.4, -0.8, 0.0)
+    if abs(born["x"] + 8.5) > 1e-12 or abs(born["y"] - 1.089) > 1e-12:
+        raise AssertionError("life 0 flyer must sit on birth")
+    life = 1.0
+    want = lobby.flyer_pose(-8.5, 1.089, -5.054, 4.2, 1.4, -0.8, life)
+    closed_y = 1.089 + 1.4 * life - 0.5 * lobby.GRAVITY * life * life
+    if abs(want["y"] - closed_y) > 1e-12:
+        raise AssertionError(f"flyer Y must be closed-form {want['y']} vs {closed_y}")
+    euler_y = _euler_flyer_y(1.089, 1.4, life)
+    if abs(euler_y - want["y"]) < 0.01:
+        raise AssertionError("Euler vs closed-form must still diverge — that was the hole")
+    if abs(want["vy"] - (1.4 - lobby.GRAVITY * life)) > 1e-12:
+        raise AssertionError("flyer vy must be vy0 - g*life")
+
+    a = lobby.create("HOST")
+    lobby.join(a["code"], "P2")
+    t0 = 4_000.0
+    lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    # First sync past the 2-plate want births p1. Same poll times → same born_ms.
+    lobby.get(a["code"], now=t0 + 2.0)
+    later_a = lobby.get(a["code"], now=t0 + 3.0)
+    later_b = lobby.get(a["code"], now=t0 + 3.0)
+    fly_a = next(p for p in later_a["plates"] if p["id"] == "p1")
+    fly_b = next(p for p in later_b["plates"] if p["id"] == "p1")
+    if fly_a["kind"] != "clay":
+        raise AssertionError(f"seed 0x51 must spawn clay p1 {fly_a}")
+    if abs(fly_a["y"] - fly_b["y"]) > 1e-12 or abs(fly_a["x"] - fly_b["x"]) > 1e-12:
+        raise AssertionError(f"two clients split flyer pose {fly_a} vs {fly_b}")
+    closed = lobby.flyer_pose(
+        fly_a["x0"], fly_a["y0"], fly_a["z0"],
+        fly_a["vx0"], fly_a["vy0"], fly_a["vz0"],
+        fly_a["life"],
+    )
+    if abs(fly_a["y"] - closed["y"]) > 1e-9 or abs(fly_a["x"] - closed["x"]) > 1e-9:
+        raise AssertionError(f"shared flyer left flyer_pose {fly_a} vs {closed}")
+    if abs(fly_a["life"] - 1.0) > 1e-9:
+        raise AssertionError(f"p1 clay at t=3s must have life 1s {fly_a['life']}")
+    euler_live = _euler_flyer_y(fly_a["y0"], fly_a["vy0"], fly_a["life"])
+    if abs(euler_live - fly_a["y"]) < 0.01:
+        raise AssertionError("live shared flyer must not be the old Euler Y")
+
+    uv = list(lobby.uv_for_world(fly_a["x"], fly_a["y"], fly_a["z"]))
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=3000.0,
+        t_hw=11,
+        now=t0 + 3.05,
+    )
+    if shot.get("hit") != fly_a["id"]:
+        raise AssertionError(f"rewind ray must hit the closed-form flyer {shot}")
+
+    js = proto_js()
+    fly = _js_fn(js, "flyerPose")
+    if "GRAVITY" not in fly or "0.5" not in fly:
+        raise AssertionError("client flyerPose must share the lobby closed-form")
+    ranged = _js_fn(js, "updateRange")
+    if "flyerPose(" not in ranged:
+        raise AssertionError("updateRange must use flyerPose")
+    if "o.vy -=" in ranged or "o.mesh.position.y +=" in ranged:
+        raise AssertionError("updateRange Euler-integrated flyers — rewind would split")
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "bindFlyerBirthFromPlate" not in apply:
+        raise AssertionError("applySharedSim must bind flyer birth from the room")
+    fire = _js_fn(js, "fire")
+    if "await" in fire or "flyerPose" in fire:
+        raise AssertionError("fire() must still peek AimBus — flyer pose is not a fire gate")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after flyer pose lock")
+    parked = lobby.create("HOST4")
+    guest = lobby.join(parked["code"], "S2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("seed") or parked_warm.get("plates"):
+        raise AssertionError("wait_practice must not open the shared flyer sim")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -295,6 +395,7 @@ def main() -> int:
         test_hit_uses_sample_not_cam()
         test_client_keeps_local_practice_and_hid()
         test_sit_pose_authority()
+        test_flyer_pose_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

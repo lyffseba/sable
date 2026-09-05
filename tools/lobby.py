@@ -362,14 +362,33 @@ def sit_pose_y(base_y: float, life: float) -> float:
     return float(base_y) + math.sin(life * SIT_BOB_RATE) * SIT_BOB_AMP
 
 
+def flyer_pose(
+    x0: float,
+    y0: float,
+    z0: float,
+    vx0: float,
+    vy0: float,
+    vz0: float,
+    life: float,
+) -> dict:
+    """Closed-form flyer pose from life. Same house as proto/house.js flyerPose."""
+    t = float(life)
+    return {
+        "x": float(x0) + float(vx0) * t,
+        "y": float(y0) + float(vy0) * t - 0.5 * GRAVITY * t * t,
+        "z": float(z0) + float(vz0) * t,
+        "vx": float(vx0),
+        "vy": float(vy0) - GRAVITY * t,
+        "vz": float(vz0),
+    }
+
+
 def _pose_at(rec: dict, elapsed_ms: float) -> dict:
     life = max(0.0, (float(elapsed_ms) - float(rec["born_ms"])) / 1000.0)
     if rec["kind"] in ("clay", "rise"):
-        x = rec["x0"] + rec["vx0"] * life
-        y = rec["y0"] + rec["vy0"] * life - 0.5 * GRAVITY * life * life
-        z = rec["z0"] + rec["vz0"] * life
-        vy = rec["vy0"] - GRAVITY * life
-        vx, vz = rec["vx0"], rec["vz0"]
+        flown = flyer_pose(rec["x0"], rec["y0"], rec["z0"], rec["vx0"], rec["vy0"], rec["vz0"], life)
+        x, y, z = flown["x"], flown["y"], flown["z"]
+        vx, vy, vz = flown["vx"], flown["vy"], flown["vz"]
     else:
         x, z = rec["x0"], rec["z0"]
         y = sit_pose_y(rec["baseY"], life)
@@ -383,6 +402,12 @@ def _pose_at(rec: dict, elapsed_ms: float) -> dict:
         "vx": vx,
         "vy": vy,
         "vz": vz,
+        "x0": rec["x0"],
+        "y0": rec["y0"],
+        "z0": rec["z0"],
+        "vx0": rec["vx0"],
+        "vy0": rec["vy0"],
+        "vz0": rec["vz0"],
         "baseY": rec["baseY"],
         "worth": rec["worth"],
         "born_ms": rec["born_ms"],
@@ -473,6 +498,12 @@ def _sim_view(sim: dict, now: float) -> dict:
                 "vx": p["vx"],
                 "vy": p["vy"],
                 "vz": p["vz"],
+                "x0": p["x0"],
+                "y0": p["y0"],
+                "z0": p["z0"],
+                "vx0": p["vx0"],
+                "vy0": p["vy0"],
+                "vz0": p["vz0"],
                 "baseY": p["baseY"],
                 "worth": p["worth"],
                 "born_ms": p["born_ms"],
