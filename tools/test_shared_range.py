@@ -183,6 +183,10 @@ def test_client_keeps_local_practice_and_hid() -> None:
         raise AssertionError("reportSharedFire posts the intent")
     if "shot.uv" not in report or "fire_ms" not in report or "t_hw" not in report:
         raise AssertionError("intent must be last committed UV + fire tick")
+    if "performance.now()" in report or "S.rangeStart" in report:
+        raise AssertionError("fire_ms must speak sim Hz, not rAF present")
+    if "committedSimMs" not in report and "simTick" not in report:
+        raise AssertionError("fire_ms must be the last committed sim tick")
     if "confidence" in report:
         raise AssertionError("do not send cam confidence")
     if "plate:" in report:

@@ -2,7 +2,8 @@
 """In-memory 5v5 waiting-arena rooms + shared Salt House sim. Stdlib only.
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
-Not the 128 Hz dedicated stepper (server/tick.py). See docs/tick.md.
+Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
+Not a 128 Hz friend loop. See docs/tick.md.
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ _ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 SLOTS = 10
 
 RANGE_MS = 60_000
+SIM_HZ = 128
+SIM_DT_MS = 1000.0 / SIM_HZ
 SIT_DWELL_S = 4.2
 SIT_DROP_VY = -3.2
 PLATE_MAX_LIFE_S = 7.5
@@ -295,6 +298,14 @@ def _advance_spawns(sim: dict, elapsed_ms: float) -> None:
         _spawn_random(sim, elapsed_ms, hard)
 
 
+def quantize_fire_ms(fire_ms: float) -> float:
+    """Snap fire time onto the last committed 128 Hz tick. Never use present."""
+    tick = math.floor(float(fire_ms) / SIM_DT_MS + 1e-12)
+    if tick < 0:
+        tick = 0
+    return tick * SIM_DT_MS
+
+
 def _sync_sim(sim: dict, now: float) -> float:
     sim["last"] = now
     elapsed_ms = max(0.0, (now - float(sim["t0"])) * 1000.0)
@@ -564,10 +575,13 @@ def hit(
         if parsed is None:
             snap["miss"] = True
             return snap
+        view_ms = quantize_fire_ms(elapsed_now)
         if fire_tick is None:
-            fire_tick = elapsed_now
-        if fire_tick > elapsed_now:
-            fire_tick = elapsed_now
+            fire_tick = view_ms
+        else:
+            fire_tick = quantize_fire_ms(fire_tick)
+            if fire_tick > view_ms:
+                fire_tick = view_ms
         if elapsed_now - fire_tick > REWIND_MAX_MS:
             snap["miss"] = True
             snap["stale"] = True

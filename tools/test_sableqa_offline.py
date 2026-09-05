@@ -75,6 +75,8 @@ def main() -> int:
             _fail("fire() waits on the Hands worker")
         if re.search(r"requestAnimationFrame|stepSim\s*\(|simAcc|SIM_DT|SIM_HZ", fire):
             _fail("fire() waits on the sim/rAF tick")
+        if "performance.now() - S.rangeStart" in fire:
+            _fail("fire() couples to present")
         if "intersectObjects" not in fire:
             _fail("local hitscan gone")
         hid_at = fire.find("SablePerf.markHid")
@@ -107,6 +109,8 @@ def main() -> int:
             _fail("WARM UP started the shared house")
         if re.search(r"await\s+", warm):
             _fail("WARM UP awaits net — not one-click local practice")
+        if re.search(r"setTimeout|stepSim|simAcc", warm):
+            _fail("WARM UP grew a tick tax")
         if 'setPhase("range")' not in warm and 'play("range")' not in warm:
             _fail("WARM UP no longer drops into Range")
 

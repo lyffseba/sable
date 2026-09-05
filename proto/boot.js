@@ -648,7 +648,7 @@ function drawModeChip() {
 function drawHUD(now) {
   drawModeChip();
   if (phase !== "range") return;
-  const left = Math.max(0, RANGE_MS - (now - S.rangeStart));
+  const left = Math.max(0, RANGE_MS - simMs());
   const sec = (left / 1000).toFixed(1);
   ctx.save();
   ctx.textAlign = "center";
@@ -794,9 +794,14 @@ function draw2D(now) {
   }
 }
 
-function stepSim(now) {
-  // Peek-only fire stays on the HID click. This clock never shoots.
-  if (phase === "range") updateRange(SIM_DT, now);
+function simMs() {
+  return S.simTick * (1000 / SIM_HZ);
+}
+
+function stepSim() {
+  // Plates / Bay pose only. HID fire is not here. No rAF present.
+  S.simTick += 1;
+  if (phase === "range") updateRange(SIM_DT, simMs());
   if (phase === "bay") tickBay(SIM_DT);
 }
 
@@ -818,7 +823,7 @@ function frame(t) {
     simAcc += dt;
     if (simAcc > 0.25) simAcc = 0.25;
     while (simAcc >= SIM_DT) {
-      stepSim(t);
+      stepSim();
       simAcc -= SIM_DT;
     }
   } else {
@@ -1078,5 +1083,6 @@ export {
   requestGeminiLock,
   SIM_HZ,
   SIM_DT,
+  simMs,
   stepSim,
 };

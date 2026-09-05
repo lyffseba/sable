@@ -83,11 +83,23 @@ def test_client_steps_local_sim_at_128() -> None:
         _fail("client lost SIM_HZ = 128")
     if "const SIM_DT = 1 / SIM_HZ" not in js and "const SIM_DT = 1/SIM_HZ" not in js:
         _fail("client lost SIM_DT = 1 / SIM_HZ")
+    if "simTick: 0" not in js or "simHz: 128" not in js:
+        _fail("S lost the sim tick mailbox")
     step = _fn(js, "stepSim")
+    if re.search(r"function stepSim\s*\(\s*now", step) or re.search(
+        r"function stepSim\s*\(\s*t\b", step
+    ):
+        _fail("stepSim still takes rAF present — sim hitch to frame time")
+    if "performance.now" in step or "lastT" in step:
+        _fail("stepSim hitch to wall / rAF present")
+    if "S.simTick +" not in step and "S.simTick++" not in step:
+        _fail("stepSim must own S.simTick")
     if "updateRange(SIM_DT" not in step:
         _fail("stepSim must advance Range at SIM_DT")
     if "tickBay(SIM_DT" not in step:
         _fail("stepSim must advance Bay at SIM_DT")
+    if "simMs()" not in step:
+        _fail("Range elapsed must be committed sim ms, not rAF now")
     if re.search(r"\bfire\s*\(", step):
         _fail("stepSim shoots — HID fire leaked onto the sim clock")
     if "aimBus" in step:
@@ -99,11 +111,18 @@ def test_client_steps_local_sim_at_128() -> None:
         _fail("rAF must drain the 128 Hz accumulator, not replace it")
     if "updateRange(dt" in frame or "tickBay(dt)" in frame:
         _fail("Range/Bay still integrate on raw rAF dt")
+    if "stepSim(t)" in frame or "stepSim(now)" in frame:
+        _fail("rAF present leaked into stepSim")
     drain = re.search(r"while \(simAcc >= SIM_DT\) \{[\s\S]*?\}", frame)
-    if not drain or "stepSim(t)" not in drain.group(0):
+    if not drain or "stepSim()" not in drain.group(0):
         _fail("rAF must drain simAcc through stepSim only")
     if re.search(r"\bfire\s*\(", drain.group(0)):
         _fail("sim drain loop shoots — HID fire leaked onto the tick")
+    ranged = _fn(js, "updateRange")
+    if "now - S.rangeStart" in ranged:
+        _fail("updateRange elapsed hitch to wall rangeStart")
+    if "performance.now" in ranged:
+        _fail("updateRange hitch to present")
 
 
 def test_fire_never_waits_on_tick() -> None:
@@ -146,14 +165,48 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("WARM UP soft-locked behind net")
     if 'setPhase("range")' not in warm and 'play("range")' not in warm:
         _fail("WARM UP no longer drops into local Range")
+    if "stepSim" in warm or "simAcc" in warm or re.search(r"setTimeout", warm):
+        _fail("WARM UP grew a tick tax")
+    if re.search(r"if\s*\(\s*!S\.simTick", fire) or "simTick <" in fire:
+        _fail("fire waits on the first sim step — Offline tax")
+    if "budgetMs: 8" not in js:
+        _fail("HID→hitscan 8 ms p99 bar left the probe")
+
+
+def test_fire_ms_speaks_sim_hz_not_present() -> None:
+    js = proto_js()
+    report = _fn(js, "reportSharedFire")
+    if "performance.now()" in report:
+        _fail("fire_ms couples to present")
+    if "S.rangeStart" in report:
+        _fail("fire_ms couples to rAF rangeStart")
+    if "committedSimMs" not in report and "simTick" not in report:
+        _fail("fire_ms must speak the last committed sim tick")
+    fire = _fn(js, "fire")
+    if "performance.now() - S.rangeStart" in fire:
+        _fail("fire couples to present")
+    src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    if "def quantize_fire_ms" not in src or "SIM_HZ = 128" not in src:
+        _fail("lobby rewind lost the 128 Hz fire_ms grid")
+    hit_at = src.find("def hit(")
+    if hit_at < 0 or "quantize_fire_ms" not in src[hit_at:]:
+        _fail("lobby.hit must snap fire_ms to sim Hz, not rAF present")
+    dt = 1000.0 / 128.0
+    base = lobby.quantize_fire_ms(90.0)
+    a = lobby.quantize_fire_ms(base + 0.01)
+    b = lobby.quantize_fire_ms(base + dt - 0.01)
+    if a != b or a != base:
+        _fail("mid-tick fire_ms must snap to the same committed tick")
+    if abs(a / dt - round(a / dt)) > 1e-9:
+        _fail("quantized fire_ms must land on the 128 Hz grid")
+    if lobby.quantize_fire_ms(0) != 0.0:
+        _fail("tick 0 fire_ms must stay 0 — Offline has no first-step tax")
 
 
 def test_shared_house_is_rewind_not_a_loop() -> None:
     src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
     if "def _pose_at" not in src or "def _sync_sim" not in src:
         _fail("shared house lost closed-form pose / sync")
-    if re.search(r"HZ\s*=\s*128", src) or "SIM_HZ" in src:
-        _fail("lobby grew a 128 Hz friend loop — that would lie")
     if "time.sleep" in src:
         _fail("lobby.py sleeps — shared house is not a tick thread")
     pose_m = re.search(r"def _pose_at\([\s\S]*?\n\ndef ", src)
@@ -169,6 +222,8 @@ def test_shared_house_is_rewind_not_a_loop() -> None:
         _fail("missing _sync_sim")
     if "range(HZ)" in sync.group(0) or "range(128)" in sync.group(0):
         _fail("_sync_sim became a 128 Hz stepper")
+    if "quantize_fire_ms" in sync.group(0):
+        _fail("snapshot sync quantized — snapshot must stay a view")
     if lobby.RANGE_MS != 60_000:
         _fail("shared Range length drifted")
     t0 = 9_000.0
@@ -182,6 +237,27 @@ def test_shared_house_is_rewind_not_a_loop() -> None:
         _fail("shared first plate left the pad")
     if len(later.get("plates") or []) < 2:
         _fail("shared house no longer advances by wall elapsed_ms")
+    view = lobby.get(a["code"], now=t0 + 0.201)
+    view_ms = view.get("elapsed_ms")
+    if view_ms is None:
+        _fail("snapshot lost elapsed_ms")
+    if abs(float(view_ms) - lobby.quantize_fire_ms(view_ms)) < 1e-6:
+        _fail(f"snapshot must stay a wall view, not a tick grid {view_ms}")
+    uv = [p for p in (later.get("plates") or []) if p["id"] == "p0"]
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=lobby.uv_for_world(0.2, 0.35, -6.6),
+        fire_ms=90.0,
+        t_hw=1,
+        now=t0 + 0.22,
+    )
+    if not shot.get("ok") or shot.get("hit") != "p0":
+        _fail(f"quantized rewind must still hit the pad plate {shot}")
+    dead = lobby.get(a["code"], now=t0 + 0.22).get("dead") or []
+    at = next((d.get("at_ms") for d in dead if d.get("id") == "p0"), None)
+    if at is None or abs(float(at) - lobby.quantize_fire_ms(90.0)) > 1e-9:
+        _fail(f"dead.at_ms must be the quantized sim tick, not rAF 90 {at}")
 
 
 def test_dt_matches_hz() -> None:
@@ -197,6 +273,7 @@ def main() -> int:
         test_named_rate_is_128()
         test_client_steps_local_sim_at_128()
         test_fire_never_waits_on_tick()
+        test_fire_ms_speaks_sim_hz_not_present()
         test_shared_house_is_rewind_not_a_loop()
         test_dt_matches_hz()
     except AssertionError as exc:
