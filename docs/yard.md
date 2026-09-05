@@ -1,6 +1,6 @@
 # THE YARD — original paintball shooting range
 
-SABLE first-party layout. **Not** a league field. **Not** another game’s island. If you rebuild this in any other editor, copy **this file**, never a published tournament diagram.
+SABLE first-party layout. **The sole active map.** Bay booth is parked (`docs/maps/bay.md`). **Not** a league field. **Not** another game’s island. If you rebuild this in any other editor, copy **this file**, never a published tournament diagram.
 
 ## What this is
 

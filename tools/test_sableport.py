@@ -162,8 +162,10 @@ def test_soft_locks_hold() -> None:
     audio = (ROOT / "proto" / "audio.js").read_text(encoding="utf-8")
     if '"Mint. Lift."' not in audio or "function liftMint" not in audio:
         _fail("mint-tell / SableAudio behavior left audio.js")
-    if 'id="btn-bay"' not in html or "WARM UP" not in html or "ENTER RANGE" not in html:
-        _fail("playlist lost a practice / Bay path")
+    if "WARM UP" not in html or "ENTER RANGE" not in html:
+        _fail("playlist lost a Yard path")
+    if 'id="btn-bay"' in html or "ENTER BAY" in html:
+        _fail("playlist still offers Bay — Yard is the sole active map")
 
 
 def test_bible_and_ci() -> None:

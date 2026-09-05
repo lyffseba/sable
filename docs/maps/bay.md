@@ -1,5 +1,7 @@
 # Bay — first 1v1
 
+**Parked.** The Yard is the sole active map. Player chrome does not offer boot **BAY** or lobby **ENTER BAY**. Booth code stays for a later return.
+
 Original booth. Not a third-party map. Specs live in this repo.
 
 Live client is `proto/` (`house.js` booth + combat, `boot.js` playlist). Godot paths below are the original layout spec and may be stale.
@@ -10,9 +12,9 @@ Scene: `godot/scenes/bay/Bay.tscn`. Controller: `godot/src/app/bay_controller.gd
 
 `python3 tools/serve_proto.py` → **http://127.0.0.1:8080**
 
-- Boot **BAY** is local first-to-5 without a room
-- Lobby **ENTER BAY** shares the booth (room owns score / pose / `fire_ms` rewind). Does not start the shared house (`/api/lobby/start`)
-- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** stay the Salt House gallery paths
+- Soft-parked: local first-to-5 and room-owned shared booth stay in code, not on player chrome
+- Soft-parked `lobbyStartBay` does not start the shared house (`/api/lobby/start`)
+- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** are the only player paths — Salt House gallery on the Yard
 
 Godot **4.7.2** → import `godot/` (spec reference):
 
@@ -75,4 +77,4 @@ Hit: you score, VO `Claro.`, freeze (or match-over). Open-middle death: them sco
 - Do not copy a third-party booth.
 - Do not add a gun mesh or a second map file for this layout.
 - Do not hitch Bay pose to rAF `dt` or couple the shot to `performance.now()`.
-- Do not replace Offline gallery / WARM UP / ENTER RANGE. Bay is never the only gun.
+- Do not put Bay back on boot or lobby chrome. The Yard is the sole active map.

@@ -23,9 +23,8 @@ python3 tools/serve_proto.py
 ```
 Open **http://127.0.0.1:8080** in your browser.
 
-- **OFFLINE**: Straight into the 60s Salt House gallery — one click. Score the clock. End state is GALLERY CLEAR.
-- **BAY**: Original booth, cover vs open middle, first to 5 on the 128 Hz tick. Same lock / HID fire. Thin YOU / THEM / ROUND chips. Local playlist — no room.
-- **ONLINE**: Waiting-arena lobby. **WARM UP** is practice in the same gallery without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** starts the shared house. Host **ENTER BAY** shares first-to-5 — the room owns score / pose / `fire_ms` rewind. It does not replace the gallery.
+- **OFFLINE**: Straight into the 60s Salt House gallery on the Yard — one click. Score the clock. End state is GALLERY CLEAR.
+- **ONLINE**: Waiting-arena lobby. **WARM UP** is practice in the same gallery without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** starts the shared house. Bay booth is parked — not a player mode.
 - **HANDS**: MediaPipe fingertip lock. PLAY ANYWAY if the camera misses. Pinch or trackpad fires.
 
 ### Keys
@@ -33,7 +32,7 @@ Open **http://127.0.0.1:8080** in your browser.
 | Key | Action |
 |-----|--------|
 | Trackpad / pinch | Fire at the **latest** `AimSample.uv` (never waits on camera) |
-| **WASD** | Move on the pad (Bay 1v1 mode only, locked during lift) |
+| **WASD** | Move on the pad (parked Bay booth only, locked during lift) |
 | **L** | Cycle CANCHO outfit style (`default`, `ranked`, `night`) |
 | **T** | Desktop aim toggle (OS cursor fallback) |
 | **Space** | Force gun (simulates physical lift) |

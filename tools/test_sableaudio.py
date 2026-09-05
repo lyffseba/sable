@@ -213,8 +213,10 @@ def test_playlist_untouched() -> None:
         _fail("OFFLINE must still call play(range) in one click")
     if "S.online = false" not in offline.group(0):
         _fail("OFFLINE must stay local")
-    if 'id="btn-bay"' not in html or "WARM UP" not in html or "ENTER RANGE" not in html:
-        _fail("playlist chrome lost a practice / Bay path")
+    if "WARM UP" not in html or "ENTER RANGE" not in html:
+        _fail("playlist chrome lost a Yard path")
+    if 'id="btn-bay"' in html or "ENTER BAY" in html:
+        _fail("playlist chrome still offers Bay — Yard is the sole active map")
 
 
 def test_lift_mint_after_state() -> None:

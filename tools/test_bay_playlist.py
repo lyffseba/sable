@@ -47,16 +47,16 @@ def test_boot_and_lobby_entry() -> None:
     js = proto_js()
     if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
         raise AssertionError("boot lost one-click OFFLINE")
-    if 'id="btn-bay"' not in html or ">BAY<" not in html:
-        raise AssertionError("boot must offer BAY as a playlist")
+    if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+        raise AssertionError("boot still offers BAY — Yard is the sole active map")
     if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
-        raise AssertionError("lobby lost ENTER RANGE — Bay must not be the only online path")
-    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-        raise AssertionError("lobby must offer ENTER BAY")
+        raise AssertionError("lobby lost ENTER RANGE — waiting arena must stay Yard-only")
+    if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+        raise AssertionError("lobby still offers ENTER BAY — Bay is parked")
     if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
         raise AssertionError("lobby lost WARM UP")
     if 'id="screen-bay"' not in html or 'id="btn-bay-boot"' not in html:
-        raise AssertionError("Bay needs a screen + BOOT / return control")
+        raise AssertionError("parked Bay needs a screen + BOOT / return control")
 
     offline = re.search(
         r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
@@ -71,10 +71,8 @@ def test_boot_and_lobby_entry() -> None:
         r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)',
         js,
     )
-    if not boot_bay:
-        raise AssertionError("boot BAY must call play(bay)")
-    if "S.online = false" not in boot_bay.group(0):
-        raise AssertionError("boot BAY must stay local — do not trap HID behind a room")
+    if boot_bay:
+        raise AssertionError("boot still wires BAY — soft-park must hide the player entry")
 
     play = _js_fn(js, "play")
     if 'target === "bay"' not in play or 'targetGameMode' not in play:

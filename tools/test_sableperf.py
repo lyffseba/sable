@@ -322,23 +322,21 @@ def test_shared_bay_never_taxes_hid_probe() -> None:
     if 'play("bay")' in offline.group(0):
         _fail("OFFLINE was rerouted into Bay")
 
-    if 'id="btn-bay"' not in html or ">BAY<" not in html:
-        _fail("boot lost one-click local BAY")
+    if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+        _fail("boot still offers BAY — Yard is the sole active map")
     boot_bay = re.search(r'\$\("btn-bay"\)[\s\S]{0,220}?play\("bay"\)', js)
-    if not boot_bay or "S.online = false" not in boot_bay.group(0):
-        _fail("local BAY trapped HID behind a room")
-    if "/api/lobby" in boot_bay.group(0):
-        _fail("local BAY must stay free of /api/lobby/*")
+    if boot_bay:
+        _fail("boot still wires BAY — soft-park must hide the player entry")
 
-    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-        _fail("lobby lost ENTER BAY")
+    if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+        _fail("lobby still offers ENTER BAY — Bay is parked")
     start_bay = _fn(js, "lobbyStartBay")
     if re.search(r"await\s+", start_bay) or "async function lobbyStartBay" in js:
-        _fail("ENTER BAY awaits net — lift/HID is behind the lobby")
+        _fail("parked lobbyStartBay awaits net — lift/HID is behind the lobby")
     if "/api/lobby/start\"" in start_bay or "/api/lobby/start'" in start_bay:
-        _fail("ENTER BAY started the shared house")
+        _fail("parked lobbyStartBay started the shared house")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
-        _fail("ENTER BAY no longer drops into the booth")
+        _fail("parked lobbyStartBay lost the booth drop")
 
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
     if not sample:

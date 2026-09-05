@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Salt House gallery mode: 60s scored loop, not a leftover Range.
 
-Fail loud if Offline dies, Bay / WARM UP / ENTER RANGE vanish, Look
-traps lift/HID, or the gallery loses score / round clock / end state.
+Fail loud if Offline dies, WARM UP / ENTER RANGE vanish, Bay reappears
+on player chrome, Look traps lift/HID, or the gallery loses score /
+round clock / end state.
 """
 
 from __future__ import annotations
@@ -50,14 +51,14 @@ def test_boot_lobby_labels() -> None:
         _fail("results lost the gallery end state")
     if "HOUSE CLEAR" in html:
         _fail("results still says leftover HOUSE CLEAR")
-    if 'id="btn-bay"' not in html or ">BAY<" not in html:
-        _fail_only_gun("boot lost BAY")
+    if 'id="btn-bay"' in html or re.search(r">\s*BAY\s*<", html):
+        _fail("boot still offers BAY — Yard is the sole active map")
     if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
         _fail_only_gun("lobby lost ENTER RANGE")
     if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
         _fail_only_gun("lobby lost WARM UP")
-    if 'id="btn-lobby-bay"' not in html or "ENTER BAY" not in html:
-        _fail_only_gun("lobby lost ENTER BAY")
+    if 'id="btn-lobby-bay"' in html or "ENTER BAY" in html:
+        _fail("lobby still offers ENTER BAY — Bay is parked")
 
     offline = re.search(
         r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
@@ -155,11 +156,13 @@ def test_practice_and_bay_survive() -> None:
         _fail_only_gun("host ENTER RANGE no longer shares the house")
     start_bay = _js_fn(js, "lobbyStartBay")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
-        _fail_only_gun("ENTER BAY no longer drops into the booth")
+        _fail("parked lobbyStartBay lost the booth drop")
     if "/api/lobby/start" in start_bay:
-        _fail("ENTER BAY started the shared gallery")
-    if "ENTER RANGE" not in html or "WARM UP" not in html or ">BAY<" not in html:
-        _fail_only_gun("playlist chrome lost a practice / Bay path")
+        _fail("parked lobbyStartBay started the shared gallery")
+    if "ENTER RANGE" not in html or "WARM UP" not in html:
+        _fail_only_gun("playlist chrome lost a Yard path")
+    if 'id="btn-bay"' in html or "ENTER BAY" in html:
+        _fail("playlist chrome still offers Bay")
 
 
 def test_look_and_hid_not_trapped() -> None:
@@ -239,8 +242,10 @@ def test_modes_doc() -> None:
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     if "GALLERY" not in modes or "OFFLINE" not in modes:
         _fail("docs/modes.md must name OFFLINE gallery")
-    if "WARM UP" not in modes or "ENTER RANGE" not in modes or "BAY" not in modes:
-        _fail("docs/modes.md must keep Bay / WARM UP / ENTER RANGE")
+    if "WARM UP" not in modes or "ENTER RANGE" not in modes:
+        _fail("docs/modes.md must keep WARM UP / ENTER RANGE")
+    if "sole active" not in modes.lower() and "parked" not in modes.lower():
+        _fail("docs/modes.md must park Bay / name Yard as the sole active map")
     if 'play("range")' not in modes:
         _fail("docs/modes.md must keep play(range) as the house entry")
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
