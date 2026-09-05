@@ -2,6 +2,9 @@
    Salt House gallery (60s plates/clays), shared match hooks, Bay.
    Sit / flyer pose is closed-form from life (sitPoseY / flyerPose) —
    same house local and rewind. Do not Euler-integrate flyers.
+   Hitscan is the same sphere as lobby rewind (hitscanRange / plateRadius).
+   Do not mesh-test the spun hex — a HID peek that hits the plate can
+   miss the room sphere (and the reverse).
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -65,6 +68,11 @@ const SIT_BOB_RATE = 1.6;
 const SIT_BOB_AMP = 0.07;
 const GRAVITY = 4.6;
 const PLATE_MAX_LIFE_S = 7.5;
+const CAM_EYE = { x: 0, y: 1.64, z: 2.05 };
+const CAM_AT = { x: 0, y: 0.55, z: -12 };
+const CAM_UP = { x: 0, y: 1, z: 0 };
+const FOV_Y_DEG = 62;
+const DEFAULT_ASPECT = 1280 / 720;
 
 function sitPoseY(baseY, life) {
   // Closed-form sit pose from life. Same formula as lobby.sit_pose_y.
@@ -96,6 +104,78 @@ function bindFlyerBirth(o) {
   o.vx0 = o.vx || 0;
   o.vy0 = o.vy || 0;
   o.vz0 = o.vz || 0;
+}
+
+function plateRadius(kind) {
+  // Same house as lobby._plate_radius. Hex mesh is Look only.
+  return kind === "clay" || kind === "rise" ? 0.50 : 0.62;
+}
+
+function _vsub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+function _vadd(a, b) { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
+function _vmul(a, s) { return { x: a.x * s, y: a.y * s, z: a.z * s }; }
+function _vdot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+function _vcross(a, b) {
+  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+}
+function _vnorm(a) {
+  const len = Math.sqrt(_vdot(a, a)) || 1;
+  return _vmul(a, 1 / len);
+}
+
+function rayFromUv(uvx, uvy, aspect) {
+  // World ray from last-committed UV. Same 62° yard camera as lobby.ray_from_uv.
+  // Does not invent pose. Does not read the THREE camera matrix on the click.
+  const ndcX = uvx * 2 - 1;
+  const ndcY = 1 - uvy * 2;
+  const tanH = Math.tan((FOV_Y_DEG * Math.PI / 180) * 0.5);
+  const asp = aspect && aspect > 0.2 ? aspect : DEFAULT_ASPECT;
+  const zAxis = _vnorm(_vsub(CAM_EYE, CAM_AT));
+  const xAxis = _vnorm(_vcross(CAM_UP, zAxis));
+  const yAxis = _vcross(zAxis, xAxis);
+  const local = { x: ndcX * tanH * asp, y: ndcY * tanH, z: -1 };
+  const world = _vadd(_vadd(_vmul(xAxis, local.x), _vmul(yAxis, local.y)), _vmul(zAxis, local.z));
+  return { origin: { x: CAM_EYE.x, y: CAM_EYE.y, z: CAM_EYE.z }, direction: _vnorm(world) };
+}
+
+function raySphere(origin, direction, center, radius) {
+  const oc = _vsub(origin, center);
+  const b = 2 * _vdot(oc, direction);
+  const c = _vdot(oc, oc) - radius * radius;
+  const disc = b * b - 4 * c;
+  if (disc < 0) return null;
+  const t = (-b - Math.sqrt(disc)) * 0.5;
+  if (t <= 0) return null;
+  return t;
+}
+
+function hitscanRange(uvx, uvy, aspect) {
+  // Peeked UV vs last committed plate pose. Same sphere as lobby._hitscan.
+  // Fire calls this — it is not a net/cam/sim wait.
+  const ray = rayFromUv(uvx, uvy, aspect);
+  let best = null;
+  let bestT = Infinity;
+  for (const o of S.orbs) {
+    if (!o || !o.mesh) continue;
+    const p = o.mesh.position;
+    const t = raySphere(ray.origin, ray.direction, { x: p.x, y: p.y, z: p.z }, plateRadius(o.kind));
+    if (t != null && t < bestT) {
+      bestT = t;
+      best = o;
+    }
+  }
+  const far = best ? bestT : 20;
+  return {
+    hit: best,
+    t: best ? bestT : null,
+    point: {
+      x: ray.origin.x + ray.direction.x * far,
+      y: ray.origin.y + ray.direction.y * far,
+      z: ray.origin.z + ray.direction.z * far,
+    },
+    origin: ray.origin,
+    direction: ray.direction,
+  };
 }
 
 function bindFlyerBirthFromPlate(o, p) {
@@ -1188,6 +1268,10 @@ export {
   GRAVITY,
   sitPoseY,
   flyerPose,
+  plateRadius,
+  rayFromUv,
+  raySphere,
+  hitscanRange,
   PLATE_MAX_LIFE_S,
   HUD_PAD,
   BAY_TO_WIN,

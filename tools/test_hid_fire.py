@@ -90,6 +90,12 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("fire must not recompute aim — peek the last committed sample")
     if "S.aim" not in fire_src:
         raise AssertionError("hitscan must use last committed S.aim")
+    if "shot.uv" not in fire_src:
+        raise AssertionError("hitscan must peek AimBus UV")
+    if "hitscanRange" not in fire_src:
+        raise AssertionError("Range hitscan must be the house sphere")
+    if "intersectObjects" in fire_src:
+        raise AssertionError("Range hitscan must not mesh-test the spun hex")
     if "SablePerf.begin" not in fire_src or "SablePerf.markHid" not in fire_src:
         raise AssertionError("HID→hitscan must be wrapped by the optional SablePerf probe")
     begin_at = fire_src.find("SablePerf.begin")

@@ -242,6 +242,12 @@ def test_proto_mailbox() -> None:
         raise AssertionError("fire must peek the AimBus mailbox")
     if "shot.lifted" not in fire:
         raise AssertionError("fire peeks AimSample.lifted from the bus")
+    if "shot.uv" not in fire:
+        raise AssertionError("fire peeks AimSample.uv from the bus")
+    if "hitscanRange" not in fire:
+        raise AssertionError("fire must ray-test the house sphere")
+    if "intersectObjects" in fire:
+        raise AssertionError("fire must not mesh-test the spun hex")
     if "LIFT_STICKY_MS" not in fire:
         raise AssertionError("fire must honor sticky / recent lift, not only S.lifted")
     if "coastTrack" in fire or "updateAim" in fire:

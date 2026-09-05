@@ -151,6 +151,10 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("fire() talks to net — HID is behind the lobby")
     if "coastTrack" in fire or "updateAim" in fire:
         _fail("fire() recomputes aim")
+    if "hitscanRange" not in fire:
+        _fail("fire() must peek the house sphere")
+    if "intersectObjects" in fire:
+        _fail("fire() mesh-tested the hex — hitscan left the house")
     html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
     if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
         _fail("OFFLINE one-click died while unifying the tick")

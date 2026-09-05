@@ -14,7 +14,7 @@ Durable hangar session is `S.hangar`: `hangar` (boot / Offline gallery) | `wait_
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
 | **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates + sit / flyer pose | host shares the live Yard; phase-preserve — skip calib/lock when already lifted |
 
-Sit / flyer pose is closed-form from life (`sitPoseY` / `sit_pose_y`: bob then drop; `flyerPose` / `flyer_pose`: `y0 + vy0*t - 0.5*g*t^2`). Offline / WARM UP / wait_practice local plates and match_live rewind share that house. Do not Euler-integrate flyers — a HID peek that hits the mesh must hit the rewind sphere. The room still owns seed + hits only after ENTER RANGE — practice never opens the shared sim.
+Sit / flyer pose is closed-form from life (`sitPoseY` / `sit_pose_y`: bob then drop; `flyerPose` / `flyer_pose`: `y0 + vy0*t - 0.5*g*t^2`). Hitscan is the same sphere (`hitscanRange` / `_hitscan`). Offline / WARM UP / wait_practice local plates and match_live rewind share that house. Do not Euler-integrate flyers. Do not mesh-test the spun hex — a HID peek that hits the plate must hit the rewind sphere. The room still owns seed + hits only after ENTER RANGE — practice never opens the shared sim.
 
 Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / `house.js` booth may remain; boot `btn-bay` and lobby **ENTER BAY** stay off player chrome.
 

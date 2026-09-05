@@ -184,6 +184,10 @@ def test_client_keeps_local_practice_and_hid() -> None:
         raise AssertionError("reportSharedFire posts the intent")
     if "shot.uv" not in report or "fire_ms" not in report or "t_hw" not in report:
         raise AssertionError("intent must be last committed UV + fire tick")
+    if "hitscanRange" not in fire:
+        raise AssertionError("local hitscan must be the house sphere")
+    if "intersectObjects" in fire:
+        raise AssertionError("local hitscan must not mesh-test the spun hex")
     if "performance.now()" in report or "S.rangeStart" in report:
         raise AssertionError("fire_ms must speak sim Hz, not rAF present")
     if "committedSimMs" not in report and "simTick" not in report:
@@ -387,6 +391,126 @@ def test_flyer_pose_authority() -> None:
         raise AssertionError("wait_practice must not open the shared flyer sim")
 
 
+def _hex_contains(x: float, y: float, radius: float) -> bool:
+    """Same 6 verts as proto hexPlateGeo (i/6 * 2π − π/6). Look only — not hitscan."""
+    verts = []
+    for i in range(6):
+        ang = (i / 6.0) * math.pi * 2.0 - math.pi / 6.0
+        verts.append((math.cos(ang) * radius, math.sin(ang) * radius))
+    for i in range(6):
+        x0, y0 = verts[i]
+        x1, y1 = verts[(i + 1) % 6]
+        cross = (x1 - x0) * (y - y0) - (y1 - y0) * (x - x0)
+        if cross < -1e-12:
+            return False
+    return True
+
+
+def test_hitscan_sphere_authority() -> None:
+    """HID peek and room rewind share one sphere. The spun hex is Look only."""
+    if abs(lobby._plate_radius("clay") - 0.50) > 1e-12:
+        raise AssertionError("clay sphere drifted from 0.50")
+    if abs(lobby._plate_radius("rise") - 0.50) > 1e-12:
+        raise AssertionError("rise sphere drifted from 0.50")
+    if abs(lobby._plate_radius("sit") - 0.62) > 1e-12:
+        raise AssertionError("sit sphere drifted from 0.62")
+    if lobby.CAM_EYE != (0.0, 1.64, 2.05) or lobby.FOV_Y_DEG != 62.0:
+        raise AssertionError("yard camera left the shared house")
+
+    sit_r = lobby._plate_radius("sit")
+    apothem = sit_r * math.cos(math.pi / 6.0)
+    graze = (apothem + sit_r) * 0.5
+    if _hex_contains(0.0, 0.0, sit_r) is False:
+        raise AssertionError("hex winding flipped — center must be inside")
+    if _hex_contains(graze, 0.0, sit_r):
+        raise AssertionError("hex graze fixture must sit outside the plate")
+    if math.hypot(graze, 0.0) >= sit_r:
+        raise AssertionError("hex graze fixture must sit inside the sphere disk")
+
+    cam_x, _, _ = lobby._cam_basis()
+    cx, cy, cz = 0.2, 0.35, -6.6
+    wx = cx + cam_x[0] * graze
+    wy = cy + cam_x[1] * graze
+    wz = cz + cam_x[2] * graze
+    uv = list(lobby.uv_for_world(wx, wy, wz))
+    center = list(lobby.uv_for_world(cx, cy, cz))
+    if abs(uv[0] - center[0]) < 1e-5 and abs(uv[1] - center[1]) < 1e-5:
+        raise AssertionError("graze UV must not be the plate center")
+    origin, direction = lobby.ray_from_uv(uv[0], uv[1])
+    t_hit = lobby._ray_sphere(origin, direction, (cx, cy, cz), sit_r)
+    if t_hit is None:
+        raise AssertionError("house sphere must accept the hex-graze UV")
+
+    a = lobby.create("HOST")
+    lobby.join(a["code"], "P2")
+    t0 = 6_000.0
+    lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    view_a = lobby.get(a["code"], now=t0 + 0.10)
+    view_b = lobby.get(a["code"], now=t0 + 0.10)
+    p0a = next(p for p in view_a["plates"] if p["id"] == "p0")
+    p0b = next(p for p in view_b["plates"] if p["id"] == "p0")
+    if abs(p0a["x"] - p0b["x"]) > 1e-12 or abs(p0a["y"] - p0b["y"]) > 1e-12:
+        raise AssertionError(f"two clients split sit pose before the graze {p0a} vs {p0b}")
+
+    sky = [0.02, 0.02]
+    miss = lobby.hit(a["code"], a["player"], uv=sky, fire_ms=80.0, t_hw=20, now=t0 + 0.12)
+    if miss.get("hit") or not miss.get("miss"):
+        raise AssertionError(f"sky ray must still miss the sphere {miss}")
+
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=90.0,
+        t_hw=21,
+        now=t0 + 0.14,
+    )
+    if shot.get("hit") != "p0":
+        raise AssertionError(f"rewind sphere must accept the hex-graze UV {shot}")
+    after_a = lobby.get(a["code"], now=t0 + 0.14)
+    after_b = lobby.get(a["code"], now=t0 + 0.14)
+    if "p0" in _ids(after_a) or "p0" in _ids(after_b):
+        raise AssertionError("graze hit must shatter for both clients")
+
+    js = proto_js()
+    rad = _js_fn(js, "plateRadius")
+    if "0.50" not in rad or "0.62" not in rad:
+        raise AssertionError("client plateRadius must share the lobby sphere")
+    if '"clay"' not in rad or '"rise"' not in rad:
+        raise AssertionError("client plateRadius must own clay/rise 0.50")
+    ray = _js_fn(js, "rayFromUv")
+    if "CAM_EYE" not in ray or "FOV_Y_DEG" not in ray:
+        raise AssertionError("client rayFromUv must share the yard camera")
+    if "1 - uvy * 2" not in ray and "1 - uvy*2" not in ray:
+        raise AssertionError("client rayFromUv NDC must match lobby.ray_from_uv")
+    scan = _js_fn(js, "hitscanRange")
+    if "plateRadius" not in scan or "raySphere" not in scan:
+        raise AssertionError("hitscanRange must ray-test the house sphere")
+    if "intersectObjects" in scan or "Raycaster" in scan:
+        raise AssertionError("hitscanRange must not mesh-test the spun hex")
+    if "S.orbs" not in scan:
+        raise AssertionError("hitscanRange must peek last committed plates")
+    fire = _js_fn(js, "fire")
+    if "hitscanRange" not in fire:
+        raise AssertionError("fire() must peek the house sphere")
+    if "shot.uv" not in fire:
+        raise AssertionError("fire() must peek AimBus UV")
+    if "intersectObjects" in fire:
+        raise AssertionError("fire() mesh-tested the hex — rewind would split")
+    if "await" in fire or "sitPoseY" in fire or "flyerPose" in fire:
+        raise AssertionError("fire() must still peek AimBus — hitscan is not a pose gate")
+    if "1.64" not in js or "2.05" not in js:
+        raise AssertionError("client CAM_EYE left the yard camera")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after hitscan lock")
+    parked = lobby.create("HOST5")
+    guest = lobby.join(parked["code"], "T2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("seed") or parked_warm.get("plates"):
+        raise AssertionError("wait_practice must not open the shared hitscan sim")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -396,6 +520,7 @@ def main() -> int:
         test_client_keeps_local_practice_and_hid()
         test_sit_pose_authority()
         test_flyer_pose_authority()
+        test_hitscan_sphere_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

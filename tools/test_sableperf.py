@@ -173,13 +173,15 @@ def test_sableperf_probe_order() -> None:
     first_mark = fire.find("SablePerf.markHid")
     if first_mark < 0 or first_mark < bang_at:
         _fail("SablePerf.markHid must stay after bang(), at first hitscan")
-    intersect = fire.find("intersectObjects")
+    intersect = fire.find("hitscanRange")
     mark_range = fire.find("SablePerf.markHid", intersect) if intersect >= 0 else -1
     report_at = fire.find("reportSharedFire")
     if intersect < 0 or mark_range < 0:
         _fail("Range hitscan lost SablePerf.markHid")
     if mark_range < intersect:
-        _fail("SablePerf.markHid must stay at first hitscan intersect")
+        _fail("SablePerf.markHid must stay at first hitscan sphere")
+    if "intersectObjects" in fire:
+        _fail("Range hitscan must be the house sphere — mesh traverse taxes the 8 ms bar")
     if report_at < 0 or mark_range > report_at:
         _fail("shared report must run after local hitscan, never instead of it")
 
