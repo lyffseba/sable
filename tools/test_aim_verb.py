@@ -290,6 +290,10 @@ def test_pointing_filter() -> None:
         raise AssertionError("mpTrack must kick the worker, not detect on rAF")
     if "detectForVideo" in mp:
         raise AssertionError("mpTrack happy path must not call detectForVideo on main")
+    for name in ("frame", "runTrack", "armVideoTrack"):
+        body = _js_fn(src, name)
+        if "detectForVideo" in body or "mpTrackMain" in body:
+            raise AssertionError(f"{name} must not run HandLandmarker.detect on main")
     frame = _js_fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybePinchFire"):
         raise AssertionError("pinch must run after updateMode so lifted is current")
