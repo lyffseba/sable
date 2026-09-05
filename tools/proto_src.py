@@ -12,6 +12,7 @@ PROTO_CLIENT = (
     "house.js",
     "boot.js",
     "audio.js",
+    "port.js",
     "game.js",
 )
 

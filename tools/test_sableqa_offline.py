@@ -9,6 +9,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
+from foreign_dna import FOREIGN_DNA  # noqa: E402
 from proto_src import proto_js  # noqa: E402
 
 
@@ -31,6 +32,7 @@ def _fail_only_gun(msg: str) -> None:
 _GEOMETRY_FILES = (
     "proto/house.js",
     "proto/boot.js",
+    "proto/port.js",
     "proto/index.html",
     "docs/yard.md",
     "docs/maps/bay.md",
@@ -40,30 +42,7 @@ _GEOMETRY_FILES = (
     "art/concepts/gauntlet.svg",
     "art/concepts/plate.svg",
 )
-_FOREIGN_DNA = (
-    "de_dust",
-    "de_mirage",
-    "de_inferno",
-    "de_nuke",
-    "de_overpass",
-    "de_anubis",
-    "de_ancient",
-    "de_vertigo",
-    "de_cache",
-    "de_train",
-    "dust2",
-    "Tilted Towers",
-    "Pleasant Park",
-    "Valve",
-    "Epic Games",
-    "Fortnite",
-    "Counter-Strike",
-    "CS:GO",
-    "CS2",
-    ".vmf",
-    ".bsp",
-    "Unreal Marketplace",
-)
+_FOREIGN_DNA = FOREIGN_DNA
 
 
 def _assert_original_geometry() -> None:

@@ -1,5 +1,7 @@
 /* SABLE — boot.js
    Boot, lobby UI wiring, serve entry, phase machine glue.
+   SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
+   docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
 
 import {

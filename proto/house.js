@@ -1,5 +1,7 @@
 /* SABLE — house.js
    Salt House gallery (60s plates/clays), shared match hooks, Bay.
+   SablePort look/mode seam: original house / Yard / Bay. Look bible stays
+   charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
