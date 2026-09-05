@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def _js_const(src: str, name: str) -> float:
-    m = re.search(rf"const {name} = ([0-9.]+)", src)
+    m = re.search(rf"const {name} = (-?[0-9.]+)", src)
     if not m:
         raise AssertionError(f"missing const {name}")
     return float(m.group(1))
@@ -242,6 +242,8 @@ def test_proto_mailbox() -> None:
         raise AssertionError("fire peeks AimSample.lifted from the bus")
     if "LIFT_STICKY_MS" not in fire:
         raise AssertionError("fire must honor sticky / recent lift, not only S.lifted")
+    if "coastTrack" in fire or "updateAim" in fire:
+        raise AssertionError("fire must not coastTrack / updateAim — last committed sample only")
     if re.search(r"await\s+|requestVideoFrameCallback", fire):
         raise AssertionError("fire must not wait on a camera frame")
 
@@ -298,6 +300,39 @@ def test_range_gate() -> None:
         raise AssertionError("Range fire must still consult S.lifted unless desktop")
 
 
+def test_gallery_escape() -> None:
+    """Sit plates and clays must be able to miss. Infinite free hits are dishonest."""
+    src = (ROOT / "proto/game.js").read_text(encoding="utf-8")
+    dwell = _js_const(src, "SIT_DWELL_S")
+    drop = _js_const(src, "SIT_DROP_VY")
+    max_life = _js_const(src, "PLATE_MAX_LIFE_S")
+    if dwell <= 0 or dwell > 8:
+        raise AssertionError("sit plates need a short dwell, then escape")
+    if drop >= 0:
+        raise AssertionError("sit escape must drop, not rise")
+    if max_life <= dwell:
+        raise AssertionError("PLATE_MAX_LIFE_S must outlast sit dwell")
+    body = _js_fn(src, "updateRange")
+    for needle in ("SIT_DWELL_S", "SIT_DROP_VY", "PLATE_MAX_LIFE_S", '"ESC"'):
+        if needle not in body:
+            raise AssertionError(f"updateRange must escape plates ({needle})")
+    y = 0.35
+    life = 0.0
+    dt = 1.0 / 60.0
+    escaped = False
+    while life < 10.0:
+        life += dt
+        if life >= dwell:
+            y += drop * dt
+            if y < -1.7 or life >= max_life:
+                escaped = True
+                break
+    if not escaped:
+        raise AssertionError("sit plate must be able to escape")
+    if life > 8.5:
+        raise AssertionError("sit escape window is too long for an honest gallery")
+
+
 def test_native_sticky_constants() -> None:
     src = (ROOT / "native/cv_input/include/sable/constants.hpp").read_text(encoding="utf-8")
     if "kLiftStickyMs" not in src:
@@ -321,6 +356,7 @@ def main() -> int:
         test_proto_mailbox()
         test_pointing_filter()
         test_range_gate()
+        test_gallery_escape()
         test_native_sticky_constants()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)

@@ -48,20 +48,25 @@
       <div class="lobby-inner">
         <div class="kicker" id="lobby-kicker">WAITING ARENA</div>
         <p class="room-code" id="lobby-room">ROOM ———</p>
-        <p class="tag" id="lobby-tag">Same Range as offline. 5v5 is this room.</p>
+        <p class="tag" id="lobby-tag">Same Range as offline. Warm up anytime. 5v5 is this room.</p>
         <div id="lobby-slots" class="slots"></div>
         <div class="join-row">
           <input id="lobby-join" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" />
           <button type="button" id="btn-lobby-join" class="btn btn-ghost">JOIN</button>
         </div>
-        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <div class="lobby-actions">
+          <button type="button" id="btn-lobby-warmup" class="btn btn-primary">WARM UP</button>
           <button type="button" id="btn-lobby-range" class="btn btn-primary">ENTER RANGE</button>
           <button type="button" id="btn-lobby-back" class="btn btn-ghost">LEAVE</button>
         </div>
       </div>
     </div>
 
-    <div id="screen-range" class="screen screen-pass" hidden></div>
+    <div id="screen-range" class="screen screen-pass" hidden>
+      <div class="range-bar" id="range-warmup-bar" hidden>
+        <button type="button" id="btn-return-lobby" class="btn btn-ghost">RETURN TO LOBBY</button>
+      </div>
+    </div>
 
     <div id="screen-results" class="screen" hidden>
       <div class="results-inner">
@@ -70,6 +75,7 @@
         <div id="stats" class="stats"></div>
         <div class="results-actions">
           <button type="button" id="btn-again" class="btn btn-primary">PLAY AGAIN</button>
+          <button type="button" id="btn-results-lobby" class="btn btn-ghost" hidden>RETURN TO LOBBY</button>
           <button type="button" id="btn-recal" class="btn btn-ghost">RECALIBRATE</button>
         </div>
       </div>

@@ -28,8 +28,8 @@ We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, map
 
 | Mode | What it is | Ship bar |
 |------|------------|----------|
-| **Salt House / Range** | 60 s gallery. Sit plates, crossing clays, rising flushes. Escape = miss. | Playable now |
-| **Waiting arena** | 3D hangar + real room code, 10 slots, host starts | Rooms work; sim is still local |
+| **Salt House / Range** | 60 s gallery. Sit plates, crossing clays, rising flushes. Escape = miss. | Playable now — plates drop, clays leave |
+| **Waiting arena** | Room code, 10 slots, WARM UP anytime, host ENTER RANGE | Rooms work; sim is still local |
 | **Bay 1v1** | Original booth, cover vs open middle, first to 5 | Geometry exists; not the front door |
 
 v1 is **not** an on-rails walk through a mall. If we ever add a “house walk,” it is a later mode with original rooms, not a clone.
@@ -74,7 +74,7 @@ Hand tracking: MediaPipe Hands (Apache-2.0, landmark 8) is the primary muzzle; s
 
 Online: rooms are real; **the match is not shared**. Two tabs do not see the same plates.
 
-Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose).
+Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose). The click does **not** call `coastTrack` / `updateAim` — hitscan uses the last committed `S.aim` / mailbox sample. Optional `?sableperf=1` records HID→hitscan p50/p99 vs the 8 ms bar (`window.SablePerf.stats()`).
 
 ## Proposed refactors (do not start all at once)
 
@@ -87,12 +87,12 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **gallery tuning, then R4**, then R1. Do not split files and change the verb in the same PR.
+Recommend **R4 next**, then R1. Gallery escape + always-practice + fire-path strip shipped. Do not split files and change the verb in the same PR.
 
 ## Milestones
 
 - **M0 (now):** Salt House visible, cuff, plates, HID fire, rooms, original IP.
-- **M1:** Arcade gallery loop (clays escape). MacBook: raise hand, click pad, plates die. Sticky lift shipped.
+- **M1:** Arcade gallery loop (plates/clays escape). Waiting-room WARM UP. Fire peeks only (no aim recompute on click). Sticky lift shipped. **Done.**
 - **M2:** Landmarks + lift verb that allows trackpad fire. **Done** (Hands + R3).
 - **M3:** Two clients, same plates, same house.
 - **M4:** Bay as a second playlist from the lobby, still one art bible.

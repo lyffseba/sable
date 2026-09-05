@@ -23,8 +23,8 @@ python3 tools/serve_proto.py
 ```
 Open **http://127.0.0.1:8080** in your browser.
 
-- **OFFLINE**: Straight into the Range — one iconic shooting ground.
-- **ONLINE**: Waiting-arena lobby. Enter the **same** Range, or **Host 5v5** (ten slots, then the same Range).
+- **OFFLINE**: Straight into the Range — one click.
+- **ONLINE**: Waiting-arena lobby. **WARM UP** is practice in the same Range without leaving the room (RETURN TO LOBBY is one click). Host **ENTER RANGE** starts the room.
 - **HANDS**: MediaPipe fingertip lock. PLAY ANYWAY if the camera misses. Pinch or trackpad fires.
 
 ### Keys

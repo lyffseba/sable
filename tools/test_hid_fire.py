@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import pathlib
 import re
 import sys
@@ -78,12 +79,50 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("AimBus fire/peek must return this._latest")
     if "aimBus.fire" not in fire_src and "aimBus.peek" not in fire_src:
         raise AssertionError("fire must peek the AimBus mailbox")
+    if "coastTrack" in fire_src or "updateAim" in fire_src:
+        raise AssertionError("fire must not recompute aim — peek the last committed sample")
+    if "S.aim" not in fire_src:
+        raise AssertionError("hitscan must use last committed S.aim")
+    if "SablePerf.begin" not in fire_src or "SablePerf.markHid" not in fire_src:
+        raise AssertionError("HID→hitscan must be wrapped by the optional SablePerf probe")
+
+
+def _pct(samples: list[float], p: float) -> float:
+    s = sorted(samples)
+    if not s:
+        return 0.0
+    i = min(len(s) - 1, math.ceil(p * len(s)) - 1)
+    return s[i]
+
+
+def test_sableperf_budget() -> None:
+    src = _read("proto/game.js")
+    if "const SablePerf" not in src:
+        raise AssertionError("SablePerf probe must exist")
+    if "budgetMs: 8" not in src:
+        raise AssertionError("SablePerf must prove HID→hitscan under 8 ms")
+    if "sableperf=1" not in src:
+        raise AssertionError("SablePerf must be flag-gated, not a HUD")
+    if "drawModeChip" in src[src.find("const SablePerf") : src.find("const SablePerf") + 800]:
+        raise AssertionError("SablePerf must not paint a HUD")
+    # p50/p99 on a series that stays under budget.
+    samples = [0.4, 0.5, 0.6, 0.7, 0.8, 1.1, 1.2, 2.0, 3.1, 4.5]
+    p50 = _pct(samples, 0.5)
+    p99 = _pct(samples, 0.99)
+    if p50 > p99:
+        raise AssertionError("p50 must be <= p99")
+    if p99 >= 8:
+        raise AssertionError("fixture p99 must stay under the 8 ms bar")
+    over = samples + [12.0]
+    if _pct(over, 0.99) < 8:
+        raise AssertionError("a 12 ms hit must fail the 8 ms p99 bar")
 
 
 def main() -> int:
     try:
         test_python_mailbox()
         test_client_does_not_wait()
+        test_sableperf_budget()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

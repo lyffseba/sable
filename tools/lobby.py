@@ -41,7 +41,7 @@ def create(name: str = "HOST") -> dict:
             code = _code()
         pid = uuid.uuid4().hex[:8]
         slots: list[dict | None] = [None] * SLOTS
-        slots[0] = {"id": pid, "name": (name or "HOST")[:12], "team": "alpha"}
+        slots[0] = {"id": pid, "name": (name or "HOST")[:12], "team": "alpha", "warmup": False}
         room = {
             "code": code,
             "phase": "wait",
@@ -73,7 +73,12 @@ def join(code: str, name: str = "PLAYER") -> dict:
         if slot < 0:
             return {"ok": False, "error": "full"}
         team = "alpha" if slot < 5 else "bravo"
-        room["slots"][slot] = {"id": pid, "name": (name or "PLAYER")[:12], "team": team}
+        room["slots"][slot] = {
+            "id": pid,
+            "name": (name or "PLAYER")[:12],
+            "team": team,
+            "warmup": False,
+        }
         snap = snapshot(room)
     snap["player"] = pid
     snap["slot"] = slot
@@ -97,6 +102,36 @@ def leave(code: str, player: str) -> dict:
                 _ROOMS.pop(code, None)
                 return {"ok": True, "gone": True}
         return snapshot(room)
+
+
+def _mark_warmup(code: str, player: str, on: bool) -> dict:
+    """Stay in the room. Phase stays wait. Practice does not start the match."""
+    code = (code or "").strip().upper()
+    with _LOCK:
+        room = _ROOMS.get(code)
+        if not room:
+            return {"ok": False, "error": "no room"}
+        if room["phase"] != "wait":
+            return {"ok": False, "error": "match started"}
+        found = False
+        for s in room["slots"]:
+            if s and s["id"] == player:
+                s["warmup"] = bool(on)
+                found = True
+                break
+        if not found:
+            return {"ok": False, "error": "not in room"}
+        snap = snapshot(room)
+    snap["player"] = player
+    return snap
+
+
+def warmup(code: str, player: str) -> dict:
+    return _mark_warmup(code, player, True)
+
+
+def resume(code: str, player: str) -> dict:
+    return _mark_warmup(code, player, False)
 
 
 def start(code: str, player: str) -> dict:
