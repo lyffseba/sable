@@ -4,7 +4,8 @@
    same house local and rewind. Do not Euler-integrate flyers.
    Hitscan is the same sphere as lobby rewind (hitscanRange / plateRadius).
    Do not mesh-test the spun hex — a HID peek that hits the plate can
-   miss the room sphere (and the reverse).
+   miss the room sphere (and the reverse). match_live SCORE / shatter
+   snap from the room book. Do not locally credit a rewind miss.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -922,9 +923,29 @@ function applySharedSim(data) {
   if (!S.sharedDead) S.sharedDead = new Set();
   if (!S.sharedPending) S.sharedPending = new Set();
   const deadList = data.dead || [];
+  const freshOwn = [];
   for (const d of deadList) {
     const id = typeof d === "string" ? d : d.id;
-    if (id) S.sharedDead.add(id);
+    if (!id) continue;
+    const seen = S.sharedDead.has(id);
+    S.sharedDead.add(id);
+    if (!seen && d && d.by === S.player) freshOwn.push(d);
+  }
+  // Room owns SCORE / combo / hits after ENTER RANGE. Snap — do not invent.
+  const scores = data.scores || {};
+  const combos = data.combos || {};
+  const hits = data.hits || {};
+  if (S.player) {
+    if (scores[S.player] != null) S.score = scores[S.player];
+    if (combos[S.player] != null) {
+      S.combo = combos[S.player];
+      if (S.combo > S.comboMax) S.comboMax = S.combo;
+    }
+    if (hits[S.player] != null) S.hits = hits[S.player];
+  }
+  if (freshOwn.length) {
+    hitBlip(S.combo, 0);
+    S.hitstop = 1;
   }
   const live = [];
   for (const p of (data.plates || [])) {

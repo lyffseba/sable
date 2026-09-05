@@ -355,6 +355,20 @@ function fire() {
   const muzzleWorld = peekMuzzleWorld();
   const hit = scan.hit;
 
+  // match_live: peek + report. Room owns SCORE / shatter. Do not locally
+  // credit — a HID peek that the rewind misses must not keep phantom points,
+  // and two friends must not both score the same plate.
+  if (sharedMatch()) {
+    if (hit && hit.mesh) addBulletTracer(muzzleWorld, hit.mesh.position.clone());
+    else {
+      const farPoint = new THREE.Vector3(scan.point.x, scan.point.y, scan.point.z);
+      missTick(farPoint.x);
+      addBulletTracer(muzzleWorld, farPoint);
+    }
+    try { reportSharedFire(shot); } catch (e) { /* apply / poll is the authority */ }
+    return;
+  }
+
   if (hit && hit.mesh) {
     S.combo++;
     if (S.combo > S.comboMax) S.comboMax = S.combo;
@@ -374,10 +388,6 @@ function fire() {
     const farPoint = new THREE.Vector3(scan.point.x, scan.point.y, scan.point.z);
     missTick(farPoint.x);
     addBulletTracer(muzzleWorld, farPoint);
-  }
-  // Shared report never gates the shot. Net down → local shatter still happened.
-  if (sharedMatch()) {
-    try { reportSharedFire(shot, hit && hit.id); } catch (e) { /* local already resolved */ }
   }
 }
 function goDesktopRange() {

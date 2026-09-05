@@ -144,10 +144,10 @@ def test_warmup_stays_local() -> None:
     a = lobby.create("HOST")
     b = lobby.join(a["code"], "P2")
     warm = lobby.warmup(a["code"], b["player"])
-    if warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice" or "seed" in warm or warm.get("plates"):
+    if warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice" or "seed" in warm or warm.get("plates") or warm.get("scores"):
         raise AssertionError(f"warmup must not open the shared sim {warm}")
     g = lobby.get(a["code"])
-    if g.get("phase") != "wait" or "seed" in g or g.get("plates"):
+    if g.get("phase") != "wait" or "seed" in g or g.get("plates") or g.get("scores"):
         raise AssertionError(f"wait get leaked sim {g}")
     miss = lobby.hit(a["code"], a["player"], uv=_p0_uv(), fire_ms=0)
     if miss.get("ok"):
@@ -518,6 +518,115 @@ def test_hitscan_sphere_authority() -> None:
         raise AssertionError("wait_practice must not open the shared hitscan sim")
 
 
+def test_hit_score_authority() -> None:
+    """Room owns gallery SCORE. Two clients agree. Local peek does not credit."""
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 7_000.0
+    st = lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    if st.get("scores") != {} or st.get("combos") != {} or st.get("hits") != {}:
+        raise AssertionError(f"fresh house must start score-empty {st}")
+    if "scores" not in st or "combos" not in st or "hits" not in st:
+        raise AssertionError("match_live snapshot must carry the score book")
+
+    sky = [0.02, 0.02]
+    miss = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=sky,
+        fire_ms=80.0,
+        t_hw=30,
+        now=t0 + 0.12,
+    )
+    if miss.get("hit") or not miss.get("miss"):
+        raise AssertionError(f"sky ray must miss {miss}")
+    if (miss.get("scores") or {}).get(a["player"]):
+        raise AssertionError(f"miss must not invent SCORE {miss}")
+    if (miss.get("combos") or {}).get(a["player"], 1) != 0:
+        raise AssertionError(f"miss must drop combo {miss}")
+    view_a = lobby.get(a["code"], now=t0 + 0.12)
+    view_b = lobby.get(a["code"], now=t0 + 0.12)
+    if view_a.get("scores") != view_b.get("scores"):
+        raise AssertionError(f"miss score book split {view_a.get('scores')} vs {view_b.get('scores')}")
+
+    uv = _p0_uv()
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=90.0,
+        t_hw=31,
+        now=t0 + 0.14,
+    )
+    if shot.get("hit") != "p0":
+        raise AssertionError(f"rewind must still hit p0 {shot}")
+    if (shot.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError(f"first sit must credit 100 {shot}")
+    if (shot.get("combos") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"first hit combo must be 1 {shot}")
+    if (shot.get("hits") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"first hit must count {shot}")
+    after_a = lobby.get(a["code"], now=t0 + 0.14)
+    after_b = lobby.get(a["code"], now=t0 + 0.14)
+    if after_a.get("scores") != after_b.get("scores"):
+        raise AssertionError(f"two clients split SCORE {after_a.get('scores')} vs {after_b.get('scores')}")
+    if after_a.get("combos") != after_b.get("combos") or after_a.get("hits") != after_b.get("hits"):
+        raise AssertionError("two clients split combo / hits")
+    if (after_b.get("scores") or {}).get(b["player"]):
+        raise AssertionError("guest must not inherit host SCORE")
+
+    again = lobby.hit(a["code"], b["player"], uv=uv, fire_ms=100.0, now=t0 + 0.16)
+    if again.get("hit"):
+        raise AssertionError("second ray on a dead plate must not hit")
+    if (again.get("scores") or {}).get(b["player"]):
+        raise AssertionError(f"dead-plate miss must not credit the guest {again}")
+    if (again.get("combos") or {}).get(b["player"], 1) != 0:
+        raise AssertionError("dead-plate miss must drop guest combo")
+    if (again.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError("guest miss must not rewrite host SCORE")
+
+    parked = lobby.create("HOST6")
+    guest = lobby.join(parked["code"], "U2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("scores") or parked_warm.get("combos") or parked_warm.get("hits"):
+        raise AssertionError("wait_practice must not open the shared score book")
+    g = lobby.get(parked["code"])
+    if g.get("scores") or g.get("plates") or g.get("seed"):
+        raise AssertionError("wait get leaked score / sim")
+
+    js = proto_js()
+    fire = _js_fn(js, "fire")
+    shared_at = fire.find("if (sharedMatch())")
+    score_at = fire.find("S.score +=")
+    if shared_at < 0:
+        raise AssertionError("fire() must park match_live before local credit")
+    if score_at < 0:
+        raise AssertionError("Offline / WARM UP must still credit locally")
+    if score_at < shared_at:
+        raise AssertionError("local SCORE increment landed before the shared park")
+    shared_return = fire.find("return;", shared_at)
+    if shared_return < 0 or shared_return > score_at:
+        raise AssertionError("match_live must return before local SCORE / shatter")
+    if "reportSharedFire(shot)" not in fire and "reportSharedFire(shot, " not in fire:
+        raise AssertionError("shared fire must still POST the peeked intent")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — SCORE is not a fire gate")
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "data.scores" not in apply or "S.score" not in apply:
+        raise AssertionError("applySharedSim must snap SCORE from the room")
+    if "data.combos" not in apply or "S.combo" not in apply:
+        raise AssertionError("applySharedSim must snap combo from the room")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after score lock")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -528,6 +637,7 @@ def main() -> int:
         test_sit_pose_authority()
         test_flyer_pose_authority()
         test_hitscan_sphere_authority()
+        test_hit_score_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

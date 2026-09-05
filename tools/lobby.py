@@ -2,6 +2,7 @@
 """In-memory 5v5 waiting-arena rooms + shared Salt House / Bay. Stdlib only.
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
+Gallery SCORE / combo / hits live on that rewind (not a local peek).
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.
@@ -470,6 +471,32 @@ def _sync_sim(sim: dict, now: float) -> float:
     return elapsed_ms
 
 
+def _gallery_book(sim: dict) -> None:
+    """Room-owned gallery SCORE / combo / hits. Wait snapshots never grow these."""
+    if "scores" not in sim:
+        sim["scores"] = {}
+    if "combos" not in sim:
+        sim["combos"] = {}
+    if "hits" not in sim:
+        sim["hits"] = {}
+
+
+def _gallery_miss(sim: dict, player: str) -> None:
+    """A confirmed miss drops that player's combo. Score stays. Not a fire gate."""
+    _gallery_book(sim)
+    sim["combos"][player] = 0
+
+
+def _gallery_hit(sim: dict, player: str, struck: dict) -> None:
+    """Credit the rewind hit. Combo + worth on the room — not a local peek."""
+    _gallery_book(sim)
+    combo = int(sim["combos"].get(player, 0)) + 1
+    sim["combos"][player] = combo
+    worth = int(struck.get("worth") or 100)
+    sim["scores"][player] = int(sim["scores"].get(player, 0)) + worth * combo
+    sim["hits"][player] = int(sim["hits"].get(player, 0)) + 1
+
+
 def _new_sim(seed: int, now: float) -> dict:
     sim = {
         "seed": int(seed) & 0xFFFFFFFF,
@@ -479,6 +506,9 @@ def _new_sim(seed: int, now: float) -> dict:
         "rng": _Rng(seed),
         "spawned": [],
         "dead": [],
+        "scores": {},
+        "combos": {},
+        "hits": {},
     }
     _add_plate(sim, "sit", 0.2, 0.35, -6.6, worth=100, born_ms=0.0, baseY=0.35)
     return sim
@@ -515,6 +545,9 @@ def _sim_view(sim: dict, now: float) -> dict:
         "elapsed_ms": int(elapsed_ms),
         "plates": plates,
         "dead": list(sim["dead"]),
+        "scores": dict(sim.get("scores") or {}),
+        "combos": dict(sim.get("combos") or {}),
+        "hits": dict(sim.get("hits") or {}),
     }
 
 
@@ -1024,8 +1057,9 @@ def hit(
             return {"ok": False, "error": "not in room"}
         sim = room["sim"]
         elapsed_now = _sync_sim(sim, t)
-        snap = snapshot(room, t)
         if parsed is None:
+            _gallery_miss(sim, player)
+            snap = snapshot(room, t)
             snap["miss"] = True
             return snap
         view_ms = quantize_fire_ms(elapsed_now)
@@ -1036,15 +1070,21 @@ def hit(
             if fire_tick > view_ms:
                 fire_tick = view_ms
         if elapsed_now - fire_tick > REWIND_MAX_MS:
+            _gallery_miss(sim, player)
+            snap = snapshot(room, t)
             snap["miss"] = True
             snap["stale"] = True
             return snap
         live = _live_at(sim, fire_tick)
         struck = _hitscan(live, parsed, aspect_f)
         if not struck:
+            _gallery_miss(sim, player)
+            snap = snapshot(room, t)
             snap["miss"] = True
             return snap
         if any(d["id"] == struck["id"] for d in sim["dead"]):
+            _gallery_miss(sim, player)
+            snap = snapshot(room, t)
             snap["miss"] = True
             snap["error"] = "already dead"
             return snap
@@ -1053,10 +1093,12 @@ def hit(
                 "id": struck["id"],
                 "by": player,
                 "kind": struck["kind"],
+                "worth": int(struck.get("worth") or 100),
                 "at_ms": fire_tick,
                 "t_hw": stamp,
             }
         )
+        _gallery_hit(sim, player, struck)
         snap = snapshot(room, t)
     snap["hit"] = struck["id"]
     snap["by"] = player
