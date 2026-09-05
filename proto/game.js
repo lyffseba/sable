@@ -126,7 +126,7 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false, hands: false },
-  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null,
+  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null, rvfc: false,
   online: false,
   playlist: "range",
   room: "",
@@ -710,8 +710,54 @@ function nccTrack(now) {
 
 function detGood() { return S.det && S.det.conf >= NCC_GOOD; }
 
+function indexExtended(lm) {
+  const w = lm[0], pip = lm[6], tip = lm[8];
+  if (!w || !pip || !tip) return false;
+  const dTip = Math.hypot(tip.x - w.x, tip.y - w.y);
+  const dPip = Math.hypot(pip.x - w.x, pip.y - w.y);
+  return dTip > dPip * 1.06;
+}
+
+function handPointScore(lm) {
+  if (!lm || !lm[8]) return -1;
+  let s = indexExtended(lm) ? 2.4 : 0.2;
+  s += (1 - lm[8].y) * 1.2;
+  if (lm[0]) s += Math.max(0, lm[0].y - lm[8].y);
+  return s;
+}
+
+function bestHand(landmarks) {
+  let best = null, bestS = -1;
+  for (let i = 0; i < landmarks.length; i++) {
+    const s = handPointScore(landmarks[i]);
+    if (s > bestS) { bestS = s; best = landmarks[i]; }
+  }
+  return best;
+}
+
+function nailMuzzle(lm) {
+  const pip = lm[6], tip = lm[8];
+  const nx = tip.x + (tip.x - pip.x) * 0.18;
+  const ny = tip.y + (tip.y - pip.y) * 0.18;
+  return {
+    x: (1 - nx) * (PROC_W - 1),
+    y: ny * (PROC_H - 1),
+  };
+}
+
+function pinchStrength(lm) {
+  const thumb = lm[4], index = lm[8], wrist = lm[0], palm = lm[9];
+  if (!thumb || !index) return 0;
+  const scale = (wrist && palm)
+    ? Math.hypot(wrist.x - palm.x, wrist.y - palm.y)
+    : 0.2;
+  const d = Math.hypot(thumb.x - index.x, thumb.y - index.y) / Math.max(0.08, scale);
+  return clamp(1 - (d - 0.28) / 0.4, 0, 1);
+}
+
 function mpTrack(now) {
   if (!S.handsOn || !S.hands || !cam.videoWidth) return false;
+  if (proc.width !== PROC_W) sizeProc();
   const ts = Math.max((S.mpTs || 0) + 1, now);
   S.mpTs = ts;
   let res;
@@ -721,53 +767,41 @@ function mpTrack(now) {
     return false;
   }
   const lms = res && res.landmarks;
-  if (!lms || !lms.length || !lms[0][8]) return false;
-  const tip = lms[0][8];
-  const x = (1 - tip.x) * (PROC_W - 1);
-  const y = tip.y * (PROC_H - 1);
-  let score = 0.9;
-  const handed = res.handedness && res.handedness[0];
-  if (handed) {
-    if (handed[0] && handed[0].score != null) score = handed[0].score;
-    else if (handed.score != null) score = handed.score;
-    else if (handed.categories && handed.categories[0] && handed.categories[0].score != null) {
-      score = handed.categories[0].score;
-    }
-  }
-  S.det = { x, y, conf: Math.max(0.72, clamp(score, 0, 1)) };
+  if (!lms || !lms.length) return false;
+  const lm = bestHand(lms);
+  if (!lm || !lm[8] || !lm[6]) return false;
+  const muz = nailMuzzle(lm);
+  S.det = { x: muz.x, y: muz.y, conf: indexExtended(lm) ? 0.92 : 0.4 };
   S.lastDetAt = now;
-  applyEuroPoint(now, x, y);
+  applyEuroPoint(now, muz.x, muz.y);
   S.tpl = { w: TPL, h: TPL, fromHands: true };
   S.lockTplAt = now;
   S.ncc = S.det.conf;
-  S.handLm = lms[0];
-  if (!indexExtended(lms[0])) S.det.conf = 0.4;
+  S.handLm = lm;
   return true;
-}
-
-function indexExtended(lm) {
-  const w = lm[0], pip = lm[6], tip = lm[8];
-  if (!w || !pip || !tip) return false;
-  const dTip = Math.hypot(tip.x - w.x, tip.y - w.y);
-  const dPip = Math.hypot(pip.x - w.x, pip.y - w.y);
-  return dTip > dPip * 1.06;
 }
 
 function maybePinchFire(lm) {
   if (!lm) { S.pinchHeld = false; return; }
-  const thumb = lm[4], index = lm[8], wrist = lm[0], palm = lm[9];
-  if (!thumb || !index) return;
-  const scale = (wrist && palm)
-    ? Math.hypot(wrist.x - palm.x, wrist.y - palm.y)
-    : 0.2;
-  const d = Math.hypot(thumb.x - index.x, thumb.y - index.y) / Math.max(0.08, scale);
-  if (d < 0.38 && !S.pinchHeld) {
+  const p = pinchStrength(lm);
+  if (p > 0.72 && !S.pinchHeld && indexExtended(lm)) {
     S.pinchHeld = true;
     if (phase === "range" || phase === "bay") fire();
     else if (phase === "calibrate" && S.calibIndex >= 4) fire();
-  } else if (d > 0.58) {
+  } else if (p < 0.35) {
     S.pinchHeld = false;
   }
+}
+
+function armVideoTrack() {
+  if (!S.handsOn || S.rvfc || !cam.requestVideoFrameCallback) return;
+  S.rvfc = true;
+  const tick = (now) => {
+    if (!camReady || !S.handsOn) { S.rvfc = false; return; }
+    mpTrack(now);
+    cam.requestVideoFrameCallback(tick);
+  };
+  cam.requestVideoFrameCallback(tick);
 }
 
 let handsPromise = null;
@@ -794,7 +828,7 @@ async function initHandsInner() {
     try {
       const mod = await import(t.js);
       const vision = await mod.FilesetResolver.forVisionTasks(t.wasm);
-      const base = { runningMode: "VIDEO", numHands: 1, minHandDetectionConfidence: 0.45, minHandPresenceConfidence: 0.45, minTrackingConfidence: 0.45 };
+      const base = { runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.45, minHandPresenceConfidence: 0.45, minTrackingConfidence: 0.45 };
       try {
         S.hands = await mod.HandLandmarker.createFromOptions(vision, Object.assign({ baseOptions: { modelAssetPath: t.model, delegate: "GPU" } }, base));
       } catch (e) {
@@ -812,35 +846,56 @@ async function initHandsInner() {
   return false;
 }
 
+function fallbackSkin(now) {
+  S.handLm = null;
+  S.pinchHeld = false;
+  if (S.tpl && S.tpl.fromHands) S.tpl = null;
+  if (!S.skin || !S.gray) return false;
+  const hand = findHand();
+  if (hand && hand.conf >= 0.42) {
+    S.det = { x: hand.x, y: hand.y, conf: hand.conf };
+    S.lastDetAt = now;
+    applyEuroPoint(now, hand.x, hand.y);
+    if (!S.tpl) {
+      commitTpl(S.gray, PROC_W, PROC_H, Math.round(hand.x - TPL * 0.5), Math.round(hand.y - TPL * 0.5), now);
+    }
+    return true;
+  }
+  if (S.tpl && !S.tpl.fromHands) {
+    nccTrack(now);
+    return !!S.det;
+  }
+  sampleLock(S.frame, now);
+  return !!S.det;
+}
+
 function runTrack(now) {
   if (!S.euroX) resetTrackFilters();
   const stamp = cam.currentTime;
+  const mpFresh = S.handsOn && S.det && (now - (S.lastDetAt || 0) < 80);
   if (stamp && stamp === S.camStamp) {
-    if (!S.det) coastTrack(now);
+    if (!mpFresh) {
+      if (!fallbackSkin(now) && !S.det) coastTrack(now);
+    } else if (!S.det) coastTrack(now);
     updateQuality(now, S.det);
     return;
   }
   S.camStamp = stamp;
   if (S.handsOn) {
-    if (!mpTrack(now)) {
-      S.det = null;
-      S.handLm = null;
-      S.pinchHeld = false;
-      coastTrack(now);
-      if (now - (S.lastDetAt || 0) > QUALITY_LOST_MS) resetTrackFilters();
-    }
-  } else if (S.tpl && !S.tpl.fromHands) {
-    nccTrack(now);
-    if (!S.det) {
-      const hand = findHand();
-      if (hand && hand.conf >= 0.42) {
-        S.det = { x: hand.x, y: hand.y, conf: hand.conf };
-        S.lastDetAt = now;
-        applyEuroPoint(now, hand.x, hand.y);
+    if (mpFresh && S.rvfc) {
+      /* camera-thread already wrote the fingertip */
+    } else if (mpTrack(now)) {
+      S.mpMiss = 0;
+    } else {
+      S.mpMiss = (S.mpMiss || 0) + 1;
+      if (!fallbackSkin(now)) {
+        S.det = null;
+        coastTrack(now);
+        if (now - (S.lastDetAt || 0) > QUALITY_LOST_MS) resetTrackFilters();
       }
     }
-  } else {
-    sampleLock(S.frame, now);
+  } else if (!fallbackSkin(now)) {
+    if (!S.det) coastTrack(now);
   }
   updateQuality(now, S.det);
 }
@@ -859,7 +914,8 @@ function sizeProc() {
 function grabFrame() {
   if (!camReady || !cam.videoWidth) return false;
   if (proc.width !== PROC_W) sizeProc();
-  if (S.handsOn) return true;
+  const mpFresh = S.handsOn && S.det && (performance.now() - (S.lastDetAt || 0) < 80);
+  if (mpFresh) return true;
   pctx.drawImage(cam, 0, 0, PROC_W, PROC_H);
   const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
   S.frame = img;
@@ -1728,6 +1784,7 @@ async function play(target = "range") {
     return;
   }
   await initHands();
+  armVideoTrack();
   S.lockStart = performance.now();
 }
 

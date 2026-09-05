@@ -126,6 +126,8 @@ def test_pointing_filter() -> None:
         raise AssertionError("MediaPipe Hands (landmark 8) must be the primary tracker")
     if "function maybePinchFire" not in src:
         raise AssertionError("pinch thumb-index must be able to fire")
+    if "function fallbackSkin" not in src:
+        raise AssertionError("if Hands dies, skin/NCC fallback must run")
     if "handsPromise" not in src:
         raise AssertionError("initHands must wait for the model, not return early")
     if "function indexExtended" not in src:
