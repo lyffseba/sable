@@ -55,7 +55,7 @@ Paint sheets (`art/concepts/*.svg`) are the look. Runtime meshes in `proto/house
 
 Runtime Look is unshaded/baked CANCHO (charcoal / bone / mint / rust). `MeshBasic` / `bayUnshaded`, no ACES, no mint emissive bloom. Bay and Salt House share this bible. Aim noise stays readable.
 
-Gallery polish bar: Fortnite-class CANCHO silhouettes — charcoal barrel ribs with rust edge, mint centerline, solid rust backstop; yard bunkers charcoal / rust, few and low, so bone plates stay readable. No ACES. No mint emissive bloom over the reticle.
+Gallery polish bar: readable CANCHO silhouettes (Fortnite-class = silhouette literacy only — charcoal / bone / mint / rust). Charcoal barrel ribs with rust edge, mint centerline, solid rust backstop; yard bunkers charcoal / rust, few and low, so bone plates stay readable. No ACES. No mint emissive bloom over the reticle. Never Fortnite / UEFN / Valve DNA in `proto/` or `art/` — `tools/test_sableport.py` fails loud.
 
 CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 

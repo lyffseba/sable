@@ -17,7 +17,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from foreign_dna import FOREIGN_DNA, dna_hits, scan_runtime_art  # noqa: E402
+from foreign_dna import FOREIGN_DNA, REQUIRED_DNA, dna_hits, scan_runtime_art  # noqa: E402
 from proto_src import proto_js  # noqa: E402
 
 PORT_JS = ROOT / "proto" / "port.js"
@@ -74,6 +74,12 @@ def test_port_doc_boundaries() -> None:
         _fail("docs/port.md must leave HUD / audio behavior locked")
     if "hide the gun" not in text.lower() and "paint VO" not in text:
         _fail("docs/port.md must keep mint-tell as audio only — no VO over the cuff")
+    if "silhouette literacy" not in text.lower():
+        _fail("docs/port.md must keep Fortnite-class as silhouette literacy only")
+    if "Ship addendum" not in text:
+        _fail("docs/port.md must keep the Ship addendum on this Look cut")
+    if "Epic / UEFN / Valve" not in text and "Epic / UEFN / Valve DNA" not in text:
+        _fail("docs/port.md must fail loud on Epic / UEFN / Valve DNA in proto/art")
 
 
 def test_host_seam() -> None:
@@ -106,14 +112,25 @@ def test_host_seam() -> None:
 def test_runtime_art_forbids_foreign_dna() -> None:
     hits = scan_runtime_art(ROOT)
     if hits:
-        _fail("Valve/Epic asset DNA in runtime art (" + "; ".join(hits) + ")")
+        _fail("Valve/Epic/UEFN asset DNA in runtime art (" + "; ".join(hits) + ")")
+    for needle in REQUIRED_DNA:
+        if needle not in FOREIGN_DNA:
+            _fail(f"DNA needle list must keep {needle}")
     if "CS2" not in FOREIGN_DNA or "UEFN" not in FOREIGN_DNA:
         _fail("DNA needle list must keep CS2 / UEFN")
+    if "Fortnite" not in dna_hits("Fortnite-class CANCHO"):
+        _fail("dna_hits must catch Fortnite even as Fortnite-class")
+    if dna_hits("charcoal bone mint rust silhouette"):
+        _fail("CANCHO palette is not foreign DNA")
     modes = (ROOT / "docs" / "modes.md").read_text(encoding="utf-8")
     if "architecture notes" not in modes.lower():
         _fail("docs/modes.md must keep CS map literacy as architecture notes")
+    if "silhouette literacy" not in modes.lower():
+        _fail("docs/modes.md must keep Fortnite-class as silhouette literacy only")
     if "Valve" not in modes or "Epic" not in modes:
         _fail("docs/modes.md must refuse Valve / Epic asset DNA")
+    if "UEFN" not in modes:
+        _fail("docs/modes.md must refuse UEFN asset DNA")
     if "docs/port.md" not in modes and "SablePort" not in modes:
         _fail("docs/modes.md must point at the SablePort path")
 
@@ -184,6 +201,17 @@ def test_soft_locks_hold() -> None:
         _fail("ENTER RANGE lost phase-preserve — calib/lock would trap HID")
     if re.search(r"await\s+", start):
         _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
+    if "ACESFilmicToneMapping" in js:
+        _fail("ACES filmic hides aim noise — Look bloomed")
+    if "NoToneMapping" not in js:
+        _fail("Look lock wants linear / NoToneMapping")
+    if "shadowBlur" in hud or "glow" in hud.lower():
+        _fail("gallery HUD bloomed over the reticle")
+    cross = _js_fn(js, "drawCrosshair")
+    if "shadowBlur" in cross or "glow" in cross.lower():
+        _fail("reticle bloom is forbidden")
+    if "emissiveIntensity: 0.45" in js or "emissiveIntensity:0.45" in js:
+        _fail("mint plate bloom must stay dead")
 
 
 def test_bible_and_ci() -> None:
@@ -200,6 +228,12 @@ def test_bible_and_ci() -> None:
         _fail("PRODUCTION.md must keep mint-tell VO from hiding the gun")
     if "128 Hz" not in bible:
         _fail("PRODUCTION.md must keep the 128 Hz contract")
+    if "silhouette literacy" not in bible.lower():
+        _fail("PRODUCTION.md must keep Fortnite-class as silhouette literacy only")
+    if "Fortnite-class" in bible and "literacy only" not in bible.lower():
+        _fail("PRODUCTION.md Fortnite-class must stay literacy only — not runtime DNA")
+    if "test_sableport.py" not in bible:
+        _fail("PRODUCTION.md must keep the SablePort DNA gate")
     tick = (ROOT / "docs" / "tick.md").read_text(encoding="utf-8")
     if "SablePort" not in tick and "docs/port.md" not in tick:
         _fail("docs/tick.md must point at the port path")
@@ -209,6 +243,10 @@ def test_bible_and_ci() -> None:
     legal = (ROOT / "docs" / "legal.md").read_text(encoding="utf-8")
     if "docs/port.md" not in legal:
         _fail("docs/legal.md must point at the port path")
+    if "silhouette literacy" not in legal.lower():
+        _fail("docs/legal.md must keep Fortnite-class as silhouette literacy only")
+    if "UEFN" not in legal:
+        _fail("docs/legal.md must refuse UEFN DNA in runtime art")
     ci = (ROOT / "tools" / "ci.sh").read_text(encoding="utf-8")
     if "test_sableport.py" not in ci:
         _fail("ci.sh must run the SablePort DNA / seam gate")

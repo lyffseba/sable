@@ -151,6 +151,8 @@ def test_bible_names_look_lock() -> None:
         _fail("PRODUCTION.md must keep the unshaded / no-ACES bible")
     if "bone plates stay readable" not in bible.lower():
         _fail("PRODUCTION.md must keep plate/bunker readability")
+    if "silhouette literacy" not in bible.lower():
+        _fail("PRODUCTION.md must keep Fortnite-class as silhouette literacy only")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_sablelook.py" not in ci:
         _fail("ci.sh must run SableLook")

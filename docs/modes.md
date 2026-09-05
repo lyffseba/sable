@@ -35,7 +35,7 @@ Parked. Not playable from boot or the waiting arena. Specs stay so the booth can
 
 ## Geometry
 
-CS / Fortnite layout literacy is **architecture notes only** (`docs/port.md`, `research/`). Runtime Salt House / Yard / Bay is original SABLE geometry. Zero Valve / Epic asset DNA — no `de_*` halls, no Marketplace packs, no third-party map files.
+CS / Fortnite layout literacy is **architecture notes only** (`docs/port.md`, `research/`). Fortnite-class on the Look bar is **silhouette literacy only** (charcoal / bone / mint / rust). Runtime Salt House / Yard / Bay is original SABLE geometry. Zero Valve / Epic / UEFN asset DNA — no `de_*` halls, no Marketplace packs, no third-party map files.
 
 ## Port path
 

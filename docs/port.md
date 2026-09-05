@@ -18,7 +18,7 @@ Named sim is **128 Hz** (`server/tick.py`, client `stepSim` / `S.simTick`). Rend
 
 ### Look bible
 
-Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissive bloom over the reticle. Original silhouettes — cuff, bone plates, Salt House ribs, charcoal / rust Yard bunkers (few, low) so plates stay readable. Paint sheets: `art/concepts/`. Runtime meshes: `proto/house.js`. A later host does not import Marketplace packs, scans, or third-party guns to “look right.”
+Charcoal / bone / mint / rust. Unshaded / baked CANCHO. No ACES. No mint emissive bloom over the reticle. Original silhouettes — cuff, bone plates, Salt House ribs, charcoal / rust Yard bunkers (few, low) so plates stay readable. **Fortnite-class** on this path is **silhouette literacy only** (charcoal / bone / mint / rust) — not a license to import Epic / UEFN / Valve names, maps, guns, or chrome into `proto/` or `art/`. Paint sheets: `art/concepts/`. Runtime meshes: `proto/house.js`. A later host does not import Marketplace packs, scans, or third-party guns to “look right.”
 
 ### Modes
 
@@ -27,6 +27,10 @@ Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), waiting-
 ## Soft-lock (do not touch on this path)
 
 Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5, plus hangar `WAIT` / `READY` / `LIVE` from `S.hangar` and a thin `ROOM` chip from `S.room` on `wait_practice` / `match_live`). SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local as a seam. Shared Bay is rewind, not a lobby friend tick. ENTER RANGE is phase-preserve — skip calib/lock when already lifted; HID never waits on the lobby POST. Behavior unchanged. Player-facing boot **BAY** / lobby **ENTER BAY** stay off chrome (`docs/modes.md`).
+
+## Ship addendum (Yard look lock)
+
+Ship this Look cut with the same bars. Fortnite-class = silhouette literacy only. `tools/test_sableport.py` fails loud if Epic / UEFN / Valve DNA lands in `proto/` (minus vendor) or `art/`. No bloom over the reticle. Offline / WARM UP stay one-click. Bay stays parked. `AimSample` untouched. Fire peeks `AimBus` only.
 
 ## What a later port may take
 
