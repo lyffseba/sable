@@ -1604,7 +1604,10 @@ function fire() {
     const farPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(20));
     addBulletTracer(muzzleWorld, farPoint);
   }
-  if (sharedMatch()) reportSharedFire(shot, hit && hit.id);
+  // Shared report never gates the shot. Net down → local shatter still happened.
+  if (sharedMatch()) {
+    try { reportSharedFire(shot, hit && hit.id); } catch (e) { /* local already resolved */ }
+  }
 }
 
 function fireBay3D(raycaster, muzzleWorld) {
@@ -1934,9 +1937,11 @@ async function lobbyWarmup() {
   }
   S.warmup = true;
   S.online = true;
-  const data = await lobbyPost("/api/lobby/warmup");
-  if (data && data.ok) paintLobby(data);
   syncWarmupChrome();
+  // Seat mark is best-effort. Do not wait on net to practice.
+  lobbyPost("/api/lobby/warmup").then(function (data) {
+    if (data && data.ok) paintLobby(data);
+  });
   if (camReady && (S.smooth || S.tpl || S.desktop)) {
     setPhase("range");
     return;
@@ -1954,16 +1959,17 @@ function syncWarmupChrome() {
 async function returnToLobby() {
   S.warmup = false;
   lobbyStarting = false;
-  const data = await lobbyPost("/api/lobby/resume");
   const playBtn = $("btn-play");
   if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
   const onBtn = $("btn-online");
   if (onBtn) onBtn.disabled = false;
-  if (data && data.ok) paintLobby(data);
   syncWarmupChrome();
   setPhase("lobby");
   stopLobbyPoll();
   ensureLobbyPoll();
+  lobbyPost("/api/lobby/resume").then(function (data) {
+    if (data && data.ok) paintLobby(data);
+  });
 }
 
 async function lobbyLeave() {
@@ -2719,6 +2725,7 @@ window.addEventListener("resize", fit);
 
 $("btn-play").addEventListener("click", () => {
   S.online = false;
+  S.warmup = false;
   S.playlist = "range";
   play("range");
 });

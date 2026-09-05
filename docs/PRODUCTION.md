@@ -72,7 +72,9 @@ Docs disagree: `docs/tick.md` says 64 Hz, `server/tick.py` is 128 Hz, Range is `
 
 Hand tracking: MediaPipe Hands (Apache-2.0, landmark 8) is the primary muzzle; skin/NCC is the else path when landmarks die.
 
-Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss. **WARM UP** and **OFFLINE** stay local (no shared seed, no room authority). Ship hold: SableQA on waiting-room / WARM UP + HID peek before calling this done.
+Online: rooms are real. After host **ENTER RANGE**, the lobby room owns the plate seed and hit resolve. Two tabs see the same spawn / escape / shatter. The owning client sends the last committed `AimBus` sample (UV + `t_hw` + lift bit). The server rewinds to that fire tick and ray-tests that UV — it does not re-aim, does not read cam confidence, and a miss stays a miss.
+
+**Product gate (locked):** Offline Range and waiting-room **WARM UP** stay **local and one-click**. Shared house is not the only way to shoot. Lift/HID must not wait on net — if the lobby POST hangs, local practice still fires. `tools/test_sableqa_offline.py` fails loud if Offline shoot dies. Proto zip waits until this is on `main` tip and that gate is green.
 
 Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trackpad HID does **not** demote lift during the click. `fire()` peeks `AimBus` and honors sticky lift so a MacBook pad reach can still shoot. UV coast stays 100 ms (no invented pose). The click does **not** call `coastTrack` / `updateAim` — hitscan uses the last committed `S.aim` / mailbox sample. Optional `?sableperf=1` records HID→hitscan p50/p99 vs the 8 ms bar (`window.SablePerf.stats()`).
 
@@ -83,18 +85,18 @@ Lift: hand-visible / recent landmark (or recent good `AimSample`) owns GUN. Trac
 | R1 | Split `proto/game.js` into `aim.js`, `hands.js`, `house.js`, `boot.js` | Production ownership, test seams | 1–2 days | After gallery loop feels good |
 | R2 | MediaPipe Hands as primary muzzle (landmark 8), skin/NCC fallback | Blob≠fingertip; face confusion | 1 day + vendor wasm | **Done** |
 | R3 | Hand-visible **beats** trackpad HID for lift; sticky through pad reach | Trackpad click dropped GUN when the hand left frame | Half day + test rewrite | **Done** |
-| R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | seed + rewind ray resolve; not a global tick | **Done** (hold for SableQA) |
+| R4 | Shared Range sim on the lobby room (plate seed + hits) | “Friends” is fake until this | seed + rewind ray resolve; not a global tick | **Done** (merge when CI green; zip after tip) |
 | R5 | Blender GLB as optional load, procedural fallback | Art soT without breaking CI | 1 day | When a modeler is in Blender |
 | R6 | Unify tick: render rAF, sim 128 Hz, HID outside both | Docs vs code | 1 day | Before any competitive 1v1 |
 
-Recommend **hold merge for SableQA** on waiting-room / WARM UP + HID peek (soft-lock: those paths must not trap lift), then **R1**. Do not unify tick (R6) in the same change as a file split. Shared sim is a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
+Recommend **merge to main when CI green**. Zip / public proto wait for tip + `test_sableqa_offline.py`. Next code: **R1**. Do not unify tick (R6) in the same change as a file split. Shared sim is a lazy lobby snapshot + fire-tick rewind, not 128 Hz.
 
 ## Milestones
 
 - **M0 (now):** Salt House visible, cuff, plates, HID fire, rooms, original IP.
 - **M1:** Arcade gallery loop (plates/clays escape). Waiting-room WARM UP. Fire peeks only (no aim recompute on click). Sticky lift shipped. **Done.**
 - **M2:** Landmarks + lift verb that allows trackpad fire. **Done** (Hands + R3).
-- **M3:** Two clients, same plates, same house. **In** (room seed + fire-tick ray resolve; scores stay local). Hold for SableQA before ship.
+- **M3:** Two clients, same plates, same house. **Done** for the room (seed + fire-tick ray). Offline / WARM UP stay local. Zip held until tip + SableQA offline-shoot gate.
 - **M4:** Bay as a second playlist from the lobby, still one art bible.
 
 ## Non-goals (v1)
