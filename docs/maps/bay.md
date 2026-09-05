@@ -44,14 +44,14 @@ Open-middle test (`_in_open_middle`): `z ≤ 0.65` and `z > −12.5` and `|x| < 
 
 ## Score and rounds
 
-First to **5** (`TO_WIN`). HUD: `CANCHO  you — them  ·  style`. Chip `FIRST TO 5`.
+First to **5** (`TO_WIN`). Thin **SableHUD** chips: `YOU` / `THEM` / `ROUND` / cover / `FIRST TO 5` (or `MATCH`). Same 22px charcoal bar as gallery. No tutorial wall. No paint over the cuff.
 
 | Phase | HUD chip | Rule |
 |-------|----------|------|
 | PAD | `PAD` | `!AimSample.lifted`. WASD at `SPEED` 4.2. |
 | GUN | `GUN` | Lifted. Walk locks (`wish = 0`). |
 | FREEZE | `DROP` | Death or a hit that is not match point. World freezes. |
-| MATCH | `DROP` | Someone reached 5. Boot button. VO `Se escribió.` |
+| MATCH | `DROP` + `MATCH` | Someone reached 5. Boot button. VO `Se escribió.` |
 
 Death freezes. After **0.45 s** (`FREEZE_PAD_S`) a drop (`!AimSample.lifted`) returns you to PAD and `_next_round()` respawns A/B. Stay lifted and you stay frozen. Match-over does not start another round.
 
@@ -63,6 +63,8 @@ WASD (`move_left` / `move_right` / `move_forward` / `move_back`) **only while PA
 
 Same hitscan as Range: `AimSample.uv` → screen → camera ray vs the foe sphere (radius **0.46**). Peek `AimBus` / `HidFire.shot_from_bus`. Miss = dry tick (1850 Hz, 28 ms) + HUD tick. No VO. No trash talk.
 
+`fireBay3D` stamps `Bay.fireMs = committedSimMs()` — the last 128 Hz tick, not rAF present. Local first-to-5 does not invent a lobby rewind loop. Pose / expose / freeze integrate only in `tickBay(SIM_DT)` from `stepSim`.
+
 Hit: you score, VO `Claro.`, freeze (or match-over). Open-middle death: them score, no VO, freeze (or match-over).
 
 ## Do not
@@ -71,3 +73,5 @@ Hit: you score, VO `Claro.`, freeze (or match-over). Open-middle death: them sco
 - Do not bloom, aim-assist, or RNG-smooth aim.
 - Do not copy a third-party booth.
 - Do not add a gun mesh or a second map file for this layout.
+- Do not hitch Bay pose to rAF `dt` or couple the shot to `performance.now()`.
+- Do not replace Offline gallery / WARM UP / ENTER RANGE. Bay is never the only gun.

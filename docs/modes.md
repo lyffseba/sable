@@ -9,7 +9,7 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
 | **ENTER RANGE** | shared Salt House | same 60 s gallery, room owns plates | host starts the house |
-| **BAY** / **ENTER BAY** | local first-to-5 | cover vs open middle | never replaces gallery |
+| **BAY** / **ENTER BAY** | local first-to-5 | cover vs open middle, R6 128 Hz / HID outside / `fire_ms` stamp | never replaces gallery; one-click local |
 
 ## Gallery rules (Salt House)
 
@@ -20,6 +20,13 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 - Arcade feedback is a thin **SableHUD** bar (`SABLE_HUD_H` 22px): `SCORE`, `ROUND` + time remaining, end chip (`60s GALLERY` / session / `GALLERY CLEAR`). Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff or reticle. Do not thicken the lobby.
 - Sparse **SableAudio**: dry-tick miss (escape / dry fire) and hit punch on shatter. Quiet mint-tell lift cue (`Mint. Lift.` — oscillator this cut) after GUN. Audio only — do not paint VO over the cuff. Feedback after resolve / lift state, never a fire gate. No bed, no ambience.
 - Stand still. WASD is Bay only.
+
+## Bay rules (1v1 booth)
+
+- First to 5 (`BAY_TO_WIN`). Pose / expose / freeze live on the 128 Hz sim (`tickBay(SIM_DT)` from `stepSim`). Hitscan peeks the last committed pose.
+- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs = committedSimMs()`. No lobby Bay loop. No `/api/lobby/start`.
+- Arcade feedback is the same thin **SableHUD** bar: `YOU` / `THEM` / `ROUND` + cover chip + `FIRST TO 5` / `MATCH`. Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff.
+- Boot **BAY** and lobby **ENTER BAY** stay local one-click. Offline **GALLERY**, **WARM UP**, and **ENTER RANGE** stay. Bay is never the only gun.
 
 ## Geometry
 

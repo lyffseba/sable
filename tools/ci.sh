@@ -34,6 +34,7 @@ python3 tools/test_tick_contract.py
 python3 tools/test_hands_worker.py
 python3 tools/test_sableperf.py
 python3 tools/test_bay_playlist.py
+python3 tools/test_bay_r6.py
 python3 tools/test_gallery_mode.py
 python3 tools/test_sablehud.py
 python3 tools/test_sableaudio.py

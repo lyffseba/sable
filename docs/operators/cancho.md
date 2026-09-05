@@ -34,7 +34,7 @@ Unshaded tints only. No new textures this pass. Paint albedos later on the same 
 
 ## Styles (same skeleton)
 
-Cycle in Bay with **L** (`cycle_style`, physical keycode 76). `Locker.cycle_style()` walks `default → ranked → night → default`. HUD score line shows the equipped style id.
+Cycle in Bay with **L** (`cycle_style`, physical keycode 76). `Locker.cycle_style()` walks `default → ranked → night → default`. SableHUD chips stay `YOU` / `THEM` / `ROUND` / cover / `FIRST TO 5` — style id is not a tutorial wall.
 
 | id | Body | Stripe | Rest (not lifted) | Extra |
 |----|------|--------|-------------------|-------|

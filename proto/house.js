@@ -113,6 +113,7 @@ const Bay = {
   voT: 0,
   missT: 0,
   over: false,
+  fireMs: 0,
   wasLifted: false,
   keys: { w: false, a: false, s: false, d: false },
   resetRound() {
@@ -132,6 +133,7 @@ const Bay = {
     this.them = 0;
     this.round = 1;
     this.over = false;
+    this.fireMs = 0;
     this.resetRound();
   },
   vo(line) {
@@ -583,6 +585,8 @@ function rayHitsBayFoe(origin, direction) {
 }
 
 function fireBay3D(raycaster, muzzleWorld) {
+  // HID peek already happened. Stamp the last committed 128 Hz tick — not present.
+  Bay.fireMs = committedSimMs();
   if (Bay.frozen || Bay.over) { missTick(); return; }
 
   const origin = raycaster.ray.origin;
@@ -736,6 +740,7 @@ function restoreYardLook() {
 
 function startBay() {
   S.simTick = 0;
+  Bay.fireMs = 0;
   Bay.active = true;
   Bay.resetMatch();
   if (rangeTargetGroup) rangeTargetGroup.visible = false;
@@ -825,6 +830,15 @@ function gallerySessionLabel() {
   if (!S.online) return "GALLERY";
   if (S.playlist === "5v5") return "5v5  " + S.room;
   return "GALLERY  " + S.room;
+}
+
+function bayOver() {
+  return !!(Bay.over || Bay.you >= Bay.toWin || Bay.them >= Bay.toWin);
+}
+
+function baySessionLabel() {
+  if (bayOver()) return "MATCH";
+  return "FIRST TO 5";
 }
 
 function updateRange(dt, elapsed) {
@@ -1010,6 +1024,8 @@ export {
   galleryOver,
   galleryLeftMs,
   gallerySessionLabel,
+  bayOver,
+  baySessionLabel,
   updateRange,
   tickBay,
 };
