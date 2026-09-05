@@ -4,7 +4,7 @@ SABLE first-party layout. **The sole active map.** Bay booth is parked (`docs/ma
 
 ## What this is
 
-A **shooting range** you stand in. One firing line. Original inflatables we designed. Plates come out from cover. Laptop webcam + trackpad. Two laptops join the same room later.
+A **shooting range** you stand in. One firing line. Original inflatables we designed. Plates come out from cover. Laptop webcam + trackpad. Two laptops join the same room later. The waiting arena is this same Yard — HUD chips, not a second map.
 
 This is **not** a 5-on-5 match field yet. Same art kit can grow into a stadium **we** design.
 

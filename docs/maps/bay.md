@@ -14,7 +14,7 @@ Scene: `godot/scenes/bay/Bay.tscn`. Controller: `godot/src/app/bay_controller.gd
 
 - Soft-parked: local first-to-5 and room-owned shared booth stay in code, not on player chrome
 - Soft-parked `lobbyStartBay` does not start the shared house (`/api/lobby/start`)
-- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** are the only player paths — Salt House gallery on the Yard
+- Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** are the only player paths — waiting arena is HUD-on-Yard always-practice
 
 Godot **4.7.2** → import `godot/` (spec reference):
 
