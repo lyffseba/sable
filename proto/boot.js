@@ -303,7 +303,7 @@ async function lobbyPoll() {
       syncWarmupChrome();
       if (phase === "range") startRange();
       else if (phase === "results") setPhase("range");
-      else if (phase === "lobby") play("range");
+      else if (phase === "lobby") enterRangePreserve();
     }
     if (sharedMatch() && phase === "range" && data.phase === "range") {
       applySharedSim(data);
@@ -314,24 +314,29 @@ async function lobbyPoll() {
   } catch (e) { /* keep polling */ }
 }
 
-async function lobbyStartRange() {
+function alreadyLifted() {
+  return !!(camReady && (S.smooth || S.tpl || S.desktop));
+}
+
+function enterRangePreserve() {
+  // SableNet phase-preserve: live Yard skips calib/lock so HID stays warm.
+  if (alreadyLifted() || phase === "lobby" || phase === "range") {
+    setPhase("range");
+    return;
+  }
+  play("range");
+}
+
+function lobbyStartRange() {
   S.warmup = false;
   S.waitingYard = false;
   syncWarmupChrome();
-  if (!S.room || !S.player) {
-    play("range");
-    return;
+  if (S.room && S.player) {
+    if (S.host) lobbyPost("/api/lobby/start");
+    lobbyStarting = true;
+    ensureLobbyPoll();
   }
-  if (S.host) {
-    await fetch("/api/lobby/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: S.room, player: S.player }),
-    });
-  }
-  lobbyStarting = true;
-  ensureLobbyPoll();
-  play("range");
+  enterRangePreserve();
 }
 
 async function lobbyPost(path) {
@@ -361,7 +366,7 @@ async function lobbyWarmup() {
   lobbyPost("/api/lobby/warmup").then(function (data) {
     if (data && data.ok) paintLobby(data);
   });
-  if (camReady && (S.smooth || S.tpl || S.desktop)) {
+  if (alreadyLifted()) {
     setPhase("range");
     return;
   }
@@ -392,7 +397,7 @@ function lobbyStartBay() {
     if (S.host) lobbyPost("/api/lobby/bay");
     ensureLobbyPoll();
   }
-  if (camReady && (S.smooth || S.tpl || S.desktop)) {
+  if (alreadyLifted()) {
     setPhase("bay");
     return;
   }

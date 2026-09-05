@@ -8,7 +8,7 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 |-------|----------|-------|-----------|
 | **OFFLINE** | local gallery (`play("range")`) | 60 s clock, score, ESC = miss, `GALLERY CLEAR` | one click, local |
 | **WARM UP** | local gallery, seat stays | same house, practice — RETURN TO LOBBY | one click, no `/api/lobby/start` |
-| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates | host shares the live Yard |
+| **ENTER RANGE** | shared Salt House / Yard | same 60 s gallery, room owns plates | host shares the live Yard; phase-preserve — skip calib/lock when already lifted |
 
 Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / `house.js` booth may remain; boot `btn-bay` and lobby **ENTER BAY** stay off player chrome.
 
@@ -46,4 +46,5 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not bloom the reticle. Charcoal / bone / mint / rust only.
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
 - Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin chips — not a match-start screen.
+- Do not force calib/lock on ENTER RANGE when the Yard is already live. Promote is SableNet phase-preserve (`enterRangePreserve`) — lift/HID never waits on the lobby POST.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.

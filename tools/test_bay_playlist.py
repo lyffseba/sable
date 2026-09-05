@@ -112,10 +112,12 @@ def test_lobby_bay_does_not_steal_shared_range() -> None:
         raise AssertionError("lobby poll must not yank Bay into shared Range")
 
     start_range = _js_fn(js, "lobbyStartRange")
-    if 'play("range")' not in start_range:
+    if "enterRangePreserve()" not in start_range and 'play("range")' not in start_range:
         raise AssertionError("ENTER RANGE must still start the shared house path")
     if "/api/lobby/start" not in start_range:
         raise AssertionError("host ENTER RANGE must still POST /api/lobby/start")
+    if re.search(r"await\s+", start_range):
+        raise AssertionError("ENTER RANGE awaits net — lift/HID is behind the lobby")
 
     warm = _js_fn(js, "lobbyWarmup")
     if "/api/lobby/start" in warm:

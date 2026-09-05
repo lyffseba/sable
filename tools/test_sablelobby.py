@@ -3,7 +3,8 @@
 
 Fail loud if Bay reappears on player chrome, Offline / WARM UP lose
 one-click local practice, ENTER RANGE stops being host shared gallery
-start, or the lobby becomes a match-start screen again.
+start, promote traps HID behind calib/lock or a lobby POST, or the
+lobby becomes a match-start screen again.
 """
 
 from __future__ import annotations
@@ -151,14 +152,50 @@ def test_enter_range_stays_shared() -> None:
     if 'id="btn-lobby-range"' not in html or "ENTER RANGE" not in html:
         _fail("lobby lost ENTER RANGE")
     start = _js_fn(js, "lobbyStartRange")
-    if 'play("range")' not in start:
-        _fail("ENTER RANGE no longer starts the Salt House")
+    if "enterRangePreserve()" not in start:
+        _fail("ENTER RANGE no longer phase-preserves the live Yard")
     if "/api/lobby/start" not in start:
         _fail("host ENTER RANGE no longer shares the house")
+    if re.search(r"await\s+", start) or "async function lobbyStartRange" in js:
+        _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
+    if "resetLockState" in start or 'setPhase("lock")' in start or "goCalib" in start:
+        _fail("ENTER RANGE forced calib/lock — warm-up feel died")
     if 'play("bay")' in start or 'setPhase("bay")' in start:
         _fail("ENTER RANGE dropped into Bay")
     if "S.waitingYard = false" not in start:
         _fail("ENTER RANGE must leave waiting-arena practice before the share")
+    if "lobbyPost(\"/api/lobby/start\")" not in start and "lobbyPost('/api/lobby/start')" not in start:
+        _fail("host ENTER RANGE must fire-and-forget /api/lobby/start")
+    preserve = _js_fn(js, "enterRangePreserve")
+    if "alreadyLifted()" not in preserve:
+        _fail("phase-preserve must skip calib when already lifted")
+    if 'phase === "lobby"' not in preserve or 'phase === "range"' not in preserve:
+        _fail("phase-preserve must keep the live Yard the room is already on")
+    if 'setPhase("range")' not in preserve:
+        _fail("already-live ENTER RANGE must stay on the Yard")
+    if 'play("range")' not in preserve:
+        _fail("cold ENTER RANGE must still play(range)")
+    if "resetLockState" in preserve or 'setPhase("lock")' in preserve or "goCalib" in preserve:
+        _fail("phase-preserve reset lock — calib/lock trap")
+    if re.search(r"await\s+", preserve) or "fetch(" in preserve:
+        _fail("phase-preserve awaits — HID trap")
+    if 'play("bay")' in preserve or 'setPhase("bay")' in preserve:
+        _fail("phase-preserve dropped into Bay")
+    lifted = _js_fn(js, "alreadyLifted")
+    if "camReady" not in lifted or "S.smooth" not in lifted or "S.tpl" not in lifted:
+        _fail("alreadyLifted must keep the live tracking predicate")
+    if "resetLockState" in lifted:
+        _fail("alreadyLifted must not reset lock")
+    poll = _js_fn(js, "lobbyPoll")
+    if "enterRangePreserve()" not in poll:
+        _fail("guest promote must phase-preserve the live Yard")
+    if re.search(r'phase === "lobby"\) play\("range"\)', poll):
+        _fail("guest promote still forces play(range) from the waiting Yard")
+    fire = _js_fn(js, "fire")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    if re.search(r"await\s+", fire):
+        _fail("fire() awaits — promote trapped HID")
 
 
 def test_aimsample_and_docs() -> None:
@@ -179,6 +216,10 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must fail loud through test_sablelobby.py")
     if "startWaitingYard" not in bible:
         _fail("PRODUCTION.md must name waiting-arena always-practice")
+    if "enterRangePreserve" not in bible:
+        _fail("PRODUCTION.md must name ENTER RANGE phase-preserve")
+    if "phase-preserve" not in modes and "already lifted" not in modes:
+        _fail("docs/modes.md must name ENTER RANGE phase-preserve")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_sablelobby.py" not in ci:
         _fail("ci.sh must run the SableLobby always-practice gate")

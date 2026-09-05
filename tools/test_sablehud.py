@@ -139,8 +139,10 @@ def test_offline_never_only_gun() -> None:
     if re.search(r"await\s+", warm):
         _fail("WARM UP awaits net — practice is soft-locked")
     start_room = _js_fn(js, "lobbyStartRange")
-    if 'play("range")' not in start_room or "/api/lobby/start" not in start_room:
+    if ("enterRangePreserve()" not in start_room and 'play("range")' not in start_room) or "/api/lobby/start" not in start_room:
         _fail_only_gun("ENTER RANGE no longer shares the Salt House")
+    if re.search(r"await\s+", start_room):
+        _fail("ENTER RANGE awaits net — lift/HID is behind the lobby POST")
     start_bay = _js_fn(js, "lobbyStartBay")
     if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
         _fail("parked lobbyStartBay lost the booth drop")
