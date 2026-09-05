@@ -25,6 +25,7 @@ python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
 python3 tools/test_aim_verb.py
 python3 tools/test_lobby.py
+python3 tools/test_warmup_flow.py
 ./tools/run_cv_tests.sh
 
 python3 tools/test_mojo_python.py

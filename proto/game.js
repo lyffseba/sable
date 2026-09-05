@@ -48,6 +48,39 @@ class AimBus {
 }
 const aimBus = new AimBus();
 
+// HID→hitscan probe. Off unless ?sableperf=1 or localStorage SablePerf=1.
+// Not a HUD. window.SablePerf.stats() → { n, p50, p99, ok } vs 8 ms budget.
+const SablePerf = {
+  on: false,
+  budgetMs: 8,
+  cap: 128,
+  hid: [],
+  begin() {
+    return this.on ? performance.now() : 0;
+  },
+  markHid(t0) {
+    if (!this.on || !t0) return;
+    this.hid.push(performance.now() - t0);
+    if (this.hid.length > this.cap) this.hid.shift();
+  },
+  pct(sorted, p) {
+    if (!sorted.length) return 0;
+    const i = Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1);
+    return sorted[i];
+  },
+  stats() {
+    const s = this.hid.slice().sort((a, b) => a - b);
+    const p50 = this.pct(s, 0.5);
+    const p99 = this.pct(s, 0.99);
+    return { n: s.length, p50, p99, ok: !s.length || p99 < this.budgetMs };
+  },
+};
+try {
+  SablePerf.on = /(?:\?|&)sableperf=1(?:&|$)/.test(location.search)
+    || (typeof localStorage !== "undefined" && localStorage.getItem("SablePerf") === "1");
+} catch (e) { SablePerf.on = false; }
+if (typeof globalThis !== "undefined") globalThis.SablePerf = SablePerf;
+
 // --- Operator Identity & Locker Catalog ---
 const OP_CANCHO = "cancho";
 const STYLE_DEFAULT = "default";
@@ -90,6 +123,9 @@ const PROC_W = 480;
 const CROP_TOP = 0.30;
 const HID_IDLE_MS = 40;
 const RANGE_MS = 60000;
+const SIT_DWELL_S = 4.2;
+const SIT_DROP_VY = -3.2;
+const PLATE_MAX_LIFE_S = 7.5;
 const HUD_PAD = 16;
 const CORNER_NAMES = ["TOP LEFT", "TOP RIGHT", "BOTTOM RIGHT", "BOTTOM LEFT"];
 const LOCK_SAMPLE_MS = 1200;
@@ -137,6 +173,7 @@ const S = {
   player: "",
   slot: -1,
   host: false,
+  warmup: false,
 };
 
 // --- Bay 1v1 Arena State ---
@@ -1485,17 +1522,13 @@ function addBulletTracer(from, to) {
 // --- HID Fire Contract & Hitscan ---
 function fire() {
   if (phase !== "range" && phase !== "bay" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
-  // Peek first. Never wait on a camera frame. Reticle may coast after.
+  // Peek first. Never wait on a camera frame. Never recompute aim on click.
   const shot = aimBus.fire();
   const now = performance.now();
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
   const recent = !!S.smooth && since <= LIFT_STICKY_MS;
   const busLift = !!(shot && shot.lifted);
   if (!S.desktop && !S.lifted && !busLift && !recent && !S.forceGun) return;
-  if (!S.desktop && S.smooth) {
-    if (now - (S.trackT || 0) > 0) coastTrack(now);
-    updateAim();
-  }
 
   bang();
   S.recoil = 2.4; S.flash = 0.06; S.punch = 1.8;
@@ -1507,7 +1540,8 @@ function fire() {
     gunGroup.rotation.x += 0.15;
   }
 
-  // Hitscan raycast from camera through Aim reticle UV
+  // Hitscan uses last committed S.aim / AimBus sample. Track loop already published.
+  const t0 = SablePerf.begin();
   const mouseNorm = new THREE.Vector2((S.aim.x / W) * 2 - 1, -(S.aim.y / H) * 2 + 1);
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(mouseNorm, camera);
@@ -1517,6 +1551,7 @@ function fire() {
 
   if (phase === "bay") {
     fireBay3D(raycaster, muzzleWorld);
+    SablePerf.markHid(t0);
     return;
   }
 
@@ -1530,12 +1565,14 @@ function fire() {
         setTimeout(() => { S.enteringRange = false; enterGame(); }, 400);
       }
     } else missTick();
+    SablePerf.markHid(t0);
     return;
   }
 
   S.shots++;
   let hit = null;
   const hits = raycaster.intersectObjects(rangeTargetGroup.children, true);
+  SablePerf.markHid(t0);
   if (hits.length) {
     let obj = hits[0].object;
     while (obj && !obj.userData.orb) obj = obj.parent;
@@ -1635,6 +1672,13 @@ function stopLobbyPoll() {
   if (lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = 0; }
 }
 
+function slotLabel(slot) {
+  if (!slot) return "—";
+  const you = slot.id === S.player ? "YOU  " : "";
+  const warm = slot.warmup ? "  ·  WARM" : "";
+  return you + slot.name + warm;
+}
+
 function paintLobby(data) {
   if (!data || !data.ok) return;
   S.room = data.code;
@@ -1647,8 +1691,8 @@ function paintLobby(data) {
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
-      ? "You host. ENTER RANGE starts the same ground for everyone in this room."
-      : "Waiting on host. Same Range as offline when they start.";
+      ? "WARM UP is practice now. ENTER RANGE starts the house for the room."
+      : "WARM UP anytime. Waiting on host for the room Range.";
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
@@ -1656,17 +1700,18 @@ function paintLobby(data) {
     for (let i = 0; i < 5; i++) {
       const A = data.slots[i];
       const B = data.slots[i + 5];
-      const an = A ? ((A.id === S.player ? "YOU  " : "") + A.name) : "—";
-      const bn = B ? ((B.id === S.player ? "YOU  " : "") + B.name) : "—";
       rows.push(
-        "<span class=\"" + (A && A.id === S.player ? "you" : "") + "\">" + (i + 1) + "  " + an + "</span>" +
-        "<span class=\"" + (B && B.id === S.player ? "you" : "") + "\">" + (i + 6) + "  " + bn + "</span>"
+        "<span class=\"" + (A && A.id === S.player ? "you" : "") + "\">" + (i + 1) + "  " + slotLabel(A) + "</span>" +
+        "<span class=\"" + (B && B.id === S.player ? "you" : "") + "\">" + (i + 6) + "  " + slotLabel(B) + "</span>"
       );
     }
     el.innerHTML = rows.join("");
   }
   const enter = $("btn-lobby-range");
   if (enter) enter.hidden = !S.host && data.phase === "wait";
+  const warm = $("btn-lobby-warmup");
+  if (warm) warm.hidden = data.phase !== "wait";
+  syncWarmupChrome();
 }
 
 async function lobbyCreate() {
@@ -1713,21 +1758,28 @@ async function lobbyJoin(code) {
 }
 
 async function lobbyPoll() {
-  if (phase !== "lobby" || !S.room) return;
+  if (!S.room || !S.online) return;
+  if (phase !== "lobby" && !S.warmup) return;
   try {
     const res = await fetch("/api/lobby?code=" + encodeURIComponent(S.room));
     const data = await res.json();
     if (!data.ok) return;
     paintLobby(data);
     if (data.phase === "range" && !lobbyStarting) {
+      S.warmup = false;
       lobbyStarting = true;
       stopLobbyPoll();
-      play("range");
+      syncWarmupChrome();
+      if (phase === "range") startRange();
+      else if (phase === "results") setPhase("range");
+      else if (phase === "lobby") play("range");
     }
   } catch (e) { /* keep polling */ }
 }
 
 async function lobbyStartRange() {
+  S.warmup = false;
+  syncWarmupChrome();
   if (!S.room || !S.player) {
     play("range");
     return;
@@ -1742,6 +1794,59 @@ async function lobbyStartRange() {
   lobbyStarting = true;
   stopLobbyPoll();
   play("range");
+}
+
+async function lobbyPost(path) {
+  if (!S.room || !S.player) return null;
+  try {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: S.room, player: S.player }),
+    });
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function lobbyWarmup() {
+  if (!S.room || !S.player) {
+    play("range");
+    return;
+  }
+  S.warmup = true;
+  S.online = true;
+  const data = await lobbyPost("/api/lobby/warmup");
+  if (data && data.ok) paintLobby(data);
+  syncWarmupChrome();
+  if (camReady && (S.smooth || S.tpl || S.desktop)) {
+    setPhase("range");
+    return;
+  }
+  play("range");
+}
+
+function syncWarmupChrome() {
+  const bar = $("range-warmup-bar");
+  if (bar) bar.hidden = !S.warmup;
+  const res = $("btn-results-lobby");
+  if (res) res.hidden = !S.warmup;
+}
+
+async function returnToLobby() {
+  S.warmup = false;
+  lobbyStarting = false;
+  const data = await lobbyPost("/api/lobby/resume");
+  const playBtn = $("btn-play");
+  if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
+  const onBtn = $("btn-online");
+  if (onBtn) onBtn.disabled = false;
+  if (data && data.ok) paintLobby(data);
+  syncWarmupChrome();
+  setPhase("lobby");
+  stopLobbyPoll();
+  lobbyTimer = setInterval(lobbyPoll, 400);
 }
 
 async function lobbyLeave() {
@@ -1759,7 +1864,9 @@ async function lobbyLeave() {
   S.player = "";
   S.room = "";
   S.host = false;
+  S.warmup = false;
   lobbyStarting = false;
+  syncWarmupChrome();
   const playBtn = $("btn-play");
   if (playBtn) { playBtn.disabled = false; playBtn.textContent = "OFFLINE"; }
   const onBtn = $("btn-online");
@@ -1812,6 +1919,7 @@ function setPhase(next) {
     $("btn-redo").hidden = !S.camPts.some(Boolean) || S.calibIndex >= 4;
   }
   if (next === "range") startRange();
+  syncWarmupChrome();
   if (next === "bay") {
     Bay.active = true;
     Bay.resetMatch();
@@ -1950,12 +2058,17 @@ function updateRange(dt, now) {
       o.mesh.position.z += (o.vz || 0) * dt;
       o.vy -= 4.6 * dt;
       const p = o.mesh.position;
-      if (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3) gone.push(o);
+      if (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3 || o.life >= PLATE_MAX_LIFE_S) gone.push(o);
     } else if (o.kind === "sit") {
       if (o.baseY == null) o.baseY = o.mesh.position.y;
       if (o.phase == null) o.phase = 0;
-      o.phase += dt * 1.6;
-      o.mesh.position.y = o.baseY + Math.sin(o.phase) * 0.07;
+      if (o.life >= SIT_DWELL_S) {
+        o.mesh.position.y += SIT_DROP_VY * dt;
+        if (o.mesh.position.y < -1.7 || o.life >= PLATE_MAX_LIFE_S) gone.push(o);
+      } else {
+        o.phase += dt * 1.6;
+        o.mesh.position.y = o.baseY + Math.sin(o.phase) * 0.07;
+      }
     }
     if (gone.indexOf(o) < 0) {
       o.mesh.lookAt(camera.position);
@@ -1965,7 +2078,11 @@ function updateRange(dt, now) {
   for (const o of gone) {
     missTick();
     S.combo = 0;
-    if (o.mesh) rangeTargetGroup.remove(o.mesh);
+    if (o.mesh) {
+      const hud = worldToHud(o.mesh.position);
+      popup(hud.x, hud.y, "ESC", 20);
+      rangeTargetGroup.remove(o.mesh);
+    }
   }
   if (gone.length) S.orbs = S.orbs.filter((o) => gone.indexOf(o) < 0);
 
@@ -2181,7 +2298,9 @@ function drawHUD(now) {
   ctx.fillText(String(S.score), W / 2, 16);
   ctx.font = "700 12px system-ui, sans-serif";
   ctx.fillStyle = "#00f0ff";
-  const sess = !S.online ? "OFFLINE RANGE" : (S.playlist === "5v5" ? "5v5  " + S.room : "ONLINE RANGE");
+  const sess = S.warmup
+    ? "WARM UP  " + S.room
+    : (!S.online ? "OFFLINE RANGE" : (S.playlist === "5v5" ? "5v5  " + S.room : "ONLINE RANGE"));
   ctx.fillText("SCORE  ·  " + sess, W / 2, 52);
   if (S.combo > 1) {
     ctx.fillStyle = "#ff2bd6";
@@ -2478,6 +2597,12 @@ const btnOnline = $("btn-online");
 if (btnOnline) btnOnline.addEventListener("click", () => openLobby());
 const btnLobbyRange = $("btn-lobby-range");
 if (btnLobbyRange) btnLobbyRange.addEventListener("click", () => lobbyStartRange());
+const btnLobbyWarmup = $("btn-lobby-warmup");
+if (btnLobbyWarmup) btnLobbyWarmup.addEventListener("click", () => lobbyWarmup());
+const btnReturnLobby = $("btn-return-lobby");
+if (btnReturnLobby) btnReturnLobby.addEventListener("click", () => returnToLobby());
+const btnResultsLobby = $("btn-results-lobby");
+if (btnResultsLobby) btnResultsLobby.addEventListener("click", () => returnToLobby());
 const btnLobbyJoin = $("btn-lobby-join");
 if (btnLobbyJoin) {
   btnLobbyJoin.addEventListener("click", () => {

@@ -72,7 +72,8 @@ html, body {
 .screen:not([hidden]) .boot-inner,
 .screen:not([hidden]) .lobby-inner,
 .screen:not([hidden]) .results-inner,
-.screen:not([hidden]) .calib-top {
+.screen:not([hidden]) .calib-top,
+.screen:not([hidden]) .range-bar {
   pointer-events: auto;
 }
 
@@ -105,6 +106,24 @@ html, body {
   padding: 24px 16px 40px;
   background: linear-gradient(180deg, rgba(5, 8, 14, 0.08) 0%, rgba(5, 8, 14, 0.82) 62%);
 }
+
+.lobby-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.range-bar {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+}
+.range-bar[hidden] { display: none; }
 
 .join-row {
   display: flex;

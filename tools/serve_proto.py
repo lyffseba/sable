@@ -100,6 +100,14 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                 d = self._read_json()
                 self._json(lobby_api.start(str(d.get("code") or ""), str(d.get("player") or "")))
                 return
+            if path == "/api/lobby/warmup" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.warmup(str(d.get("code") or ""), str(d.get("player") or "")))
+                return
+            if path == "/api/lobby/resume" and lobby_api:
+                d = self._read_json()
+                self._json(lobby_api.resume(str(d.get("code") or ""), str(d.get("player") or "")))
+                return
 
             if path == "/api/gemini/lock":
                 data = self._read_json()

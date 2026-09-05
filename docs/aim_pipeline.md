@@ -81,6 +81,7 @@ Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns G
 - **Sticky lift:** last good sample keeps `lifted` for `kLiftStickyMs` / `LIFT_STICKY_MS` (550 ms) after the hand leaves the lid cam. UV coast stays **100 ms** — do not invent pose. The reticle may lag; the shot peeks the mailbox.
 - Trackpad / HID motion does **not** demote lift during the click (`kLiftHidHoldMs` / `LIFT_HID_HOLD_MS` = 180). HID idle is not required to charge.
 - `fire()` peeks `AimBus` (`shot.lifted` or recent sample). It must not reject a shot only because `S.lifted` flickered while the hand reached the pad.
+- `fire()` must **not** call `coastTrack` or `updateAim`. Hitscan uses the last committed `S.aim` / mailbox UV. The track loop publishes; the click only peeks.
 
 `Space` force-guns the Range without a camera so the verb can be tested. `T` forces desktop aim (OS cursor → UV).
 
@@ -96,7 +97,7 @@ Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns G
 | HID click → hitscan           | **< 8 ms**    |
 | Filter-only lag (pointing)    | 8–20 ms       |
 
-The shot reads `AimBus` on the click. It does not wait for the next 30 Hz sample.
+The shot reads `AimBus` on the click. It does not wait for the next 30 Hz sample. It does not recompute aim. `?sableperf=1` (or `localStorage.SablePerf=1`) records HID→hitscan samples; `SablePerf.stats()` reports p50/p99 against this 8 ms bar.
 
 ## Desktop fallback
 
