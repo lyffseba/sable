@@ -51,6 +51,10 @@ def main() -> int:
             _fail("initHands must spawn proto/hands_worker.js")
         if "startHandsWorker" not in hands:
             _fail("worker boot missing")
+        if 'type: "module"' in hands or "type: 'module'" in hands:
+            _fail("module worker breaks MediaPipe importScripts — use a classic worker")
+        if re.search(r"^import ", worker, re.M):
+            _fail("classic worker must not use static ESM import")
         if "applyEuroPoint" not in _js_fn(js, "applyMpLandmarks"):
             _fail("One Euro must run on UV after landmarks, before mailbox")
         mp = _js_fn(js, "mpTrack")
@@ -86,6 +90,8 @@ def main() -> int:
             _fail("do not point at a non-existent lite .task")
         if "yolo" in hands.lower() or "sapiens" in hands.lower():
             _fail("Sapiens/YOLO must not become the default tracker")
+        if "handsWorker" not in hands:
+            _fail("engine must record when detect is on the worker")
 
         html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
         if 'id="btn-play"' not in html or ">OFFLINE<" not in html:
