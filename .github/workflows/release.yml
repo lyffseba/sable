@@ -65,6 +65,10 @@ jobs:
           test -f proto/README.md
           test -f proto/package.json
           test -f proto/vendor/three.module.js
+          test -s proto/vendor/mediapipe/vision_bundle.mjs
+          test -s proto/vendor/mediapipe/hand_landmarker.task
+          test -s proto/vendor/mediapipe/wasm/vision_wasm_internal.wasm
+          test -s proto/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm
           test -f tools/serve_proto.py
           test -f tools/gemini_muzzle_tracker.py
           (cd proto && zip -r "../sable-proto-${TAG}.zip" index.html game.js style.css README.md package.json vendor/)

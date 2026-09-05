@@ -12,6 +12,14 @@ if [[ -f proto/game.js ]]; then
   fi
 fi
 
+# Release zip is self-contained: Hand Landmarker must not depend on CDN.
+test -s proto/vendor/mediapipe/vision_bundle.mjs
+test -s proto/vendor/mediapipe/hand_landmarker.task
+test -s proto/vendor/mediapipe/wasm/vision_wasm_internal.js
+test -s proto/vendor/mediapipe/wasm/vision_wasm_internal.wasm
+test -s proto/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js
+test -s proto/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm
+
 python3 tools/check_protocol.py
 python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
