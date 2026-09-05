@@ -19,6 +19,10 @@ Internal house phase stays `range` (`play("range")`, `setPhase("range")`). The p
 - Offline HUD session is `GALLERY`. WARM UP stays `WARM UP`. Shared house stays `SHARED`.
 - Stand still. WASD is Bay only.
 
+## Geometry
+
+CS / Fortnite layout literacy is **architecture notes only** (`research/`). Runtime Salt House / Yard / Bay is original SABLE geometry. Zero Valve / Epic asset DNA — no `de_*` halls, no Marketplace packs, no third-party map files.
+
 ## Do not
 
 - Do not make gallery the only gun. Bay, WARM UP, and ENTER RANGE stay.

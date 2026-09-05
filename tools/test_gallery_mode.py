@@ -180,6 +180,48 @@ def test_look_and_hid_not_trapped() -> None:
         _fail("local first plate left the pad")
 
 
+def test_original_geometry() -> None:
+    """CS map literacy is architecture notes. Runtime geometry is first-party."""
+    modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
+    if "architecture notes" not in modes.lower():
+        _fail("CS map literacy must stay architecture notes only")
+    if "Valve" not in modes or "Epic" not in modes:
+        _fail("docs/modes.md must refuse Valve / Epic asset DNA")
+    lessons = (ROOT / "research/design-lessons.md").read_text(encoding="utf-8")
+    if "No Fortnite/CS2" not in lessons and "No Fortnite" not in lessons:
+        _fail("design-lessons must keep the refuse-third-party-IP lock")
+    files = (
+        ROOT / "proto/house.js",
+        ROOT / "docs/yard.md",
+        ROOT / "docs/maps/bay.md",
+        ROOT / "art/concepts/hall.svg",
+        ROOT / "art/concepts/gauntlet.svg",
+        ROOT / "art/concepts/plate.svg",
+        ROOT / "art/blender/build_sable_kit.py",
+    )
+    needles = (
+        "de_dust",
+        "de_mirage",
+        "dust2",
+        "Tilted Towers",
+        "Valve",
+        "Epic Games",
+        "Fortnite",
+        "Counter-Strike",
+        ".vmf",
+        ".bsp",
+    )
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        low = text.lower()
+        for needle in needles:
+            if needle.lower() in low:
+                _fail(f"Valve/Epic asset DNA in {path.relative_to(ROOT)} ({needle})")
+    house = (ROOT / "proto/house.js").read_text(encoding="utf-8")
+    if "[-3.4, -0.7, -3.9]" not in house or "YARD_PEEKS" not in house:
+        _fail("Salt House peek coords left original SABLE geometry")
+
+
 def test_modes_doc() -> None:
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     if "GALLERY" not in modes or "OFFLINE" not in modes:
@@ -199,6 +241,7 @@ def main() -> int:
         test_gallery_rules()
         test_practice_and_bay_survive()
         test_look_and_hid_not_trapped()
+        test_original_geometry()
         test_modes_doc()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
