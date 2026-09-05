@@ -128,6 +128,8 @@ def test_hid_fire_stamps_sim_ms() -> None:
         _fail("fireBay3D awaits — HID is behind a promise")
     if "Math.random" in bay:
         _fail("Bay fire hid the shot with RNG")
+    if "getWorldPosition" in bay or "peekMuzzleWorld" in bay or "addBulletTracer" in bay:
+        _fail("fireBay3D must stay the sphere — Look tracers peek muzzle after markHid")
     committed = _js_fn(js, "committedSimMs")
     if "simTick" not in committed:
         _fail("committedSimMs must read S.simTick")

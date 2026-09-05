@@ -188,6 +188,13 @@ def test_client_keeps_local_practice_and_hid() -> None:
         raise AssertionError("local hitscan must be the house sphere")
     if "intersectObjects" in fire:
         raise AssertionError("local hitscan must not mesh-test the spun hex")
+    intersect = fire.find("hitscanRange(")
+    mark_range = fire.find("SablePerf.markHid", intersect)
+    if intersect < 0 or mark_range < 0 or mark_range < intersect:
+        raise AssertionError("HID→hitscan must mark at the house sphere")
+    probe = fire[intersect:mark_range]
+    if "applyGunKick" in probe or "peekMuzzleWorld" in probe or "getWorldPosition" in probe:
+        raise AssertionError("Look landed inside the HID→hitscan probe")
     if "performance.now()" in report or "S.rangeStart" in report:
         raise AssertionError("fire_ms must speak sim Hz, not rAF present")
     if "committedSimMs" not in report and "simTick" not in report:
