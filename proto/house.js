@@ -1,5 +1,6 @@
 /* SABLE — house.js
    Salt House gallery (60s plates/clays), shared match hooks, Bay.
+   Sit pose is closed-form from life (sitPoseY) — same house local and rewind.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -59,7 +60,18 @@ const Locker = {
 const RANGE_MS = 60000;
 const SIT_DWELL_S = 4.2;
 const SIT_DROP_VY = -3.2;
+const SIT_BOB_RATE = 1.6;
+const SIT_BOB_AMP = 0.07;
 const PLATE_MAX_LIFE_S = 7.5;
+
+function sitPoseY(baseY, life) {
+  // Closed-form sit pose from life. Same formula as lobby.sit_pose_y.
+  // Local practice (Offline / WARM UP / wait_practice) and match_live rewind
+  // share this house. Do not accumulate an unsynced phase — friends would split.
+  if (life >= SIT_DWELL_S) return baseY + SIT_DROP_VY * (life - SIT_DWELL_S);
+  return baseY + Math.sin(life * SIT_BOB_RATE) * SIT_BOB_AMP;
+}
+
 const HUD_PAD = 16;
 
 // --- Bay 1v1 — original booth (docs/maps/bay.md). Not a third-party map. ---
@@ -810,8 +822,10 @@ function applySharedSim(data) {
       continue;
     }
     if (typeof p.life === "number") o.life = p.life;
-    if (o.mesh && (o.kind === "clay" || o.kind === "rise")) {
-      o.mesh.position.set(p.x, p.y, p.z);
+    if (p.baseY != null) o.baseY = p.baseY;
+    // Room pose is authority for sit and flyers. Do not keep a local sit bob.
+    if (o.mesh) o.mesh.position.set(p.x, p.y, p.z);
+    if (o.kind === "clay" || o.kind === "rise") {
       o.vx = p.vx;
       o.vy = p.vy;
       o.vz = p.vz;
@@ -1003,14 +1017,8 @@ function updateRange(dt, elapsed) {
       if (!shared && (p.y < -1.7 || p.x < -10 || p.x > 10 || p.z < -18 || p.z > 3 || o.life >= PLATE_MAX_LIFE_S)) gone.push(o);
     } else if (o.kind === "sit") {
       if (o.baseY == null) o.baseY = o.mesh.position.y;
-      if (o.phase == null) o.phase = 0;
-      if (o.life >= SIT_DWELL_S) {
-        o.mesh.position.y += SIT_DROP_VY * dt;
-        if (!shared && (o.mesh.position.y < -1.7 || o.life >= PLATE_MAX_LIFE_S)) gone.push(o);
-      } else {
-        o.phase += dt * 1.6;
-        o.mesh.position.y = o.baseY + Math.sin(o.phase) * 0.07;
-      }
+      o.mesh.position.y = sitPoseY(o.baseY, o.life);
+      if (!shared && (o.mesh.position.y < -1.7 || o.life >= PLATE_MAX_LIFE_S)) gone.push(o);
     }
     if (gone.indexOf(o) < 0) {
       o.mesh.lookAt(camera.position);
@@ -1121,6 +1129,9 @@ export {
   RANGE_MS,
   SIT_DWELL_S,
   SIT_DROP_VY,
+  SIT_BOB_RATE,
+  SIT_BOB_AMP,
+  sitPoseY,
   PLATE_MAX_LIFE_S,
   HUD_PAD,
   BAY_TO_WIN,

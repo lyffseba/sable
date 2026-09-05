@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import pathlib
 import re
 import sys
@@ -212,6 +213,80 @@ def test_client_keeps_local_practice_and_hid() -> None:
         raise AssertionError("AimSample fields must stay")
 
 
+def test_sit_pose_authority() -> None:
+    """Sit Y is closed-form from life. Two clients agree. Hit uses that pose."""
+    if abs(lobby.SIT_BOB_RATE - 1.6) > 1e-12 or abs(lobby.SIT_BOB_AMP - 0.07) > 1e-12:
+        raise AssertionError("sit bob constants drifted")
+    if abs(lobby.sit_pose_y(0.35, 0.0) - 0.35) > 1e-12:
+        raise AssertionError("life 0 sit must sit on the pad")
+    want = 0.35 + math.sin(1.0 * lobby.SIT_BOB_RATE) * lobby.SIT_BOB_AMP
+    bobbed = lobby.sit_pose_y(0.35, 1.0)
+    if abs(bobbed - want) > 1e-12:
+        raise AssertionError(f"sit bob must be closed-form sin(life) {bobbed} vs {want}")
+    if abs(bobbed - 0.35) < 0.02:
+        raise AssertionError("sit bob amp died — friends would not see motion")
+    if lobby.sit_pose_y(0.35, lobby.SIT_DWELL_S + 0.5) >= 0.35:
+        raise AssertionError("sit must drop after dwell")
+
+    a = lobby.create("HOST")
+    lobby.join(a["code"], "P2")
+    t0 = 4_000.0
+    lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    later_a = lobby.get(a["code"], now=t0 + 1.0)
+    later_b = lobby.get(a["code"], now=t0 + 1.0)
+    p0a = next(p for p in later_a["plates"] if p["id"] == "p0")
+    p0b = next(p for p in later_b["plates"] if p["id"] == "p0")
+    if abs(p0a["y"] - p0b["y"]) > 1e-12:
+        raise AssertionError(f"two clients split sit Y {p0a['y']} vs {p0b['y']}")
+    if abs(p0a["y"] - lobby.sit_pose_y(0.35, 1.0)) > 1e-9:
+        raise AssertionError(f"shared sit Y left sit_pose_y {p0a['y']}")
+
+    uv = list(lobby.uv_for_world(p0a["x"], p0a["y"], p0a["z"]))
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=1000.0,
+        t_hw=9,
+        now=t0 + 1.05,
+    )
+    if shot.get("hit") != "p0":
+        raise AssertionError(f"rewind ray must hit the bobbed sit pose {shot}")
+
+    js = proto_js()
+    sit = _js_fn(js, "sitPoseY")
+    if "SIT_BOB_RATE" not in sit or "SIT_BOB_AMP" not in sit or "Math.sin" not in sit:
+        raise AssertionError("client sitPoseY must share the lobby closed-form bob")
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "o.mesh.position.set(p.x, p.y, p.z)" not in apply:
+        raise AssertionError("applySharedSim must snap sit pose from the room")
+    set_at = apply.find("o.mesh.position.set(p.x, p.y, p.z)")
+    clay_at = apply.find('o.kind === "clay"')
+    if clay_at >= 0 and set_at > clay_at:
+        raise AssertionError("applySharedSim skipped sit — flyers-only snap")
+    if "sitPoseY(o.baseY, o.life)" not in js:
+        raise AssertionError("updateRange must use sitPoseY")
+    if "o.phase += dt * 1.6" in js or "o.phase = 0" in js:
+        raise AssertionError("updateRange accumulated a local sit phase")
+    fire = _js_fn(js, "fire")
+    if "await" in fire or "sitPoseY" in fire:
+        raise AssertionError("fire() must still peek AimBus — sit pose is not a fire gate")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after sit pose lock")
+    parked = lobby.create("HOST3")
+    guest = lobby.join(parked["code"], "R2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("seed") or parked_warm.get("plates"):
+        raise AssertionError("wait_practice must not open the shared sit sim")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -219,6 +294,7 @@ def main() -> int:
         test_warmup_stays_local()
         test_hit_uses_sample_not_cam()
         test_client_keeps_local_practice_and_hid()
+        test_sit_pose_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
