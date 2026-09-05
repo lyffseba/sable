@@ -44,9 +44,19 @@ def main() -> int:
         sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
         if not sample:
             _fail("AimSample class missing")
-        for field in ("uv", "valid", "lifted", "confidence", "t_hw"):
-            if f"this.{field}" not in sample.group(0):
-                _fail(f"AimSample field {field} changed")
+        fields = re.findall(r"this\.(\w+)", sample.group(0))
+        if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+            _fail("AimSample fields changed — keep the locked struct")
+
+        css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
+        if "#game.nocursor" not in css or "cursor: none" not in css:
+            _fail("lock-never-cursor lost the CSS hide")
+        move = re.search(r"pointermove[\s\S]{0,280}", js)
+        if not move or "if (S.desktop)" not in move.group(0):
+            _fail("OS pointer writes aim outside DESKTOP — lock-never-cursor died")
+        sync = _js_fn(js, "syncCursor")
+        if 'phase === "lock"' not in sync or "nocursor" not in sync:
+            _fail("lock phase must hide the OS cursor")
 
         fire = _js_fn(js, "fire")
         if re.search(r"await\s+", fire):
