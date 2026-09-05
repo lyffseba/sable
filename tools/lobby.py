@@ -5,6 +5,9 @@ Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.
+
+Room snapshot owns hangar (wait→wait_practice, range→match_live, bay→hangar).
+Clients apply it to S.hangar. Fire never waits on this field.
 """
 
 from __future__ import annotations
@@ -52,6 +55,22 @@ BAY_FREEZE_MS = 450.0
 BAY_POSE_RING = 24
 BAY_SPAWN_A = (0.0, 10.0)
 BAY_SPAWN_B = (0.0, -10.0)
+HANGAR_PHASES = ("hangar", "wait_practice", "match_live")
+
+
+def hangar_for_phase(phase: str) -> str:
+    """Room-owned hangar. Snapshot view of wait|range|bay. Fail loud on unknown."""
+    if phase == "wait":
+        hangar = "wait_practice"
+    elif phase == "range":
+        hangar = "match_live"
+    elif phase == "bay":
+        hangar = "hangar"
+    else:
+        raise ValueError("SABLE HANGAR: unknown room phase " + str(phase))
+    if hangar not in HANGAR_PHASES:
+        raise ValueError("SABLE HANGAR: unknown hangar phase " + hangar)
+    return hangar
 
 
 def _code() -> str:
@@ -578,6 +597,7 @@ def snapshot(room: dict, now: float | None = None) -> dict:
         "ok": True,
         "code": room["code"],
         "phase": room["phase"],
+        "hangar": hangar_for_phase(room["phase"]),
         "host": room["host"],
         "filled": filled,
         "slots": room["slots"],

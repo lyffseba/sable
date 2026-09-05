@@ -294,10 +294,29 @@ def test_hangar_phase_enum() -> None:
     )
     if not offline or 'assignHangar("hangar")' not in offline.group(0):
         _fail("OFFLINE must mark hangar in one click")
-    if '"hangar":' in lobby_py or "hangar =" in lobby_py or '["hangar"]' in lobby_py:
-        _fail("server lobby grew a hangar field — client-only this cut")
+    if "def hangar_for_phase" not in lobby_py:
+        _fail("server must own hangar_for_phase — room snapshot hangs hangar")
+    if '"hangar": hangar_for_phase' not in lobby_py and '"hangar": hangar_for_phase(room["phase"])' not in lobby_py:
+        _fail("room snapshot must broadcast hangar")
+    if "unknown room phase" not in lobby_py:
+        _fail("hangar_for_phase must fail loud on an unknown room phase")
     if '"phase": "wait"' not in lobby_py:
         _fail("server room phase must stay wait | range | bay")
+    apply = _js_fn(js, "applyRoomHangar")
+    if "data.hangar" not in apply:
+        _fail("applyRoomHangar must write S.hangar from the room snapshot")
+    if "room snapshot missing hangar" not in apply:
+        _fail("applyRoomHangar must fail loud when the snapshot omits hangar")
+    if re.search(r"await\s+", apply) or "fetch(" in apply:
+        _fail("applyRoomHangar awaits — hangar wire trapped HID")
+    if "aimBus" in apply or "fire(" in apply:
+        _fail("applyRoomHangar touched AimBus / fire — hangar is not a fire gate")
+    if "applyRoomHangar(data)" not in _js_fn(js, "paintLobby"):
+        _fail("paintLobby must apply room-owned hangar")
+    if "applyRoomHangar(data)" not in poll:
+        _fail("lobbyPoll must apply room-owned hangar")
+    if "applyRoomHangar" in fire:
+        _fail("fire() gated on applyRoomHangar — Fire = AimBus HID peek")
 
 
 def test_aimsample_and_docs() -> None:
@@ -324,10 +343,14 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must name ENTER RANGE phase-preserve")
     if "wait_practice" not in modes or "match_live" not in modes or "S.hangar" not in modes:
         _fail("docs/modes.md must name the durable hangar session enum")
-    if "no parallel hangar field" not in modes:
-        _fail("docs/modes.md must keep hangar client-only this cut")
+    if "room snapshot owns hangar" not in modes and "owns hangar" not in modes:
+        _fail("docs/modes.md must note the room snapshot owns hangar")
     if "S.hangar" not in bible or "wait_practice" not in bible or "match_live" not in bible:
         _fail("PRODUCTION.md must name the durable hangar session enum")
+    if "owns hangar" not in bible:
+        _fail("PRODUCTION.md must note the room snapshot owns hangar")
+    if "test_hangar_wire.py" not in bible:
+        _fail("PRODUCTION.md must fail loud through test_hangar_wire.py")
     if "WAIT" not in modes or "READY" not in modes or "LIVE" not in modes:
         _fail("docs/modes.md must name hangar WAIT / READY / LIVE chips")
     if "WAIT" not in bible or "READY" not in bible or "LIVE" not in bible:

@@ -27,6 +27,7 @@ python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
 python3 tools/test_aim_verb.py
 python3 tools/test_lobby.py
+python3 tools/test_hangar_wire.py
 python3 tools/test_warmup_flow.py
 python3 tools/test_shared_range.py
 python3 tools/test_sableqa_offline.py
