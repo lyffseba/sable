@@ -112,7 +112,7 @@ const S = {
   tpl: null, ncc: 0, gray: null, skin: null, frame: null, lockHand: null,
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
-  engine: { mojo: null, gemini: false, hands: false },
+  engine: { mojo: null, gemini: false, hands: false, handsWorker: false },
   handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null, rvfc: false,
   mpBusy: false, mpDelegate: "",
   online: false,

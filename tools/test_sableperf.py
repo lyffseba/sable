@@ -88,6 +88,10 @@ def test_no_main_thread_detect() -> None:
 
     if not DETECT_CALL.search(worker):
         _fail("worker lost HandLandmarker.detectForVideo")
+    if 'type: "module"' in hands or "type: 'module'" in hands:
+        _fail("module worker breaks MediaPipe importScripts — detect falls back to main")
+    if re.search(r"^import ", worker, re.M):
+        _fail("classic worker must not use static ESM import")
 
     for rel, src in (("aim.js", aim), ("boot.js", boot), ("house.js", house), ("game.js", game)):
         if DETECT_CALL.search(src):

@@ -51,6 +51,12 @@ def main() -> int:
             _fail("initHands must spawn proto/hands_worker.js")
         if "startHandsWorker" not in hands:
             _fail("worker boot missing")
+        if 'type: "module"' in hands or "type: 'module'" in hands:
+            _fail("module worker breaks MediaPipe importScripts — use a classic worker")
+        if re.search(r"^import ", worker, re.M):
+            _fail("classic worker must not use static ESM import")
+        if "handsWorker" not in hands:
+            _fail("engine must record when detect is on the worker")
         if "applyEuroPoint" not in _js_fn(js, "applyMpLandmarks"):
             _fail("One Euro must run on UV after landmarks, before mailbox")
         mp = _js_fn(js, "mpTrack")

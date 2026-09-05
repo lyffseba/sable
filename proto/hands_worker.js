@@ -1,8 +1,6 @@
 /* SABLE — hands_worker.js
-   HandLandmarker detect lives here. GPU first, CPU fallback.
-   Main thread applies One Euro and publishes AimBus. Fire never waits on this worker. */
-
-import { FilesetResolver, HandLandmarker } from "./vendor/mediapipe/vision_bundle.mjs";
+   Classic worker (not type:module). MediaPipe wasm glue calls importScripts.
+   GPU first, CPU fallback. Main applies One Euro. Fire never waits here. */
 
 const BASE = {
   runningMode: "VIDEO",
@@ -32,8 +30,8 @@ function packLandmarks(res) {
   return out;
 }
 
-async function createLandmarker(vision, model, want) {
-  return HandLandmarker.createFromOptions(vision, Object.assign({
+async function createLandmarker(mod, vision, model, want) {
+  return mod.HandLandmarker.createFromOptions(vision, Object.assign({
     baseOptions: { modelAssetPath: model, delegate: want },
   }, BASE));
 }
@@ -43,12 +41,13 @@ async function init(tries) {
   for (let i = 0; i < tries.length; i++) {
     const t = tries[i];
     try {
-      const vision = await FilesetResolver.forVisionTasks(t.wasm);
+      const mod = await import(t.js);
+      const vision = await mod.FilesetResolver.forVisionTasks(t.wasm);
       try {
-        landmarker = await createLandmarker(vision, t.model, "GPU");
+        landmarker = await createLandmarker(mod, vision, t.model, "GPU");
         delegate = "GPU";
       } catch (e) {
-        landmarker = await createLandmarker(vision, t.model, "CPU");
+        landmarker = await createLandmarker(mod, vision, t.model, "CPU");
         delegate = "CPU";
       }
       self.postMessage({ type: "ready", delegate });
