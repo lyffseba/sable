@@ -17,6 +17,9 @@
    match_live COMBO peak snaps from room combo_max. Do not invent
    the peak from a local if (S.combo > S.comboMax) — a missed poll
    after a miss / ESC would paint COMBO 0.
+   match_live plate life is the rewind clock (committedSimMs - born_ms).
+   Do not invent from o.life += dt after a poll — a hitch would miss
+   the room sphere. Offline / WARM UP still integrate life locally.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -790,6 +793,27 @@ function committedSimMs() {
   return (S.simTick || 0) * (1000 / (S.simHz || 128));
 }
 
+function commitSharedPlateLife(o) {
+  // match_live life is lobby._pose_at at fire_ms. Same committedSimMs
+  // the click posts. Do not invent from o.life += dt after a poll.
+  // Pose the mesh here — hitscanRange reads position, not o.life.
+  if (!o || typeof o.born_ms !== "number") return false;
+  o.life = Math.max(0, (committedSimMs() - o.born_ms) / 1000);
+  if (!o.mesh) return true;
+  if (o.kind === "clay" || o.kind === "rise") {
+    if (o.x0 == null) bindFlyerBirth(o);
+    const pose = flyerPose(o.x0, o.y0, o.z0, o.vx0, o.vy0, o.vz0, o.life);
+    o.mesh.position.set(pose.x, pose.y, pose.z);
+    o.vx = pose.vx;
+    o.vy = pose.vy;
+    o.vz = pose.vz;
+  } else if (o.kind === "sit") {
+    if (o.baseY == null) o.baseY = o.mesh.position.y;
+    o.mesh.position.y = sitPoseY(o.baseY, o.life);
+  }
+  return true;
+}
+
 function reportSharedFire(shot, localPlateId) {
   if (!sharedMatch() || !S.room || !S.player) return;
   if (!S.sharedPending) S.sharedPending = new Set();
@@ -919,7 +943,9 @@ function spawnSharedPlate(p) {
   o.mesh.position.set(p.x, p.y, p.z);
   o.baseY = p.baseY != null ? p.baseY : p.y;
   o.life = typeof p.life === "number" ? p.life : 0;
+  if (typeof p.born_ms === "number") o.born_ms = p.born_ms;
   bindFlyerBirthFromPlate(o, p);
+  commitSharedPlateLife(o);
   return o;
 }
 
@@ -995,10 +1021,13 @@ function applySharedSim(data) {
       continue;
     }
     if (typeof p.life === "number") o.life = p.life;
+    if (typeof p.born_ms === "number") o.born_ms = p.born_ms;
     if (p.baseY != null) o.baseY = p.baseY;
     // Room pose is authority for sit and flyers. Do not Euler locally.
+    // born_ms stays on the orb so updateRange can rewind, not += dt.
     bindFlyerBirthFromPlate(o, p);
     if (o.mesh) o.mesh.position.set(p.x, p.y, p.z);
+    commitSharedPlateLife(o);
     if (o.kind === "clay" || o.kind === "rise") {
       o.vx = p.vx;
       o.vy = p.vy;
@@ -1198,7 +1227,10 @@ function updateRange(dt, elapsed) {
 
   const gone = [];
   for (const o of S.orbs) {
-    o.life += dt;
+    // match_live life is lobby._pose_at at fire_ms. Same committedSimMs
+    // the click posts. Local += dt after a poll misses rewind.
+    if (shared) commitSharedPlateLife(o);
+    else o.life += dt;
     if (!o.mesh) continue;
     if (o.kind === "clay" || o.kind === "rise") {
       if (o.x0 == null) bindFlyerBirth(o);

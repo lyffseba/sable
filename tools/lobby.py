@@ -6,6 +6,7 @@ The room seed owns kind / peek / velocity / born_ms — not the first poll.
 Gallery SCORE / combo / combo_max / hits / shots live on that rewind (not a local peek).
 ACCURACY is hits/shots on that book — not a per-client S.shots++.
 COMBO peak is combo_max on that book — not a local if (S.combo > S.comboMax) from a poll.
+match_live plate life is (fire_ms - born_ms) — not a local o.life += dt after a poll.
 ESC is the same miss for combo — a plate that leaves drops the live combo, not the peak.
 ESC is not a shot. The bell is not a shot.
 The room owns the 60 s bell — a fire_tick at or past RANGE_MS does not credit.
