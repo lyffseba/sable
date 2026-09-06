@@ -2,6 +2,7 @@
 """In-memory 5v5 waiting-arena rooms + shared Salt House / Bay. Stdlib only.
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
+The room seed owns kind / peek / velocity / born_ms — not the first poll.
 Gallery SCORE / combo / hits live on that rewind (not a local peek).
 ESC is the same miss for combo — a plate that leaves drops the book.
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
@@ -426,6 +427,42 @@ def _escaped_at(rec: dict, elapsed_ms: float) -> bool:
     return pose["y"] < -1.7
 
 
+def _escape_ms(rec: dict) -> float:
+    """First time the plate leaves. Same predicate as _escaped_at. Not a tick walk."""
+    born = float(rec["born_ms"])
+    if _escaped_at(rec, born):
+        return born
+    lo = 0.0
+    hi = PLATE_MAX_LIFE_S * 1000.0
+    for _ in range(40):
+        mid = (lo + hi) * 0.5
+        if _escaped_at(rec, born + mid):
+            hi = mid
+        else:
+            lo = mid
+    return born + hi
+
+
+def _next_spawn_ms(sim: dict, elapsed_ms: float) -> float | None:
+    """Earliest legal birth on the seed schedule. Do not stamp the observer."""
+    cap = min(float(elapsed_ms), float(RANGE_MS))
+    candidates = [2000.0, 14000.0, 32000.0]
+    for d in sim.get("dead") or []:
+        candidates.append(float(d.get("at_ms", 0.0)))
+    for rec in sim["spawned"]:
+        candidates.append(_escape_ms(rec))
+    best: float | None = None
+    for t in sorted(set(candidates)):
+        if t < 0.0 or t > cap or t >= RANGE_MS:
+            continue
+        live = _live_at(sim, t)
+        want = _desired(t)
+        if len(live) < want and (t >= 2000.0 or len(live) == 0):
+            if best is None or t < best:
+                best = t
+    return best
+
+
 def _dead_ids_at(sim: dict, elapsed_ms: float) -> set[str]:
     return {d["id"] for d in sim["dead"] if float(d.get("at_ms", 0.0)) <= float(elapsed_ms)}
 
@@ -446,15 +483,15 @@ def _live_at(sim: dict, elapsed_ms: float) -> list[dict]:
 
 
 def _advance_spawns(sim: dict, elapsed_ms: float) -> None:
-    if elapsed_ms >= RANGE_MS:
+    """Fill plates at seed schedule times. A late first poll must not shift born_ms."""
+    if elapsed_ms <= 0.0:
         return
-    want = _desired(elapsed_ms)
-    hard = elapsed_ms > 35000
-    while True:
-        live = _live_at(sim, elapsed_ms)
-        if not (len(live) < want and (elapsed_ms >= 2000 or len(live) == 0)):
+    cap = min(float(elapsed_ms), float(RANGE_MS))
+    for _ in range(64):
+        t = _next_spawn_ms(sim, cap)
+        if t is None:
             return
-        _spawn_random(sim, elapsed_ms, hard)
+        _spawn_random(sim, t, t > 35000)
 
 
 def quantize_fire_ms(fire_ms: float) -> float:
@@ -509,8 +546,9 @@ def _note_escapes(sim: dict, elapsed_ms: float) -> None:
             continue
         if float(rec["born_ms"]) > float(elapsed_ms):
             continue
-        if _escaped_at(rec, elapsed_ms):
-            sim["escaped"].append({"id": pid, "at_ms": float(elapsed_ms)})
+        esc = _escape_ms(rec)
+        if esc <= float(elapsed_ms):
+            sim["escaped"].append({"id": pid, "at_ms": float(esc)})
             fresh = True
     if fresh:
         _gallery_escape(sim)
@@ -1130,6 +1168,8 @@ def hit(
             }
         )
         _gallery_hit(sim, player, struck)
+        _advance_spawns(sim, elapsed_now)
+        _note_escapes(sim, elapsed_now)
         snap = snapshot(room, t)
     snap["hit"] = struck["id"]
     snap["by"] = player
