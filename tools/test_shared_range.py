@@ -147,10 +147,10 @@ def test_warmup_stays_local() -> None:
     a = lobby.create("HOST")
     b = lobby.join(a["code"], "P2")
     warm = lobby.warmup(a["code"], b["player"])
-    if warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice" or "seed" in warm or warm.get("plates") or warm.get("scores"):
+    if warm.get("phase") != "wait" or warm.get("hangar") != "wait_practice" or "seed" in warm or warm.get("plates") or warm.get("scores") or "over" in warm:
         raise AssertionError(f"warmup must not open the shared sim {warm}")
     g = lobby.get(a["code"])
-    if g.get("phase") != "wait" or "seed" in g or g.get("plates") or g.get("scores"):
+    if g.get("phase") != "wait" or "seed" in g or g.get("plates") or g.get("scores") or "over" in g:
         raise AssertionError(f"wait get leaked sim {g}")
     miss = lobby.hit(a["code"], a["player"], uv=_p0_uv(), fire_ms=0)
     if miss.get("ok"):
@@ -814,6 +814,137 @@ def test_seed_owns_born_ms() -> None:
         raise AssertionError("AimSample fields changed — keep the locked struct")
 
 
+def test_gallery_over_authority() -> None:
+    """Room owns the 60 s bell. Two clients agree. Offline still closes locally."""
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 20_000.0
+    st = lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    if st.get("over"):
+        raise AssertionError(f"fresh house must not be over {st}")
+    uv = _p0_uv()
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=90.0,
+        t_hw=60,
+        now=t0 + 0.14,
+    )
+    if shot.get("hit") != "p0":
+        raise AssertionError(f"setup hit must still shatter p0 {shot}")
+    if (shot.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError(f"setup hit must credit SCORE 100 {shot}")
+    if shot.get("over"):
+        raise AssertionError("in-time hit must not close the house")
+
+    mid_a = lobby.get(a["code"], now=t0 + 59.0)
+    mid_b = lobby.get(a["code"], now=t0 + 59.0)
+    if mid_a.get("over") or mid_b.get("over"):
+        raise AssertionError("house must stay open before RANGE_MS")
+    if (mid_a.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError("pre-bell SCORE must hold")
+
+    just = lobby.get(a["code"], now=t0 + 60.0)
+    if not just.get("over"):
+        raise AssertionError("elapsed RANGE_MS must close the house")
+    just_score = (just.get("scores") or {}).get(a["player"])
+    just_combo = (just.get("combos") or {}).get(a["player"])
+
+    late_hit = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=float(lobby.RANGE_MS),
+        t_hw=61,
+        now=t0 + 60.05,
+    )
+    if late_hit.get("hit"):
+        raise AssertionError(f"fire_tick at RANGE_MS must not credit {late_hit}")
+    if not late_hit.get("miss") or not late_hit.get("over"):
+        raise AssertionError(f"bell fire must miss and carry over {late_hit}")
+    if (late_hit.get("scores") or {}).get(a["player"]) != just_score:
+        raise AssertionError("bell must not rewrite SCORE")
+    if (late_hit.get("combos") or {}).get(a["player"]) != just_combo:
+        raise AssertionError("bell must not drop combo as a miss on the book")
+
+    over_a = lobby.get(a["code"], now=t0 + 60.05)
+    over_b = lobby.get(a["code"], now=t0 + 60.05)
+    if not over_a.get("over") or not over_b.get("over"):
+        raise AssertionError(f"two clients must see the room bell {over_a.get('over')} vs {over_b.get('over')}")
+    if over_a.get("scores") != over_b.get("scores"):
+        raise AssertionError(f"bell split SCORE {over_a.get('scores')} vs {over_b.get('scores')}")
+    if (over_a.get("scores") or {}).get(a["player"]) != just_score:
+        raise AssertionError("GALLERY CLEAR must keep the room book")
+
+    in_time = lobby.hit(
+        a["code"],
+        b["player"],
+        uv=_p0_uv(),
+        fire_ms=59_900.0,
+        t_hw=62,
+        now=t0 + 60.05,
+    )
+    # p0 is already dead from the setup hit. The lock is: a pre-bell fire_tick
+    # is still legal after wall RANGE_MS — the room does not refuse the rewind.
+    if in_time.get("error") == "not in range":
+        raise AssertionError("pre-bell rewind must still be legal after the wall bell")
+    if not in_time.get("over"):
+        raise AssertionError("snapshot after RANGE_MS must still say over")
+
+    parked = lobby.create("HOST9")
+    guest = lobby.join(parked["code"], "X2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("over") or parked_warm.get("seed") or parked_warm.get("scores"):
+        raise AssertionError("wait_practice must not open the shared bell")
+    g = lobby.get(parked["code"])
+    if "over" in g or g.get("seed") or g.get("scores"):
+        raise AssertionError("wait get leaked over / sim")
+
+    src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    bell = re.search(r"if fire_tick >= RANGE_MS:\n(?:    .*\n){1,8}", src)
+    if not bell:
+        raise AssertionError("hit must close credit at the room bell")
+    if "_gallery_miss" in bell.group(0):
+        raise AssertionError("bell must not treat the clock as a combo miss")
+
+    js = proto_js()
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "data.over" not in apply or 'setPhase("results")' not in apply:
+        raise AssertionError("applySharedSim must snap GALLERY CLEAR from the room")
+    book_at = apply.find("data.scores")
+    over_at = apply.find("data.over")
+    if book_at < 0 or over_at < 0 or over_at < book_at:
+        raise AssertionError("applySharedSim must snap the book before the bell")
+    ranged = _js_fn(js, "updateRange")
+    if "galleryOver" not in ranged or 'setPhase("results")' not in ranged:
+        raise AssertionError("Offline / WARM UP must still end locally")
+    if re.search(r"if\s*\(\s*!S\.waitingYard\s*&&\s*galleryOver", ranged):
+        raise AssertionError("match_live still locally ends from simMs")
+    if "shared" not in ranged or "galleryOver" not in ranged:
+        raise AssertionError("updateRange must park match_live off the local bell")
+    fire = _js_fn(js, "fire")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — the bell is not a fire gate")
+    if "galleryOver" in fire or "data.over" in fire:
+        raise AssertionError("fire() must not wait on the room bell")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after the bell lock")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample fields changed — keep the locked struct")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -827,6 +958,7 @@ def main() -> int:
         test_hit_score_authority()
         test_escape_miss_authority()
         test_seed_owns_born_ms()
+        test_gallery_over_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

@@ -8,6 +8,8 @@
    snap from the room book. Do not locally credit a rewind miss.
    ESC is the same miss for combo — snap the book, then tell. Do not
    locally zero combo before the room.
+   match_live GALLERY CLEAR snaps from the room bell. Do not locally
+   close from simMs — two friends would split the house.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -991,6 +993,8 @@ function applySharedSim(data) {
       o.vz = p.vz;
     }
   }
+  // Room owns the 60 s bell. Snap the book first, then close.
+  if (data.over) setPhase("results");
 }
 
 async function pullSharedSim() {
@@ -1157,8 +1161,9 @@ function baySessionLabel() {
 
 function updateRange(dt, elapsed) {
   // dt + elapsed are the 128 Hz sim clock. Render does not own plates.
-  if (!S.waitingYard && galleryOver(elapsed)) { setPhase("results"); return; }
+  // match_live: room owns the bell. Offline / WARM UP still close locally.
   const shared = sharedMatch();
+  if (!shared && !S.waitingYard && galleryOver(elapsed)) { setPhase("results"); return; }
   if (!shared) {
     const want = desiredOrbCount(elapsed);
     const hard = elapsed > 35000;

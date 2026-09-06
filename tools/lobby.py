@@ -5,6 +5,7 @@ Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
 The room seed owns kind / peek / velocity / born_ms — not the first poll.
 Gallery SCORE / combo / hits live on that rewind (not a local peek).
 ESC is the same miss for combo — a plate that leaves drops the book.
+The room owns the 60 s bell — a fire_tick at or past RANGE_MS does not credit.
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.
@@ -611,6 +612,7 @@ def _sim_view(sim: dict, now: float) -> dict:
     return {
         "seed": sim["seed"],
         "elapsed_ms": int(elapsed_ms),
+        "over": elapsed_ms >= RANGE_MS,
         "plates": plates,
         "dead": list(sim["dead"]),
         "escaped": list(sim.get("escaped") or []),
@@ -1138,6 +1140,12 @@ def hit(
             fire_tick = quantize_fire_ms(fire_tick)
             if fire_tick > view_ms:
                 fire_tick = view_ms
+        if fire_tick >= RANGE_MS:
+            # House closed. The click is not a miss on the book — the bell owns it.
+            snap = snapshot(room, t)
+            snap["miss"] = True
+            snap["over"] = True
+            return snap
         if elapsed_now - fire_tick > REWIND_MAX_MS:
             _gallery_miss(sim, player)
             snap = snapshot(room, t)
