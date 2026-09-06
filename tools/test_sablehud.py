@@ -75,6 +75,10 @@ def test_thin_arcade_chips() -> None:
     results = _js_fn(js, "showResults")
     if "ACCURACY" not in results or "S.shots" not in results or "S.hits" not in results:
         _fail("GALLERY CLEAR ACCURACY must snap from room hits / shots")
+    if "COMBO" not in results or "S.comboMax" not in results:
+        _fail("GALLERY CLEAR COMBO must snap from room combo_max")
+    if re.search(r'\["COMBO", S\.combo\]', results):
+        _fail("GALLERY CLEAR COMBO invented from live S.combo")
     fire = _js_fn(js, "fire")
     shared_at = fire.find("if (sharedMatch())")
     scan_at = fire.find("hitscanRange")
@@ -83,6 +87,8 @@ def test_thin_arcade_chips() -> None:
         _fail("fire() must park match_live before local credit")
     if fire.find("S.shots++", scan_at, shared_return) >= 0:
         _fail("match_live ACCURACY invented from local S.shots++")
+    if fire.find("S.comboMax", scan_at, shared_return) >= 0:
+        _fail("match_live COMBO invented from local S.comboMax")
     if "Locker.colors.bone" not in hud or "Locker.colors.mint" not in hud or "Locker.colors.rust" not in hud:
         _fail("chips must stay bone / mint / rust")
     if "HUD_PAD" not in hud:

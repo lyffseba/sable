@@ -3,9 +3,10 @@
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
 The room seed owns kind / peek / velocity / born_ms — not the first poll.
-Gallery SCORE / combo / hits / shots live on that rewind (not a local peek).
+Gallery SCORE / combo / combo_max / hits / shots live on that rewind (not a local peek).
 ACCURACY is hits/shots on that book — not a per-client S.shots++.
-ESC is the same miss for combo — a plate that leaves drops the book.
+COMBO peak is combo_max on that book — not a local if (S.combo > S.comboMax) from a poll.
+ESC is the same miss for combo — a plate that leaves drops the live combo, not the peak.
 ESC is not a shot. The bell is not a shot.
 The room owns the 60 s bell — a fire_tick at or past RANGE_MS does not credit.
 ROUND remaining snaps from that same elapsed_ms — not a per-client simMs.
@@ -515,11 +516,13 @@ def _sync_sim(sim: dict, now: float) -> float:
 
 
 def _gallery_book(sim: dict) -> None:
-    """Room-owned gallery SCORE / combo / hits / shots. Wait snapshots never grow these."""
+    """Room-owned gallery SCORE / combo / combo_max / hits / shots. Wait snapshots never grow these."""
     if "scores" not in sim:
         sim["scores"] = {}
     if "combos" not in sim:
         sim["combos"] = {}
+    if "combo_max" not in sim:
+        sim["combo_max"] = {}
     if "hits" not in sim:
         sim["hits"] = {}
     if "shots" not in sim:
@@ -533,14 +536,14 @@ def _gallery_note_shot(sim: dict, player: str) -> None:
 
 
 def _gallery_miss(sim: dict, player: str) -> None:
-    """A confirmed miss drops that player's combo. Score stays. Not a fire gate."""
+    """A confirmed miss drops that player's live combo. Peak stays. Not a fire gate."""
     _gallery_book(sim)
     _gallery_note_shot(sim, player)
     sim["combos"][player] = 0
 
 
 def _gallery_escape(sim: dict) -> None:
-    """ESC = miss. Drop every live combo. Score stays. Not a fire gate."""
+    """ESC = miss. Drop every live combo. Peak stays. Not a fire gate."""
     _gallery_book(sim)
     for player in list(sim["combos"].keys()):
         sim["combos"][player] = 0
@@ -568,11 +571,14 @@ def _note_escapes(sim: dict, elapsed_ms: float) -> None:
 
 
 def _gallery_hit(sim: dict, player: str, struck: dict) -> None:
-    """Credit the rewind hit. Combo + worth on the room — not a local peek."""
+    """Credit the rewind hit. Combo + worth + peak on the room — not a local peek."""
     _gallery_book(sim)
     _gallery_note_shot(sim, player)
     combo = int(sim["combos"].get(player, 0)) + 1
     sim["combos"][player] = combo
+    peak = int(sim["combo_max"].get(player, 0))
+    if combo > peak:
+        sim["combo_max"][player] = combo
     worth = int(struck.get("worth") or 100)
     sim["scores"][player] = int(sim["scores"].get(player, 0)) + worth * combo
     sim["hits"][player] = int(sim["hits"].get(player, 0)) + 1
@@ -590,6 +596,7 @@ def _new_sim(seed: int, now: float) -> dict:
         "escaped": [],
         "scores": {},
         "combos": {},
+        "combo_max": {},
         "hits": {},
         "shots": {},
     }
@@ -632,6 +639,7 @@ def _sim_view(sim: dict, now: float) -> dict:
         "escaped": list(sim.get("escaped") or []),
         "scores": dict(sim.get("scores") or {}),
         "combos": dict(sim.get("combos") or {}),
+        "combo_max": dict(sim.get("combo_max") or {}),
         "hits": dict(sim.get("hits") or {}),
         "shots": dict(sim.get("shots") or {}),
     }

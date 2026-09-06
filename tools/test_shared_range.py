@@ -527,9 +527,15 @@ def test_hit_score_authority() -> None:
     b = lobby.join(a["code"], "P2")
     t0 = 7_000.0
     st = lobby.start(a["code"], a["player"], now=t0, seed=0x51)
-    if st.get("scores") != {} or st.get("combos") != {} or st.get("hits") != {} or st.get("shots") != {}:
+    if (
+        st.get("scores") != {}
+        or st.get("combos") != {}
+        or st.get("combo_max") != {}
+        or st.get("hits") != {}
+        or st.get("shots") != {}
+    ):
         raise AssertionError(f"fresh house must start score-empty {st}")
-    if "scores" not in st or "combos" not in st or "hits" not in st or "shots" not in st:
+    if "scores" not in st or "combos" not in st or "combo_max" not in st or "hits" not in st or "shots" not in st:
         raise AssertionError("match_live snapshot must carry the score book")
 
     sky = [0.02, 0.02]
@@ -591,7 +597,13 @@ def test_hit_score_authority() -> None:
     parked = lobby.create("HOST6")
     guest = lobby.join(parked["code"], "U2")
     parked_warm = lobby.warmup(parked["code"], guest["player"])
-    if parked_warm.get("scores") or parked_warm.get("combos") or parked_warm.get("hits") or parked_warm.get("shots"):
+    if (
+        parked_warm.get("scores")
+        or parked_warm.get("combos")
+        or parked_warm.get("combo_max")
+        or parked_warm.get("hits")
+        or parked_warm.get("shots")
+    ):
         raise AssertionError("wait_practice must not open the shared score book")
     g = lobby.get(parked["code"])
     if g.get("scores") or g.get("plates") or g.get("seed"):
@@ -1192,6 +1204,202 @@ def test_gallery_round_authority() -> None:
         raise AssertionError("AimSample fields changed — keep the locked struct")
 
 
+def _live_plate_uv(snap: dict) -> tuple[list[float], str]:
+    plates = snap.get("plates") or []
+    if not plates:
+        raise AssertionError("expected a live plate for the next peek")
+    plate = plates[0]
+    return list(lobby.uv_for_world(plate["x"], plate["y"], plate["z"])), str(plate["id"])
+
+
+def test_combo_max_authority() -> None:
+    """Room owns COMBO peak. Two clients agree. A missed poll must not invent 0."""
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 21_000.0
+    st = lobby.start(a["code"], a["player"], now=t0, seed=0x53)
+    if st.get("combo_max") != {} or st.get("combos") != {}:
+        raise AssertionError(f"fresh house must start combo-empty {st}")
+    if "combo_max" not in st:
+        raise AssertionError("match_live snapshot must carry the combo_max book")
+
+    sky = [0.02, 0.02]
+    miss = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=sky,
+        fire_ms=80.0,
+        t_hw=80,
+        now=t0 + 0.12,
+    )
+    if miss.get("hit") or not miss.get("miss"):
+        raise AssertionError(f"sky ray must miss {miss}")
+    if (miss.get("combo_max") or {}).get(a["player"]):
+        raise AssertionError(f"miss must not invent COMBO peak {miss}")
+    if (miss.get("combos") or {}).get(a["player"], 1) != 0:
+        raise AssertionError(f"miss must drop live combo {miss}")
+
+    uv = _p0_uv()
+    first = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=90.0,
+        t_hw=81,
+        now=t0 + 0.14,
+    )
+    if first.get("hit") != "p0":
+        raise AssertionError(f"rewind must still hit p0 {first}")
+    if (first.get("combos") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"first hit combo must be 1 {first}")
+    if (first.get("combo_max") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"first hit must book combo_max 1 {first.get('combo_max')}")
+
+    mid = lobby.get(a["code"], now=t0 + 0.26)
+    next_uv, next_id = _live_plate_uv(mid)
+    second = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=next_uv,
+        fire_ms=float(mid.get("elapsed_ms") or 260),
+        t_hw=82,
+        now=t0 + 0.26,
+    )
+    if second.get("hit") != next_id:
+        raise AssertionError(f"second rewind must hit {next_id} {second}")
+    if (second.get("combos") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"second hit combo must be 2 {second.get('combos')}")
+    if (second.get("combo_max") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"second hit must book combo_max 2 {second.get('combo_max')}")
+    after_a = lobby.get(a["code"], now=t0 + 0.26)
+    after_b = lobby.get(a["code"], now=t0 + 0.26)
+    if after_a.get("combo_max") != after_b.get("combo_max"):
+        raise AssertionError(
+            f"two clients split combo_max {after_a.get('combo_max')} vs {after_b.get('combo_max')}"
+        )
+    if (after_b.get("combo_max") or {}).get(b["player"]):
+        raise AssertionError("guest must not inherit host combo_max")
+
+    drop = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=sky,
+        fire_ms=270.0,
+        t_hw=83,
+        now=t0 + 0.28,
+    )
+    if drop.get("hit"):
+        raise AssertionError(f"sky miss after the streak must miss {drop}")
+    if (drop.get("combos") or {}).get(a["player"], 1) != 0:
+        raise AssertionError(f"miss must drop live combo {drop.get('combos')}")
+    if (drop.get("combo_max") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"miss must keep combo_max 2 {drop.get('combo_max')}")
+    drop_a = lobby.get(a["code"], now=t0 + 0.28)
+    drop_b = lobby.get(a["code"], now=t0 + 0.28)
+    if drop_a.get("combo_max") != drop_b.get("combo_max"):
+        raise AssertionError("two clients split combo_max after the miss")
+    if (drop_a.get("combo_max") or {}).get(a["player"]) != 2:
+        raise AssertionError("peak must survive the miss — a late poll of combo=0 must not invent COMBO 0")
+
+    guest_miss = lobby.hit(a["code"], b["player"], uv=sky, fire_ms=280.0, now=t0 + 0.30)
+    if (guest_miss.get("combo_max") or {}).get(b["player"]):
+        raise AssertionError("guest miss must not invent a guest peak")
+    if (guest_miss.get("combo_max") or {}).get(a["player"]) != 2:
+        raise AssertionError("guest miss must not rewrite host combo_max")
+
+    # ESC drops live combo, not the peak. First leftover flyer leaves ~7.5s after birth at 2s.
+    esc_a = lobby.get(a["code"], now=t0 + 10.0)
+    esc_b = lobby.get(a["code"], now=t0 + 10.0)
+    if (esc_a.get("combos") or {}).get(a["player"], 1) != 0:
+        raise AssertionError(f"ESC must still drop live combo {esc_a.get('combos')}")
+    if (esc_a.get("combo_max") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"ESC must not rewrite combo_max {esc_a.get('combo_max')}")
+    if esc_a.get("combo_max") != esc_b.get("combo_max"):
+        raise AssertionError("ESC split combo_max")
+
+    late = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=sky,
+        fire_ms=float(lobby.RANGE_MS),
+        t_hw=84,
+        now=t0 + 60.05,
+    )
+    if late.get("hit"):
+        raise AssertionError(f"bell fire must not credit {late}")
+    if (late.get("combo_max") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"bell must not rewrite combo_max {late.get('combo_max')}")
+
+    parked = lobby.create("HOST12")
+    guest = lobby.join(parked["code"], "Z2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("combo_max") or parked_warm.get("scores") or parked_warm.get("seed"):
+        raise AssertionError("wait_practice must not open the shared combo_max book")
+    g = lobby.get(parked["code"])
+    if g.get("combo_max") or g.get("plates") or g.get("seed"):
+        raise AssertionError("wait get leaked combo_max / sim")
+
+    src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    if "combo_max" not in src or "sim[\"combo_max\"]" not in src:
+        raise AssertionError("room must book combo_max on the rewind")
+    hit_fn = re.search(r"def _gallery_hit\([^)]*\) -> None:\n(?:[ \t]+.*\n)+", src)
+    if not hit_fn or "combo_max" not in hit_fn.group(0):
+        raise AssertionError("_gallery_hit must raise combo_max on a credited peek")
+    miss_fn = re.search(r"def _gallery_miss\([^)]*\) -> None:\n(?:[ \t]+.*\n)+", src)
+    if not miss_fn:
+        raise AssertionError("_gallery_miss missing")
+    if "combo_max" in miss_fn.group(0) and "sim[\"combo_max\"][player] = 0" in miss_fn.group(0):
+        raise AssertionError("miss must not zero combo_max")
+    esc_fn = re.search(r"def _gallery_escape\([^)]*\) -> None:\n(?:[ \t]+.*\n)+", src)
+    if not esc_fn:
+        raise AssertionError("_gallery_escape missing")
+    if "combo_max" in esc_fn.group(0):
+        raise AssertionError("ESC must not touch combo_max")
+
+    js = proto_js()
+    fire = _js_fn(js, "fire")
+    shared_at = fire.find("if (sharedMatch())")
+    if shared_at < 0:
+        raise AssertionError("fire() must park match_live before local credit")
+    scan_at = fire.find("hitscanRange")
+    shared_return = fire.find("return;", shared_at)
+    if scan_at < 0 or shared_return < 0:
+        raise AssertionError("fire() lost the house sphere / shared return")
+    if fire.find("S.comboMax", scan_at, shared_return) >= 0:
+        raise AssertionError("match_live still locally writes S.comboMax")
+    if fire.find("S.combo > S.comboMax", shared_return) < 0:
+        raise AssertionError("Offline / WARM UP must still raise comboMax locally")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — COMBO is not a fire gate")
+    if "combo_max" in fire or '"COMBO"' in fire:
+        raise AssertionError("fire() must not wait on the room combo_max book")
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "data.combo_max" not in apply or "S.comboMax" not in apply:
+        raise AssertionError("applySharedSim must snap comboMax from the room")
+    if "S.combo > S.comboMax" in apply:
+        raise AssertionError("applySharedSim invented comboMax from a local combo snap")
+    results = _js_fn(js, "showResults")
+    if "COMBO" not in results or "S.comboMax" not in results:
+        raise AssertionError("GALLERY CLEAR COMBO must read snapped comboMax")
+    if re.search(r'\["COMBO", S\.combo\]', results):
+        raise AssertionError("showResults invented COMBO from live S.combo")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after the combo_max lock")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample fields changed — keep the locked struct")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -1208,6 +1416,7 @@ def main() -> int:
         test_gallery_over_authority()
         test_gallery_round_authority()
         test_shot_accuracy_authority()
+        test_combo_max_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

@@ -14,6 +14,9 @@
    the clock from local simMs — two friends would split the remaining.
    match_live ACCURACY snaps from room shots. Do not invent the
    percentage from local S.shots++ — two friends would split CLEAR.
+   match_live COMBO peak snaps from room combo_max. Do not invent
+   the peak from a local if (S.combo > S.comboMax) — a missed poll
+   after a miss / ESC would paint COMBO 0.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -941,19 +944,19 @@ function applySharedSim(data) {
     S.sharedDead.add(id);
     if (!seen && d && d.by === S.player) freshOwn.push(d);
   }
-  // Room owns SCORE / combo / hits / shots after ENTER RANGE. Snap — do not invent.
-  // ESC is a room miss: combo already dropped on the book before we tell.
-  // ACCURACY is hits/shots on that book — not a local S.shots++.
+  // Room owns SCORE / combo / combo_max / hits / shots after ENTER RANGE. Snap — do not invent.
+  // ESC is a room miss: live combo already dropped on the book before we tell.
+  // ACCURACY is hits/shots on that book — not a local increment.
+  // COMBO peak is combo_max on that book — not a local raise from the live combo snap.
   const scores = data.scores || {};
   const combos = data.combos || {};
+  const comboMax = data.combo_max || {};
   const hits = data.hits || {};
   const shots = data.shots || {};
   if (S.player) {
     if (scores[S.player] != null) S.score = scores[S.player];
-    if (combos[S.player] != null) {
-      S.combo = combos[S.player];
-      if (S.combo > S.comboMax) S.comboMax = S.combo;
-    }
+    if (combos[S.player] != null) S.combo = combos[S.player];
+    if (comboMax[S.player] != null) S.comboMax = comboMax[S.player];
     if (hits[S.player] != null) S.hits = hits[S.player];
     if (shots[S.player] != null) S.shots = shots[S.player];
   }
