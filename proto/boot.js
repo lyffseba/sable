@@ -582,6 +582,7 @@ function updateCalibMsg() {
 }
 function showResults() {
   // match_live ACCURACY is room hits / room shots. Local S.shots++ must not invent it.
+  // match_live COMBO is room combo_max. A local if (S.combo > S.comboMax) must not invent it.
   const acc = S.shots ? Math.round((S.hits / S.shots) * 100) : 0;
   $("stats").innerHTML = [
     ["SCORE", S.score], ["HITS", S.hits], ["ACCURACY", acc + "%"],

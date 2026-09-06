@@ -143,6 +143,10 @@ def test_gallery_rules() -> None:
         _fail("results lost score")
     if '"ACCURACY"' not in results or "S.hits" not in results or "S.shots" not in results:
         _fail("results ACCURACY must read snapped hits / shots")
+    if '"COMBO"' not in results or "S.comboMax" not in results:
+        _fail("results COMBO must read snapped comboMax")
+    if re.search(r'\["COMBO", S\.combo\]', results):
+        _fail("results COMBO invented from live S.combo")
     fire = _js_fn(js, "fire")
     shared_at = fire.find("if (sharedMatch())")
     scan_at = fire.find("hitscanRange")
@@ -151,6 +155,8 @@ def test_gallery_rules() -> None:
         _fail("fire() must park match_live before local credit")
     if fire.find("S.shots++", scan_at, shared_return) >= 0:
         _fail("match_live ACCURACY invented from local S.shots++")
+    if fire.find("S.comboMax", scan_at, shared_return) >= 0:
+        _fail("match_live COMBO invented from local S.comboMax")
 
 
 def test_practice_and_bay_survive() -> None:
