@@ -10,6 +10,8 @@
    locally zero combo before the room.
    match_live GALLERY CLEAR snaps from the room bell. Do not locally
    close from simMs — two friends would split the house.
+   match_live ROUND remaining snaps from room elapsed. Do not paint
+   the clock from local simMs — two friends would split the remaining.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -923,6 +925,8 @@ function applySharedSim(data) {
   if (typeof data.elapsed_ms === "number") {
     S.rangeStart = performance.now() - data.elapsed_ms;
     S.simTick = Math.floor(data.elapsed_ms * (S.simHz || 128) / 1000);
+    // Room owns remaining. Snap — do not let local simMs paint ROUND.
+    S.elapsedMs = data.elapsed_ms;
   }
   if (!S.sharedDead) S.sharedDead = new Set();
   if (!S.sharedPending) S.sharedPending = new Set();
@@ -1067,6 +1071,7 @@ function startWaitingYard() {
   S.rangeStart = performance.now();
   S.simTick = 0;
   S.over = false;
+  S.elapsedMs = 0;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
@@ -1090,6 +1095,7 @@ function startRange() {
   S.rangeStart = performance.now();
   S.simTick = 0;
   S.over = false;
+  S.elapsedMs = 0;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
@@ -1144,6 +1150,14 @@ function galleryOver(elapsedMs) {
 
 function galleryLeftMs(elapsedMs) {
   return Math.max(0, RANGE_MS - elapsedMs);
+}
+
+function galleryHudLeftMs(localElapsedMs) {
+  // match_live ROUND is the room clock. Local simMs must not invent remaining.
+  if (!sharedMatch()) return galleryLeftMs(localElapsedMs);
+  if (S.over) return 0;
+  const elapsed = typeof S.elapsedMs === "number" ? S.elapsedMs : 0;
+  return galleryLeftMs(elapsed);
 }
 
 function gallerySessionLabel() {
@@ -1363,6 +1377,7 @@ export {
   desiredOrbCount,
   galleryOver,
   galleryLeftMs,
+  galleryHudLeftMs,
   gallerySessionLabel,
   bayOver,
   baySessionLabel,

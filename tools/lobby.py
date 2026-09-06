@@ -6,6 +6,7 @@ The room seed owns kind / peek / velocity / born_ms — not the first poll.
 Gallery SCORE / combo / hits live on that rewind (not a local peek).
 ESC is the same miss for combo — a plate that leaves drops the book.
 The room owns the 60 s bell — a fire_tick at or past RANGE_MS does not credit.
+ROUND remaining snaps from that same elapsed_ms — not a per-client simMs.
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
 Snapshot is a view. fire_ms snaps to the named 128 Hz grid — not rAF present.
 Not a 128 Hz friend loop. See docs/tick.md.

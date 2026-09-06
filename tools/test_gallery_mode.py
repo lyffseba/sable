@@ -105,7 +105,7 @@ def test_gallery_rules() -> None:
     if 'setPhase("results")' not in ranged:
         _fail("gallery must still hit the results end state")
     hud = _js_fn(js, "drawHUD")
-    if "gallerySessionLabel" not in hud or "galleryLeftMs" not in hud:
+    if "gallerySessionLabel" not in hud or "galleryHudLeftMs" not in hud:
         _fail("HUD must paint gallery score + round clock")
     if '"60s GALLERY"' not in hud:
         _fail("HUD must chip 60s GALLERY")
@@ -119,6 +119,8 @@ def test_gallery_rules() -> None:
         _fail("match_live CLEAR must snap from room over — not local left")
     if re.search(r'if \(left <= 0\) stateChip = "GALLERY CLEAR"', hud):
         _fail("match_live CLEAR invented from local left<=0")
+    if re.search(r"galleryLeftMs\(simMs\(\)\)", hud):
+        _fail("match_live ROUND invented from local simMs")
     if "drawSableChip" not in hud:
         _fail("gallery feedback must stay on the SableHUD chip bar")
     if "Impact" in hud:
