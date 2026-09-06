@@ -1092,6 +1092,8 @@ function startBay() {
 
 function startWaitingYard() {
   // Waiting-arena always-practice: local Yard plates, no 60s lock, no net.
+  // Cam + Hands arm from setPhase(lobby) — fire-and-forget, no lock tax.
+  // Do not await the camera here. Do not route through play() lock.
   S.waitingYard = true;
   S.warmup = false;
   assignHangar("wait_practice");

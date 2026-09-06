@@ -4,7 +4,8 @@
    SableNet hangar lock: room owns hangar; poll is a view; HUD reads S.hangar.
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
-   Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
+   Trackpad / HID click fires from the AimBus mailbox — never waits on camera.
+   Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax. */
 
 import {
   S,
@@ -103,6 +104,7 @@ const screens = {
 const CORNER_NAMES = ["TOP LEFT", "TOP RIGHT", "BOTTOM RIGHT", "BOTTOM LEFT"];
 
 export let stream = null, camReady = false, lastT = 0;
+let practiceCamArming = false;
 const SIM_HZ = 128;
 const SIM_DT = 1 / SIM_HZ;
 let simAcc = 0;
@@ -562,7 +564,7 @@ function setPhase(next) {
   }
   if (next === "range") startRange();
   else if (next === "bay") startBay();
-  else if (next === "lobby") startWaitingYard();
+  else if (next === "lobby") { startWaitingYard(); armPracticeCam(); }
   else if (next !== "lock" && next !== "calibrate") restoreYardLook();
   syncWarmupChrome();
   syncBayChrome();
@@ -1007,6 +1009,25 @@ function frame(t) {
   // 2D Canvas HUD Overlay
   draw2D(t);
   syncCursor();
+}
+
+function armPracticeCam() {
+  // Waiting Yard is a live gun. Arm cam + Hands without lock/calib.
+  // Fire-and-forget — never a fire gate, never a lobby await.
+  if (camReady) {
+    initHands();
+    armVideoTrack();
+    return;
+  }
+  if (practiceCamArming) return;
+  practiceCamArming = true;
+  enableCamera().then(function (ok) {
+    practiceCamArming = false;
+    if (!ok) return;
+    return initHands();
+  }).then(function () {
+    if (camReady) armVideoTrack();
+  }).catch(function () { practiceCamArming = false; });
 }
 
 async function enableCamera() {

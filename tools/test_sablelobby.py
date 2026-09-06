@@ -100,8 +100,25 @@ def test_waiting_arena_always_practice() -> None:
     phase = _js_fn(js, "setPhase")
     if "startWaitingYard()" not in phase:
         _fail("setPhase(lobby) must arm Yard always-practice")
+    if "armPracticeCam()" not in phase:
+        _fail("setPhase(lobby) must arm the waiting-Yard gun")
     if 'next === "lobby"' not in phase:
         _fail("setPhase must keep the Yard live on lobby")
+    arm = _js_fn(js, "armPracticeCam")
+    if "enableCamera" not in arm or "armVideoTrack" not in arm:
+        _fail("waiting Yard must arm cam + Hands without lock")
+    if re.search(r"await\s+", arm) or "async function armPracticeCam" in js:
+        _fail("armPracticeCam awaits — waiting Yard trapped lift/HID")
+    if 'setPhase("lock")' in arm or "goCalib" in arm or "resetLockState" in arm:
+        _fail("waiting Yard cam arm forced lock/calib")
+    if "play(" in arm:
+        _fail("waiting Yard cam arm routed through play() lock tax")
+    if re.search(r"\bfetch\s*\(", arm) or "/api/lobby" in arm:
+        _fail("waiting Yard cam arm talks to the room")
+    if "aimBus" in arm or "fire(" in arm:
+        _fail("cam arm gated fire — gun never waits on getUserMedia")
+    if "enableCamera" in wait or "armPracticeCam" in wait:
+        _fail("startWaitingYard must stay sync — cam arm is fire-and-forget from setPhase")
     match = _js_fn(js, "sharedMatch")
     if "!S.warmup" not in match or "!S.waitingYard" not in match:
         _fail("sharedMatch must exclude WARM UP and waiting-arena practice")
@@ -122,6 +139,8 @@ def test_waiting_arena_always_practice() -> None:
         _fail("maybePinchFire re-gates the verb — waiting Yard muted pinch")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — HUD-on-Yard trapped HID")
+    if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
+        _fail("fire() waits on camera arm — shot never waits on a camera")
     step = _js_fn(js, "stepSim")
     if 'phase === "lobby"' not in step or "updateRange(SIM_DT" not in step:
         _fail("waiting-arena plates must tick on the 128 Hz sim")
@@ -349,6 +368,10 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must fail loud through test_sablelobby.py")
     if "startWaitingYard" not in bible:
         _fail("PRODUCTION.md must name waiting-arena always-practice")
+    if "armPracticeCam" not in bible:
+        _fail("PRODUCTION.md must name waiting-Yard camera arm")
+    if "dead gun" not in modes and "armPracticeCam" not in modes:
+        _fail("docs/modes.md must refuse a waiting Yard on a dead gun")
     if "enterRangePreserve" not in bible:
         _fail("PRODUCTION.md must name ENTER RANGE phase-preserve")
     if "phase-preserve" not in modes and "already lifted" not in modes:
