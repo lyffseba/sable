@@ -347,7 +347,6 @@ function fire() {
     return;
   }
 
-  S.shots++;
   // Range uses the house sphere — not the spun hex mesh.
   const scan = hitscanRange(uv.x, uv.y, W / H);
   SablePerf.markHid(t0);
@@ -355,9 +354,10 @@ function fire() {
   const muzzleWorld = peekMuzzleWorld();
   const hit = scan.hit;
 
-  // match_live: peek + report. Room owns SCORE / shatter. Do not locally
-  // credit — a HID peek that the rewind misses must not keep phantom points,
-  // and two friends must not both score the same plate.
+  // match_live: peek + report. Room owns SCORE / shatter / shots. Do not
+  // locally credit — a HID peek that the rewind misses must not keep
+  // phantom points, and two friends must not both score the same plate.
+  // ACCURACY snaps from the room book — do not invent from local S.shots++.
   if (sharedMatch()) {
     if (hit && hit.mesh) addBulletTracer(muzzleWorld, hit.mesh.position.clone());
     else {
@@ -369,6 +369,7 @@ function fire() {
     return;
   }
 
+  S.shots++;
   if (hit && hit.mesh) {
     S.combo++;
     if (S.combo > S.comboMax) S.comboMax = S.combo;

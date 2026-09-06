@@ -3,8 +3,10 @@
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
 The room seed owns kind / peek / velocity / born_ms — not the first poll.
-Gallery SCORE / combo / hits live on that rewind (not a local peek).
+Gallery SCORE / combo / hits / shots live on that rewind (not a local peek).
+ACCURACY is hits/shots on that book — not a per-client S.shots++.
 ESC is the same miss for combo — a plate that leaves drops the book.
+ESC is not a shot. The bell is not a shot.
 The room owns the 60 s bell — a fire_tick at or past RANGE_MS does not credit.
 ROUND remaining snaps from that same elapsed_ms — not a per-client simMs.
 Shared Bay is a pose mailbox + fire-tick rewind (score / pose / fire_ms).
@@ -513,18 +515,27 @@ def _sync_sim(sim: dict, now: float) -> float:
 
 
 def _gallery_book(sim: dict) -> None:
-    """Room-owned gallery SCORE / combo / hits. Wait snapshots never grow these."""
+    """Room-owned gallery SCORE / combo / hits / shots. Wait snapshots never grow these."""
     if "scores" not in sim:
         sim["scores"] = {}
     if "combos" not in sim:
         sim["combos"] = {}
     if "hits" not in sim:
         sim["hits"] = {}
+    if "shots" not in sim:
+        sim["shots"] = {}
+
+
+def _gallery_note_shot(sim: dict, player: str) -> None:
+    """A resolved HID peek. Hit or miss. Not ESC. Not the bell."""
+    _gallery_book(sim)
+    sim["shots"][player] = int(sim["shots"].get(player, 0)) + 1
 
 
 def _gallery_miss(sim: dict, player: str) -> None:
     """A confirmed miss drops that player's combo. Score stays. Not a fire gate."""
     _gallery_book(sim)
+    _gallery_note_shot(sim, player)
     sim["combos"][player] = 0
 
 
@@ -559,6 +570,7 @@ def _note_escapes(sim: dict, elapsed_ms: float) -> None:
 def _gallery_hit(sim: dict, player: str, struck: dict) -> None:
     """Credit the rewind hit. Combo + worth on the room — not a local peek."""
     _gallery_book(sim)
+    _gallery_note_shot(sim, player)
     combo = int(sim["combos"].get(player, 0)) + 1
     sim["combos"][player] = combo
     worth = int(struck.get("worth") or 100)
@@ -579,6 +591,7 @@ def _new_sim(seed: int, now: float) -> dict:
         "scores": {},
         "combos": {},
         "hits": {},
+        "shots": {},
     }
     _add_plate(sim, "sit", 0.2, 0.35, -6.6, worth=100, born_ms=0.0, baseY=0.35)
     return sim
@@ -620,6 +633,7 @@ def _sim_view(sim: dict, now: float) -> dict:
         "scores": dict(sim.get("scores") or {}),
         "combos": dict(sim.get("combos") or {}),
         "hits": dict(sim.get("hits") or {}),
+        "shots": dict(sim.get("shots") or {}),
     }
 
 

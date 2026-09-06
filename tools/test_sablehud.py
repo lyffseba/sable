@@ -72,6 +72,17 @@ def test_thin_arcade_chips() -> None:
         _fail("match_live CLEAR invented from local left<=0")
     if re.search(r"galleryLeftMs\(simMs\(\)\)", hud):
         _fail("match_live ROUND invented from local simMs")
+    results = _js_fn(js, "showResults")
+    if "ACCURACY" not in results or "S.shots" not in results or "S.hits" not in results:
+        _fail("GALLERY CLEAR ACCURACY must snap from room hits / shots")
+    fire = _js_fn(js, "fire")
+    shared_at = fire.find("if (sharedMatch())")
+    scan_at = fire.find("hitscanRange")
+    shared_return = fire.find("return;", shared_at) if shared_at >= 0 else -1
+    if shared_at < 0 or scan_at < 0 or shared_return < 0:
+        _fail("fire() must park match_live before local credit")
+    if fire.find("S.shots++", scan_at, shared_return) >= 0:
+        _fail("match_live ACCURACY invented from local S.shots++")
     if "Locker.colors.bone" not in hud or "Locker.colors.mint" not in hud or "Locker.colors.rust" not in hud:
         _fail("chips must stay bone / mint / rust")
     if "HUD_PAD" not in hud:

@@ -581,6 +581,7 @@ function updateCalibMsg() {
   $("btn-redo").hidden = !S.camPts.some(Boolean);
 }
 function showResults() {
+  // match_live ACCURACY is room hits / room shots. Local S.shots++ must not invent it.
   const acc = S.shots ? Math.round((S.hits / S.shots) * 100) : 0;
   $("stats").innerHTML = [
     ["SCORE", S.score], ["HITS", S.hits], ["ACCURACY", acc + "%"],

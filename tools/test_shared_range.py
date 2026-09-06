@@ -527,9 +527,9 @@ def test_hit_score_authority() -> None:
     b = lobby.join(a["code"], "P2")
     t0 = 7_000.0
     st = lobby.start(a["code"], a["player"], now=t0, seed=0x51)
-    if st.get("scores") != {} or st.get("combos") != {} or st.get("hits") != {}:
+    if st.get("scores") != {} or st.get("combos") != {} or st.get("hits") != {} or st.get("shots") != {}:
         raise AssertionError(f"fresh house must start score-empty {st}")
-    if "scores" not in st or "combos" not in st or "hits" not in st:
+    if "scores" not in st or "combos" not in st or "hits" not in st or "shots" not in st:
         raise AssertionError("match_live snapshot must carry the score book")
 
     sky = [0.02, 0.02]
@@ -591,7 +591,7 @@ def test_hit_score_authority() -> None:
     parked = lobby.create("HOST6")
     guest = lobby.join(parked["code"], "U2")
     parked_warm = lobby.warmup(parked["code"], guest["player"])
-    if parked_warm.get("scores") or parked_warm.get("combos") or parked_warm.get("hits"):
+    if parked_warm.get("scores") or parked_warm.get("combos") or parked_warm.get("hits") or parked_warm.get("shots"):
         raise AssertionError("wait_practice must not open the shared score book")
     g = lobby.get(parked["code"])
     if g.get("scores") or g.get("plates") or g.get("seed"):
@@ -955,6 +955,166 @@ def test_gallery_over_authority() -> None:
         raise AssertionError("AimSample fields changed — keep the locked struct")
 
 
+def test_shot_accuracy_authority() -> None:
+    """Room owns gallery shots / ACCURACY. Two clients agree. Local peek does not invent."""
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 21_000.0
+    st = lobby.start(a["code"], a["player"], now=t0, seed=0x53)
+    if st.get("shots") != {}:
+        raise AssertionError(f"fresh house must start shot-empty {st.get('shots')}")
+    if "shots" not in st:
+        raise AssertionError("match_live snapshot must carry the shots book")
+
+    sky = [0.02, 0.02]
+    miss = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=sky,
+        fire_ms=80.0,
+        t_hw=70,
+        now=t0 + 0.12,
+    )
+    if miss.get("hit") or not miss.get("miss"):
+        raise AssertionError(f"sky ray must miss {miss}")
+    if (miss.get("shots") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"sky miss must count a shot {miss.get('shots')}")
+    if (miss.get("hits") or {}).get(a["player"]):
+        raise AssertionError(f"miss must not invent HITS {miss}")
+    if (miss.get("scores") or {}).get(a["player"]):
+        raise AssertionError(f"miss must not invent SCORE {miss}")
+    view_a = lobby.get(a["code"], now=t0 + 0.12)
+    view_b = lobby.get(a["code"], now=t0 + 0.12)
+    if view_a.get("shots") != view_b.get("shots"):
+        raise AssertionError(f"miss shots book split {view_a.get('shots')} vs {view_b.get('shots')}")
+
+    uv = _p0_uv()
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=90.0,
+        t_hw=71,
+        now=t0 + 0.14,
+    )
+    if shot.get("hit") != "p0":
+        raise AssertionError(f"rewind must still hit p0 {shot}")
+    if (shot.get("shots") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"hit must count the second shot {shot.get('shots')}")
+    if (shot.get("hits") or {}).get(a["player"]) != 1:
+        raise AssertionError(f"first hit must count {shot}")
+    if (shot.get("scores") or {}).get(a["player"]) != 100:
+        raise AssertionError(f"first sit must still credit 100 {shot}")
+    after_a = lobby.get(a["code"], now=t0 + 0.14)
+    after_b = lobby.get(a["code"], now=t0 + 0.14)
+    if after_a.get("shots") != after_b.get("shots"):
+        raise AssertionError(f"two clients split shots {after_a.get('shots')} vs {after_b.get('shots')}")
+    if after_a.get("hits") != after_b.get("hits"):
+        raise AssertionError("two clients split hits")
+    host_shots = (after_a.get("shots") or {}).get(a["player"])
+    host_hits = (after_a.get("hits") or {}).get(a["player"])
+    if host_shots != 2 or host_hits != 1:
+        raise AssertionError(f"ACCURACY book must be 1/2 {host_hits}/{host_shots}")
+    if (after_b.get("shots") or {}).get(b["player"]):
+        raise AssertionError("guest must not inherit host shots")
+
+    again = lobby.hit(a["code"], b["player"], uv=uv, fire_ms=100.0, now=t0 + 0.16)
+    if again.get("hit"):
+        raise AssertionError("second ray on a dead plate must not hit")
+    if (again.get("shots") or {}).get(b["player"]) != 1:
+        raise AssertionError(f"dead-plate miss must count a guest shot {again.get('shots')}")
+    if (again.get("hits") or {}).get(b["player"]):
+        raise AssertionError("dead-plate miss must not credit guest HITS")
+    if (again.get("shots") or {}).get(a["player"]) != 2:
+        raise AssertionError("guest miss must not rewrite host shots")
+
+    # ESC is a combo miss, not a shot. First flyer leaves ~7.5s after birth at 2s.
+    esc_a = lobby.get(a["code"], now=t0 + 10.0)
+    esc_b = lobby.get(a["code"], now=t0 + 10.0)
+    if (esc_a.get("shots") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"ESC must not invent a shot {esc_a.get('shots')}")
+    if esc_a.get("shots") != esc_b.get("shots"):
+        raise AssertionError("ESC split shots")
+
+    late = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=sky,
+        fire_ms=float(lobby.RANGE_MS),
+        t_hw=72,
+        now=t0 + 60.05,
+    )
+    if late.get("hit"):
+        raise AssertionError(f"bell fire must not credit {late}")
+    if (late.get("shots") or {}).get(a["player"]) != 2:
+        raise AssertionError(f"bell must not count a shot {late.get('shots')}")
+
+    parked = lobby.create("HOST11")
+    guest = lobby.join(parked["code"], "Y2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("shots") or parked_warm.get("scores") or parked_warm.get("seed"):
+        raise AssertionError("wait_practice must not open the shared shots book")
+    g = lobby.get(parked["code"])
+    if g.get("shots") or g.get("plates") or g.get("seed"):
+        raise AssertionError("wait get leaked shots / sim")
+
+    src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    if "_gallery_note_shot" not in src:
+        raise AssertionError("room must note a resolved HID peek as a shot")
+    esc_fn = re.search(r"def _gallery_escape\([^)]*\) -> None:\n(?:[ \t]+.*\n)+", src)
+    if not esc_fn:
+        raise AssertionError("_gallery_escape missing")
+    if "_gallery_note_shot" in esc_fn.group(0):
+        raise AssertionError("ESC must not count as a shot")
+    bell = re.search(
+        r"if fire_tick >= RANGE_MS:\n(?:[ \t]+.*\n)*?[ \t]+return snap\n",
+        src,
+    )
+    if not bell:
+        raise AssertionError("hit must close credit at the room bell")
+    if "_gallery_note_shot" in bell.group(0) or "_gallery_miss" in bell.group(0):
+        raise AssertionError("bell must not treat the clock as a shot")
+
+    js = proto_js()
+    fire = _js_fn(js, "fire")
+    shared_at = fire.find("if (sharedMatch())")
+    if shared_at < 0:
+        raise AssertionError("fire() must park match_live before local credit")
+    scan_at = fire.find("hitscanRange")
+    shared_return = fire.find("return;", shared_at)
+    if scan_at < 0 or shared_return < 0:
+        raise AssertionError("fire() lost the house sphere / shared return")
+    if fire.find("S.shots++", scan_at, shared_return) >= 0:
+        raise AssertionError("match_live still locally increments S.shots")
+    if fire.find("S.shots++", shared_return) < 0:
+        raise AssertionError("Offline / WARM UP must still count shots locally")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — ACCURACY is not a fire gate")
+    if "data.shots" in fire or "ACCURACY" in fire:
+        raise AssertionError("fire() must not wait on the room shots book")
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "data.shots" not in apply or "S.shots" not in apply:
+        raise AssertionError("applySharedSim must snap shots from the room")
+    results = _js_fn(js, "showResults")
+    if "S.hits" not in results or "S.shots" not in results or "ACCURACY" not in results:
+        raise AssertionError("GALLERY CLEAR ACCURACY must read snapped hits / shots")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after the shots lock")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample fields changed — keep the locked struct")
+
+
 def test_gallery_round_authority() -> None:
     """Room owns ROUND remaining. Two clients agree. Offline still uses local simMs."""
     a = lobby.create("HOST")
@@ -1047,6 +1207,7 @@ def main() -> int:
         test_seed_owns_born_ms()
         test_gallery_over_authority()
         test_gallery_round_authority()
+        test_shot_accuracy_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
