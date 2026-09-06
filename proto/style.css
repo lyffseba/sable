@@ -115,6 +115,10 @@ html, body {
 #screen-lobby.screen-pass input {
   pointer-events: auto;
 }
+#screen-lobby.screen-pass.join-mute #lobby-join,
+#screen-lobby.screen-pass.join-mute #btn-lobby-join {
+  pointer-events: none;
+}
 #screen-lobby.screen-pass .slots,
 #screen-lobby.screen-pass .tag {
   display: none;

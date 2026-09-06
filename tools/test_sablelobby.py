@@ -167,6 +167,23 @@ def test_waiting_arena_always_practice() -> None:
         _fail("window HID must peek fire() and spare WARM UP / ENTER RANGE")
     if 'phase === "lobby"' not in hid:
         _fail("window HID must peek on the waiting Yard")
+    chrome = _js_fn(js, "hidChromeTarget")
+    if "join-mute" not in chrome or "lobby-join" not in chrome:
+        _fail("leftover JOIN/CODE must not eat waiting-Yard HID after join")
+    if "button" not in chrome:
+        _fail("WARM UP / ENTER RANGE / LEAVE must stay chrome")
+    mute = _js_fn(js, "muteJoinPad")
+    if "join-mute" not in mute:
+        _fail("muteJoinPad must drop leftover JOIN/CODE hit-test")
+    if "aimBus" in mute or "fire(" in mute:
+        _fail("join-mute gated fire — leftover chrome is not a peek")
+    join = _js_fn(js, "lobbyJoin")
+    if "muteJoinPad()" not in join:
+        _fail("JOIN must release leftover CODE/JOIN so the waiting Yard stays a live gun")
+    create = _js_fn(js, "lobbyCreate")
+    leave = _js_fn(js, "lobbyLeave")
+    if "clearJoinMute()" not in create or "clearJoinMute()" not in leave:
+        _fail("create/leave must re-arm JOIN/CODE — do not mute the next session")
     step = _js_fn(js, "stepSim")
     if 'phase === "lobby"' not in step or "updateRange(SIM_DT" not in step:
         _fail("waiting-arena plates must tick on the 128 Hz sim")
@@ -174,6 +191,8 @@ def test_waiting_arena_always_practice() -> None:
         _fail("screen-lobby must be screen-pass HUD-on-Yard")
     if "pointer-events: none" not in css or "#screen-lobby.screen-pass .lobby-inner" not in css:
         _fail("lobby overlay must let HID reach the Yard")
+    if "join-mute" not in css or "#btn-lobby-join" not in css:
+        _fail("leftover JOIN/CODE must pass the pad through after join")
     lobby = re.search(r"\.lobby-inner \{([^}]+)\}", css)
     if not lobby or "padding: 24px 16px 40px" not in lobby.group(1):
         _fail("lobby was thickened")
@@ -412,6 +431,10 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must name ENTER RANGE phase-preserve")
     if "lobbyWarmup" not in modes or "play()" not in modes:
         _fail("docs/modes.md must refuse WARM UP play() lock tax")
+    if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
+        _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
+    if "muteJoinPad" not in bible:
+        _fail("PRODUCTION.md must name leftover JOIN/CODE mute")
     if "wait_practice" not in modes or "match_live" not in modes or "S.hangar" not in modes:
         _fail("docs/modes.md must name the durable hangar session enum")
     if "room snapshot owns hangar" not in modes and "owns hangar" not in modes:

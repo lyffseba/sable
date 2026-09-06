@@ -39,7 +39,7 @@ Click is **always** HID / Raw Input against the **latest** AimSample.
 
 `AimBus.fire()` / `AimPipeline.fire()` are peek, not poll.
 
-HID pointerdown lives on `window` (`onHidPointerDown`). `#hud { pointer-events: none }` must not mute the pad — a `canvasHUD` listener never sees a real trackpad tap. Chrome (`button` / `input`) still owns WARM UP / ENTER RANGE / LEAVE / join. Pinch is the same peek.
+HID pointerdown lives on `window` (`onHidPointerDown`). `#hud { pointer-events: none }` must not mute the pad — a `canvasHUD` listener never sees a real trackpad tap. Chrome (`button` / `input`) still owns WARM UP / ENTER RANGE / LEAVE / join. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome (`muteJoinPad`) — the pad still peeks. Pinch is the same peek.
 
 SablePort (`docs/port.md`) may later swap a host *feel*. The verb does not move: click still peeks `AimBus`. `proto/port.js` labels that seam `aimbus-hid-peek`. Do not grow a second fire path for a later migrate.
 

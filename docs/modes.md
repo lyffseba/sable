@@ -48,7 +48,7 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 ## Do not
 
 - Do not offer Bay from boot or lobby. The Yard is the sole active map.
-- Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire. Do not bind HID to `canvasHUD` — `#hud` is `pointer-events: none` and mutes the pad. Window `onHidPointerDown` peeks; chrome still owns WARM UP / ENTER RANGE / LEAVE.
+- Do not wait on a camera frame, the Hands worker, or the 128 Hz step to fire. Do not bind HID to `canvasHUD` — `#hud` is `pointer-events: none` and mutes the pad. Window `onHidPointerDown` peeks; chrome still owns WARM UP / ENTER RANGE / LEAVE. After JOIN, leftover CODE/JOIN under the hidden cursor must not eat the pad (`muteJoinPad`).
 - Do not bloom the reticle. Charcoal / bone / mint / rust only. Yard bunkers stay charcoal / rust (few, low) so bone plates read.
 - Do not hide the gun with HUD copy. SableHUD stays a thin top bar over live aim.
 - Do not thicken the lobby. Waiting-arena chrome stays WARM UP / ENTER RANGE (+ LEAVE). The waiting arena is HUD-on-Yard always-practice — live plates, thin `WAIT` + `ROOM` chips from `S.hangar` / `S.room` — not a match-start screen. Do not paint hangar chips from screen phase; read `S.hangar` only. Do not hide the gun with a ROOM chip. Do not leave the waiting Yard on a dead gun. `setPhase("lobby")` arms the camera fire-and-forget (`armPracticeCam`) — no lock/calib.
@@ -59,3 +59,4 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not promote hangar from WARM UP / practice. Only ENTER RANGE writes `match_live`.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.
 - Do not let pinch rewrite aim. `maybePinchFire` peeks the last pointing UV after `updateMode` and before `updateAim`. Do not re-gate pinch on `range` / `bay` — waiting-yard `lobby` is the same `fire()`.
+- Do not let leftover JOIN/CODE eat waiting-Yard HID after a live join. `muteJoinPad` blurs the field and drops `join-mute` so the hidden cursor is not a pad mute. WARM UP / ENTER RANGE / LEAVE stay chrome. Create / leave re-arm JOIN.

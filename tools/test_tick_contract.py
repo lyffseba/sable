@@ -167,6 +167,11 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("HID click lived on muted #hud — window must own the peek")
     if 'window.addEventListener("pointerdown", onHidPointerDown)' not in js:
         _fail("HID click must live on window — Fire is HID")
+    chrome = _fn(js, "hidChromeTarget")
+    if "join-mute" not in chrome or "lobby-join" not in chrome:
+        _fail("leftover JOIN/CODE must not eat waiting-Yard HID after join")
+    if "muteJoinPad()" not in _fn(js, "lobbyJoin"):
+        _fail("JOIN must release leftover CODE/JOIN — the pad is the trigger")
     pinch = _fn(js, "maybePinchFire")
     if "fire()" not in pinch:
         _fail("pinch must peek through fire()")

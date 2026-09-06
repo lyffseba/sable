@@ -8,7 +8,8 @@
    Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
    WARM UP from lobby phase-preserves the live Yard — no play() lock tax.
    HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
-   none must not mute the pad. Chrome (button/input) still owns its click. */
+   none must not mute the pad. Chrome (button/input) still owns its click.
+   After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad. */
 
 import {
   S,
@@ -254,6 +255,7 @@ async function lobbyCreate() {
   S.online = true;
   paintLobby(data);
   setPhase("lobby");
+  clearJoinMute();
   stopLobbyPoll();
   ensureLobbyPoll();
 }
@@ -280,6 +282,7 @@ async function lobbyJoin(code) {
   S.online = true;
   paintLobby(data);
   setPhase("lobby");
+  muteJoinPad();
   stopLobbyPoll();
   ensureLobbyPoll();
 }
@@ -476,6 +479,7 @@ async function lobbyLeave() {
   S.online = false;
   S.player = "";
   S.room = "";
+  clearJoinMute();
   S.host = false;
   S.warmup = false;
   S.waitingYard = false;
@@ -1064,9 +1068,29 @@ async function enableCamera() {
 }
 
 // --- Event Listeners & Input ---
+function muteJoinPad() {
+  // After JOIN the hidden cursor sits on leftover CODE/JOIN.
+  // The pad is the trigger — that leftover must not eat the peek.
+  const lobby = $("screen-lobby");
+  if (lobby) lobby.classList.add("join-mute");
+  const inp = $("lobby-join");
+  if (inp) inp.blur();
+}
+
+function clearJoinMute() {
+  const lobby = $("screen-lobby");
+  if (lobby) lobby.classList.remove("join-mute");
+}
+
 function hidChromeTarget(el) {
   // Chrome owns WARM UP / ENTER RANGE / LEAVE / join. The pad does not.
-  return !!(el && el.closest && el.closest("button, input, textarea, select, a, label"));
+  // Leftover JOIN/CODE after a live join is not chrome.
+  if (!el || !el.closest) return false;
+  const lobby = $("screen-lobby");
+  if (lobby && lobby.classList.contains("join-mute") && el.closest("#lobby-join, #btn-lobby-join, .join-row")) {
+    return false;
+  }
+  return !!(el.closest("button, input, textarea, select, a, label"));
 }
 
 function onHidPointerDown(e) {
