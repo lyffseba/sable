@@ -955,6 +955,83 @@ def test_gallery_over_authority() -> None:
         raise AssertionError("AimSample fields changed — keep the locked struct")
 
 
+def test_gallery_round_authority() -> None:
+    """Room owns ROUND remaining. Two clients agree. Offline still uses local simMs."""
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 20_000.0
+    st = lobby.start(a["code"], a["player"], now=t0, seed=0x52)
+    if st.get("elapsed_ms") != 0:
+        raise AssertionError(f"fresh house elapsed must be 0 {st.get('elapsed_ms')}")
+    if st.get("over"):
+        raise AssertionError(f"fresh house must not be over {st}")
+
+    mid_a = lobby.get(a["code"], now=t0 + 12.5)
+    mid_b = lobby.get(a["code"], now=t0 + 12.5)
+    if mid_a.get("elapsed_ms") != mid_b.get("elapsed_ms"):
+        raise AssertionError(
+            f"two clients split elapsed {mid_a.get('elapsed_ms')} vs {mid_b.get('elapsed_ms')}"
+        )
+    if abs(int(mid_a.get("elapsed_ms") or 0) - 12_500) > 1:
+        raise AssertionError(f"room elapsed must follow wall {mid_a.get('elapsed_ms')}")
+    left_a = lobby.RANGE_MS - int(mid_a["elapsed_ms"])
+    left_b = lobby.RANGE_MS - int(mid_b["elapsed_ms"])
+    if left_a != left_b:
+        raise AssertionError(f"two clients split ROUND remaining {left_a} vs {left_b}")
+    if left_a <= 0:
+        raise AssertionError("mid-house ROUND must still have remaining")
+
+    late_a = lobby.get(a["code"], now=t0 + 60.0)
+    late_b = lobby.get(a["code"], now=t0 + 60.0)
+    if late_a.get("elapsed_ms") != late_b.get("elapsed_ms"):
+        raise AssertionError("bell split elapsed")
+    if int(late_a.get("elapsed_ms") or 0) < lobby.RANGE_MS:
+        raise AssertionError(f"bell elapsed must reach RANGE_MS {late_a.get('elapsed_ms')}")
+    if not late_a.get("over") or not late_b.get("over"):
+        raise AssertionError("bell must still close the house")
+
+    parked = lobby.create("HOST10")
+    guest = lobby.join(parked["code"], "X3")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("elapsed_ms") or parked_warm.get("seed"):
+        raise AssertionError("wait_practice must not open the shared clock")
+
+    js = proto_js()
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "S.elapsedMs" not in apply or "data.elapsed_ms" not in apply:
+        raise AssertionError("applySharedSim must snap ROUND elapsed from the room")
+    hud_left = _js_fn(js, "galleryHudLeftMs")
+    if "sharedMatch" not in hud_left or "S.elapsedMs" not in hud_left:
+        raise AssertionError("galleryHudLeftMs match_live must read room elapsed")
+    if "galleryLeftMs(localElapsedMs)" not in hud_left:
+        raise AssertionError("Offline / WARM UP must still paint ROUND from local simMs")
+    hud = _js_fn(js, "drawHUD")
+    if "galleryHudLeftMs" not in hud:
+        raise AssertionError("drawHUD match_live ROUND must snap from the room clock")
+    if re.search(r"galleryLeftMs\(simMs\(\)\)", hud):
+        raise AssertionError("drawHUD invented ROUND from local simMs on match_live")
+    fire = _js_fn(js, "fire")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — ROUND is not a fire gate")
+    if "galleryHudLeftMs" in fire or "S.elapsedMs" in fire:
+        raise AssertionError("fire() must not wait on the room clock")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after the ROUND lock")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample fields changed — keep the locked struct")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -969,6 +1046,7 @@ def main() -> int:
         test_escape_miss_authority()
         test_seed_owns_born_ms()
         test_gallery_over_authority()
+        test_gallery_round_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

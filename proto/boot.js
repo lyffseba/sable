@@ -75,7 +75,7 @@ import {
   applySharedBay,
   reportSharedBayPose,
   bayCoverChip,
-  galleryLeftMs,
+  galleryHudLeftMs,
   gallerySessionLabel,
   bayOver,
   baySessionLabel,
@@ -794,7 +794,8 @@ function drawHUD(now) {
   if (phase !== "range" && phase !== "lobby") return;
   const hangarChip = hangarHudChip();
   const roomChip = roomHudChip();
-  const left = galleryLeftMs(simMs());
+  // match_live ROUND is the room clock. Local simMs must not invent remaining.
+  const left = galleryHudLeftMs(simMs());
   const sec = (left / 1000).toFixed(1);
   const sess = gallerySessionLabel();
   const bone = Locker.colors.bone;

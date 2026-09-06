@@ -56,7 +56,7 @@ def test_thin_arcade_chips() -> None:
     hud = _js_fn(js, "drawHUD")
     if "drawSableChip" not in hud:
         _fail("gallery feedback left the SableHUD chip bar")
-    if "galleryLeftMs" not in hud or "gallerySessionLabel" not in hud:
+    if "galleryHudLeftMs" not in hud or "gallerySessionLabel" not in hud:
         _fail("HUD must read the live gallery clock / session")
     if '"SCORE "' not in hud:
         _fail("HUD lost the SCORE chip")
@@ -70,6 +70,8 @@ def test_thin_arcade_chips() -> None:
         _fail("match_live CLEAR must snap from room over — not local left")
     if re.search(r'if \(left <= 0\) stateChip = "GALLERY CLEAR"', hud):
         _fail("match_live CLEAR invented from local left<=0")
+    if re.search(r"galleryLeftMs\(simMs\(\)\)", hud):
+        _fail("match_live ROUND invented from local simMs")
     if "Locker.colors.bone" not in hud or "Locker.colors.mint" not in hud or "Locker.colors.rust" not in hud:
         _fail("chips must stay bone / mint / rust")
     if "HUD_PAD" not in hud:
