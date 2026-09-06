@@ -10,7 +10,7 @@ A later host adapter plugs in behind these bars. It does not move them.
 
 ### Verb = AimBus / HID peek
 
-The gun is the pointing hand. `fire()` peeks `AimBus` only. `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
+The gun is the pointing hand. `fire()` peeks `AimBus` only. `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net. Pinch is the trigger, not a new aim — peek last pointing UV after lift, before `updateAim`. Waiting-yard `lobby` uses the same `fire()`. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
 
 ### Sim tick = 128 Hz, HID outside
 

@@ -57,3 +57,4 @@ SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 
 - Do not let a client invent hangar for a shared room. The room snapshot owns hangar.
 - Do not promote hangar from WARM UP / practice. Only ENTER RANGE writes `match_live`.
 - Do not touch `AimSample`. Fire peeks `AimBus` only.
+- Do not let pinch rewrite aim. `maybePinchFire` peeks the last pointing UV after `updateMode` and before `updateAim`. Do not re-gate pinch on `range` / `bay` — waiting-yard `lobby` is the same `fire()`.

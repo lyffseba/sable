@@ -115,6 +115,11 @@ def test_waiting_arena_always_practice() -> None:
         _fail("HID fire must peek on the waiting Yard")
     if "aimBus.fire" not in fire:
         _fail("fire() no longer peeks AimBus")
+    pinch = _js_fn(js, "maybePinchFire")
+    if "fire()" not in pinch:
+        _fail("pinch must peek through fire() on the waiting Yard")
+    if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
+        _fail("maybePinchFire re-gates the verb — waiting Yard muted pinch")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — HUD-on-Yard trapped HID")
     step = _js_fn(js, "stepSim")

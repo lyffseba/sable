@@ -937,9 +937,11 @@ function frame(t) {
   if (camReady) {
     if (grabFrame()) runTrack(t);
     else coastTrack(t);
+    // Lift first, then pinch peeks last pointing UV, then publish.
+    // The pinched landmark must not rewrite the shot.
     updateMode(t);
-    updateAim();
     maybePinchFire(S.handLm);
+    updateAim();
   }
   afterLiftState();
 

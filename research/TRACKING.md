@@ -15,7 +15,7 @@ See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else).
 
 1. **MediaPipe Hands** (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two.
 2. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
-3. **HID fire** peeks `AimBus`. Pinch (thumb↔index, hand-scaled, after lift) or trackpad. Shot never waits on a camera frame.
+3. **HID fire** peeks `AimBus`. Pinch (thumb↔index, hand-scaled, after lift, before `updateAim`) or trackpad. Shot never waits on a camera frame. Pinch must not publish the closed-finger UV first, and must not re-gate off the waiting Yard.
 4. Gemini may **seed** a lock. Not the hot path.
 
 `AimSample { uv, valid, lifted, confidence, t_hw }`
