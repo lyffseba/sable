@@ -192,6 +192,8 @@ def test_sableperf_probe_order() -> None:
         _fail("Look (gun kick / muzzle world) landed inside the HID→hitscan probe")
     if "galleryOver" in fire or "data.over" in fire:
         _fail("GALLERY CLEAR / room bell landed inside fire() — HID waits on the clock")
+    if "data.shots" in fire or "ACCURACY" in fire:
+        _fail("ACCURACY / room shots landed inside fire() — HID waits on the book")
     if "born_ms" in fire or "_next_spawn" in fire:
         _fail("seed schedule landed inside fire() — HID waits on the house")
     if "gunGroup" in probe or "gunMuzzleLight" in probe:

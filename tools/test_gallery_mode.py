@@ -141,6 +141,16 @@ def test_gallery_rules() -> None:
         _fail("results must keep the 60s round")
     if '"SCORE"' not in results:
         _fail("results lost score")
+    if '"ACCURACY"' not in results or "S.hits" not in results or "S.shots" not in results:
+        _fail("results ACCURACY must read snapped hits / shots")
+    fire = _js_fn(js, "fire")
+    shared_at = fire.find("if (sharedMatch())")
+    scan_at = fire.find("hitscanRange")
+    shared_return = fire.find("return;", shared_at) if shared_at >= 0 else -1
+    if shared_at < 0 or scan_at < 0 or shared_return < 0:
+        _fail("fire() must park match_live before local credit")
+    if fire.find("S.shots++", scan_at, shared_return) >= 0:
+        _fail("match_live ACCURACY invented from local S.shots++")
 
 
 def test_practice_and_bay_survive() -> None:

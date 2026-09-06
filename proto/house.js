@@ -12,6 +12,8 @@
    close from simMs — two friends would split the house.
    match_live ROUND remaining snaps from room elapsed. Do not paint
    the clock from local simMs — two friends would split the remaining.
+   match_live ACCURACY snaps from room shots. Do not invent the
+   percentage from local S.shots++ — two friends would split CLEAR.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -939,11 +941,13 @@ function applySharedSim(data) {
     S.sharedDead.add(id);
     if (!seen && d && d.by === S.player) freshOwn.push(d);
   }
-  // Room owns SCORE / combo / hits after ENTER RANGE. Snap — do not invent.
+  // Room owns SCORE / combo / hits / shots after ENTER RANGE. Snap — do not invent.
   // ESC is a room miss: combo already dropped on the book before we tell.
+  // ACCURACY is hits/shots on that book — not a local S.shots++.
   const scores = data.scores || {};
   const combos = data.combos || {};
   const hits = data.hits || {};
+  const shots = data.shots || {};
   if (S.player) {
     if (scores[S.player] != null) S.score = scores[S.player];
     if (combos[S.player] != null) {
@@ -951,6 +955,7 @@ function applySharedSim(data) {
       if (S.combo > S.comboMax) S.comboMax = S.combo;
     }
     if (hits[S.player] != null) S.hits = hits[S.player];
+    if (shots[S.player] != null) S.shots = shots[S.player];
   }
   if (freshOwn.length) {
     hitBlip(S.combo, 0);
