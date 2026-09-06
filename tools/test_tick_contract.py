@@ -61,6 +61,8 @@ def test_named_rate_is_128() -> None:
         _fail("docs/tick.md must keep render on rAF")
     if "AimBus" not in docs or "HID" not in docs:
         _fail("docs/tick.md must keep HID fire outside both clocks")
+    if "onHidPointerDown" not in docs:
+        _fail("docs/tick.md must name window HID pointerdown")
     if "rewind" not in docs.lower():
         _fail("docs/tick.md must keep shared house as rewind, not a friend tick")
     if "markHid" not in docs or "Look" not in docs:
@@ -161,6 +163,10 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("fire() recomputes aim")
     if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
         _fail("fire() waits on camera arm — shot never waits on a camera")
+    if 'canvasHUD.addEventListener("pointerdown"' in js:
+        _fail("HID click lived on muted #hud — window must own the peek")
+    if 'window.addEventListener("pointerdown", onHidPointerDown)' not in js:
+        _fail("HID click must live on window — Fire is HID")
     pinch = _fn(js, "maybePinchFire")
     if "fire()" not in pinch:
         _fail("pinch must peek through fire()")

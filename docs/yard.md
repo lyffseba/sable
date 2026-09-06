@@ -42,6 +42,6 @@ Use these numbers only — not another game’s device list.
 
 ## Trigger iterations (MacBook)
 
-0. **Now:** point index at the glass; **tap the trackpad** (or Space).
+0. **Now:** point index at the glass; **tap the trackpad** (or Space). Pad HID lives on `window` — `#hud` must not mute the tap.
 1. **Now:** pinch thumb to index = fire (peek last pointing UV, including the waiting Yard). Pad still works. A fresh ONLINE arms the camera so that pinch can live — no lock tax.
 2. Next: thumb “hammer” or two-finger recoil as optional feel, not the ranked path.

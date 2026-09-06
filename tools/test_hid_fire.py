@@ -134,6 +134,35 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("Bay peekMuzzleWorld landed inside the HID→hitscan probe")
 
 
+def test_hid_lives_on_window() -> None:
+    """#hud is pointer-events: none. A canvasHUD listener never sees a real tap."""
+    src = proto_js()
+    css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
+    if 'canvasHUD.addEventListener("pointerdown"' in src:
+        raise AssertionError(
+            "HID click must not live on canvasHUD — #hud pointer-events: none mutes the pad"
+        )
+    if 'window.addEventListener("pointerdown", onHidPointerDown)' not in src:
+        raise AssertionError("HID click must live on window — Fire is HID")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "hidChromeTarget" not in hid:
+        raise AssertionError("window HID must spare chrome (button/input)")
+    if "fire()" not in hid:
+        raise AssertionError("window HID must peek through fire()")
+    if "aimBus" in hid or "updateAim" in hid or "coastTrack" in hid:
+        raise AssertionError("window HID must not recompute aim — fire() peeks")
+    if re.search(r"await\s+", hid):
+        raise AssertionError("window HID awaits — shot never waits on a camera")
+    chrome = _js_fn(src, "hidChromeTarget")
+    if "button" not in chrome or "input" not in chrome:
+        raise AssertionError("chrome spare must keep WARM UP / ENTER RANGE / join")
+    if "aimBus" in chrome or "fire(" in chrome:
+        raise AssertionError("chrome spare must not gate the peek")
+    hud = re.search(r"#hud\s*\{([^}]+)\}", css)
+    if not hud or "pointer-events: none" not in hud.group(1):
+        raise AssertionError("#hud must stay pointer-events none — window owns HID")
+
+
 def _pct(samples: list[float], p: float) -> float:
     s = sorted(samples)
     if not s:
@@ -169,6 +198,7 @@ def main() -> int:
     try:
         test_python_mailbox()
         test_client_does_not_wait()
+        test_hid_lives_on_window()
         test_sableperf_budget()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)

@@ -141,6 +141,15 @@ def test_waiting_arena_always_practice() -> None:
         _fail("fire() awaits — HUD-on-Yard trapped HID")
     if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
         _fail("fire() waits on camera arm — shot never waits on a camera")
+    if 'canvasHUD.addEventListener("pointerdown"' in js:
+        _fail("waiting-Yard HID lived on muted #hud — window must own the peek")
+    if 'window.addEventListener("pointerdown", onHidPointerDown)' not in js:
+        _fail("waiting-Yard HID must live on window")
+    hid = _js_fn(js, "onHidPointerDown")
+    if "hidChromeTarget" not in hid or "fire()" not in hid:
+        _fail("window HID must peek fire() and spare WARM UP / ENTER RANGE")
+    if 'phase === "lobby"' not in hid:
+        _fail("window HID must peek on the waiting Yard")
     step = _js_fn(js, "stepSim")
     if 'phase === "lobby"' not in step or "updateRange(SIM_DT" not in step:
         _fail("waiting-arena plates must tick on the 128 Hz sim")
@@ -366,6 +375,10 @@ def test_aimsample_and_docs() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "test_sablelobby.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_sablelobby.py")
+    if "onHidPointerDown" not in bible:
+        _fail("PRODUCTION.md must name window HID pointerdown")
+    if "canvasHUD" not in modes and "onHidPointerDown" not in modes:
+        _fail("docs/modes.md must refuse a muted #hud pad")
     if "startWaitingYard" not in bible:
         _fail("PRODUCTION.md must name waiting-arena always-practice")
     if "armPracticeCam" not in bible:

@@ -268,6 +268,13 @@ def test_proto_mailbox() -> None:
     if "applyGunKick" not in fire or "peekMuzzleWorld" not in fire:
         raise AssertionError("gun kick / muzzle world must stay Look after the sphere")
 
+    if 'canvasHUD.addEventListener("pointerdown"' in src:
+        raise AssertionError("HID click must not live on muted #hud — window owns the peek")
+    if "function onHidPointerDown" not in src or "hidChromeTarget" not in src:
+        raise AssertionError("HID pointerdown must live on window and spare chrome")
+    if 'window.addEventListener("pointerdown", onHidPointerDown)' not in src:
+        raise AssertionError("HID click must bind window — Fire is HID")
+
     move = re.search(r"pointermove[\s\S]{0,280}", src)
     if not move or "if (S.desktop)" not in move.group(0):
         raise AssertionError("OS pointer writes aim only in DESKTOP")
