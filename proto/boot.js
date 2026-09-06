@@ -6,6 +6,7 @@
    docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera.
    Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
+   WARM UP from lobby phase-preserves the live Yard — no play() lock tax.
    HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
    none must not mute the pad. Chrome (button/input) still owns its click. */
 
@@ -389,7 +390,10 @@ async function lobbyWarmup() {
   lobbyPost("/api/lobby/warmup").then(function (data) {
     if (data && data.ok) paintLobby(data);
   });
-  if (alreadyLifted()) {
+  // Waiting Yard is already a live gun. Do not tax WARM UP through
+  // play() lock/calib — that would SEEKING-disarm the cam #68 armed.
+  // Cold path still play(range).
+  if (alreadyLifted() || phase === "lobby" || phase === "range") {
     setPhase("range");
     return;
   }

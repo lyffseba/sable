@@ -152,6 +152,8 @@ def main() -> int:
             _fail("WARM UP grew a tick tax")
         if 'setPhase("range")' not in warm and 'play("range")' not in warm:
             _fail("WARM UP no longer drops into Range")
+        if "alreadyLifted()" not in warm or 'phase === "lobby"' not in warm:
+            _fail("WARM UP from the waiting Yard must not route through play() lock")
 
         if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
             _fail("waiting room lost WARM UP — shared house would be the only way to shoot")
