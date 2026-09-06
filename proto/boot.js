@@ -801,9 +801,17 @@ function drawHUD(now) {
   const mint = Locker.colors.mint;
   const rust = Locker.colors.rust;
   const timeCol = left <= 10000 ? rust : mint;
+  const shared = sharedMatch();
   let stateChip = "60s GALLERY";
-  if (left <= 0) stateChip = "GALLERY CLEAR";
-  else if (sess !== "GALLERY") stateChip = sess;
+  // match_live CLEAR is the room bell. Local left<=0 must not invent it.
+  if (shared) {
+    if (S.over) stateChip = "GALLERY CLEAR";
+    else if (sess !== "GALLERY") stateChip = sess;
+  } else if (left <= 0) {
+    stateChip = "GALLERY CLEAR";
+  } else if (sess !== "GALLERY") {
+    stateChip = sess;
+  }
   const chips = [hangarChip];
   if (roomChip) chips.push(roomChip);
   if (phase === "range") chips.push(["SCORE " + S.score, bone]);

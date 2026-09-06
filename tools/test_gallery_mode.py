@@ -115,6 +115,10 @@ def test_gallery_rules() -> None:
         _fail("HUD must chip SCORE")
     if '"GALLERY CLEAR"' not in hud:
         _fail("HUD must chip the gallery end state")
+    if "sharedMatch" not in hud or "S.over" not in hud:
+        _fail("match_live CLEAR must snap from room over — not local left")
+    if re.search(r'if \(left <= 0\) stateChip = "GALLERY CLEAR"', hud):
+        _fail("match_live CLEAR invented from local left<=0")
     if "drawSableChip" not in hud:
         _fail("gallery feedback must stay on the SableHUD chip bar")
     if "Impact" in hud:

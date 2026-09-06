@@ -3,7 +3,8 @@
 
 Fail loud if HandLandmarker detect sneaks back onto main rAF, if the
 HID→hitscan probe is missing or reordered, if fire waits on the worker,
-or if Shared Bay net lands inside the 8 ms HID→hitscan bar.
+if Shared Bay net lands inside the 8 ms HID→hitscan bar, or if the
+room bell / seed schedule lands inside fire().
 """
 
 from __future__ import annotations
@@ -189,6 +190,10 @@ def test_sableperf_probe_order() -> None:
     probe = fire[intersect:mark_range]
     if "applyGunKick" in probe or "peekMuzzleWorld" in probe or "getWorldPosition" in probe:
         _fail("Look (gun kick / muzzle world) landed inside the HID→hitscan probe")
+    if "galleryOver" in fire or "data.over" in fire:
+        _fail("GALLERY CLEAR / room bell landed inside fire() — HID waits on the clock")
+    if "born_ms" in fire or "_next_spawn" in fire:
+        _fail("seed schedule landed inside fire() — HID waits on the house")
     if "gunGroup" in probe or "gunMuzzleLight" in probe:
         _fail("gun Look mutated inside the 8 ms bar — peel it after markHid")
     kick_after = fire.find("applyGunKick", mark_range)

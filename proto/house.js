@@ -8,6 +8,8 @@
    snap from the room book. Do not locally credit a rewind miss.
    ESC is the same miss for combo — snap the book, then tell. Do not
    locally zero combo before the room.
+   match_live GALLERY CLEAR snaps from the room bell. Do not locally
+   close from simMs — two friends would split the house.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
@@ -991,6 +993,10 @@ function applySharedSim(data) {
       o.vz = p.vz;
     }
   }
+  // Room owns the 60 s bell. Snap the book first, then close.
+  // HUD CLEAR reads S.over — do not invent from local left.
+  S.over = !!data.over;
+  if (S.over) setPhase("results");
 }
 
 async function pullSharedSim() {
@@ -1060,6 +1066,7 @@ function startWaitingYard() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.simTick = 0;
+  S.over = false;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
@@ -1082,6 +1089,7 @@ function startRange() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.simTick = 0;
+  S.over = false;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
@@ -1157,8 +1165,9 @@ function baySessionLabel() {
 
 function updateRange(dt, elapsed) {
   // dt + elapsed are the 128 Hz sim clock. Render does not own plates.
-  if (!S.waitingYard && galleryOver(elapsed)) { setPhase("results"); return; }
+  // match_live: room owns the bell. Offline / WARM UP still close locally.
   const shared = sharedMatch();
+  if (!shared && !S.waitingYard && galleryOver(elapsed)) { setPhase("results"); return; }
   if (!shared) {
     const want = desiredOrbCount(elapsed);
     const hard = elapsed > 35000;
