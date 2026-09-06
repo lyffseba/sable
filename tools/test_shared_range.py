@@ -902,7 +902,10 @@ def test_gallery_over_authority() -> None:
         raise AssertionError("wait get leaked over / sim")
 
     src = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
-    bell = re.search(r"if fire_tick >= RANGE_MS:\n(?:    .*\n){1,8}", src)
+    bell = re.search(
+        r"if fire_tick >= RANGE_MS:\n(?:[ \t]+.*\n)*?[ \t]+return snap\n",
+        src,
+    )
     if not bell:
         raise AssertionError("hit must close credit at the room bell")
     if "_gallery_miss" in bell.group(0):
