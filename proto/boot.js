@@ -5,7 +5,9 @@
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera.
-   Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax. */
+   Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
+   HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
+   none must not mute the pad. Chrome (button/input) still owns its click. */
 
 import {
   S,
@@ -1058,8 +1060,16 @@ async function enableCamera() {
 }
 
 // --- Event Listeners & Input ---
-canvasHUD.addEventListener("pointerdown", (e) => {
+function hidChromeTarget(el) {
+  // Chrome owns WARM UP / ENTER RANGE / LEAVE / join. The pad does not.
+  return !!(el && el.closest && el.closest("button, input, textarea, select, a, label"));
+}
+
+function onHidPointerDown(e) {
+  // HID lives on window. #hud is pointer-events: none — a canvasHUD
+  // listener never sees a real trackpad tap. Chrome still owns its click.
   if (e.button !== 0) return;
+  if (hidChromeTarget(e.target)) return;
   unlockAudio();
   if (phase === "lock") {
     e.preventDefault();
@@ -1082,7 +1092,9 @@ canvasHUD.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     fire();
   }
-});
+}
+
+window.addEventListener("pointerdown", onHidPointerDown);
 
 window.addEventListener("contextmenu", (e) => e.preventDefault());
 
