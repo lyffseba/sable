@@ -1510,10 +1510,10 @@ def test_rewind_life_authority() -> None:
     ranged = _js_fn(js, "updateRange")
     if "commitSharedPlateLife" not in ranged:
         raise AssertionError("updateRange must rewind match_live life — not only the poll")
-    if "o.life += dt" not in ranged:
+    if "else o.life += dt" not in ranged:
         raise AssertionError("Offline / WARM UP must still integrate life locally")
     shared_life = ranged.find("commitSharedPlateLife")
-    local_life_at = ranged.find("o.life += dt")
+    local_life_at = ranged.find("else o.life += dt")
     if shared_life < 0 or local_life_at < 0 or shared_life > local_life_at:
         raise AssertionError("match_live rewind must win before local o.life += dt")
     if "if (shared)" not in ranged and "shared &&" not in ranged:

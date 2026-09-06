@@ -1228,7 +1228,7 @@ function updateRange(dt, elapsed) {
   const gone = [];
   for (const o of S.orbs) {
     // match_live life is lobby._pose_at at fire_ms. Same committedSimMs
-    // the click posts. A local o.life += dt after a poll misses rewind.
+    // the click posts. Local += dt after a poll misses rewind.
     if (shared) commitSharedPlateLife(o);
     else o.life += dt;
     if (!o.mesh) continue;
