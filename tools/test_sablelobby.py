@@ -74,6 +74,16 @@ def test_offline_and_warmup_one_click() -> None:
         _fail("WARM UP grew a tick tax")
     if 'setPhase("range")' not in warm and 'play("range")' not in warm:
         _fail("WARM UP no longer drops into Range")
+    if "alreadyLifted()" not in warm:
+        _fail("WARM UP must phase-preserve when already lifted")
+    if 'phase === "lobby"' not in warm or 'phase === "range"' not in warm:
+        _fail("WARM UP must keep the live Yard — do not play() lock from lobby")
+    if 'setPhase("range")' not in warm:
+        _fail("already-live WARM UP must stay on the Yard")
+    if 'play("range")' not in warm:
+        _fail("cold WARM UP must still play(range)")
+    if "resetLockState" in warm or 'setPhase("lock")' in warm or "goCalib" in warm:
+        _fail("WARM UP forced calib/lock — waiting-Yard gun died")
     if 'play("bay")' in warm or 'setPhase("bay")' in warm:
         _fail("WARM UP dropped into Bay")
     if "/api/lobby/leave" in warm:
@@ -387,8 +397,12 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must refuse a waiting Yard on a dead gun")
     if "enterRangePreserve" not in bible:
         _fail("PRODUCTION.md must name ENTER RANGE phase-preserve")
+    if "lobbyWarmup" not in bible or "play()" not in bible:
+        _fail("PRODUCTION.md must name WARM UP phase-preserve off play() lock")
     if "phase-preserve" not in modes and "already lifted" not in modes:
         _fail("docs/modes.md must name ENTER RANGE phase-preserve")
+    if "lobbyWarmup" not in modes or "play()" not in modes:
+        _fail("docs/modes.md must refuse WARM UP play() lock tax")
     if "wait_practice" not in modes or "match_live" not in modes or "S.hangar" not in modes:
         _fail("docs/modes.md must name the durable hangar session enum")
     if "room snapshot owns hangar" not in modes and "owns hangar" not in modes:

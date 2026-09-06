@@ -54,6 +54,12 @@ def main() -> int:
             raise AssertionError("WARM UP must not start the room Range")
         if 'setPhase("range")' not in warm and 'play("range")' not in warm:
             raise AssertionError("warm-up must drop into the same Range")
+        if "alreadyLifted()" not in warm:
+            raise AssertionError("WARM UP must phase-preserve when already lifted")
+        if 'phase === "lobby"' not in warm or 'phase === "range"' not in warm:
+            raise AssertionError("WARM UP from lobby must not tax play() lock")
+        if "resetLockState" in warm or 'setPhase("lock")' in warm:
+            raise AssertionError("WARM UP forced lock — waiting-Yard gun died")
 
         ret = _js_fn(js, "returnToLobby")
         if "/api/lobby/leave" in ret:

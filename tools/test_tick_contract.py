@@ -204,6 +204,8 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("WARM UP soft-locked behind net")
     if 'setPhase("range")' not in warm and 'play("range")' not in warm:
         _fail("WARM UP no longer drops into local Range")
+    if "alreadyLifted()" not in warm or 'phase === "lobby"' not in warm:
+        _fail("WARM UP from lobby must phase-preserve — no play() lock tax")
     if "stepSim" in warm or "simAcc" in warm or re.search(r"setTimeout", warm):
         _fail("WARM UP grew a tick tax")
     if re.search(r"if\s*\(\s*!S\.simTick", fire) or "simTick <" in fire:
