@@ -289,6 +289,13 @@ def test_pointing_filter() -> None:
         raise AssertionError("MediaPipe Hands (landmark 8) must be the primary tracker")
     if "function maybePinchFire" not in src:
         raise AssertionError("pinch thumb-index must be able to fire")
+    pinch = _js_fn(src, "maybePinchFire")
+    if "fire()" not in pinch:
+        raise AssertionError("pinch must peek through fire()")
+    if "updateAim(" in pinch or "publishAim(" in pinch:
+        raise AssertionError("pinch must not rewrite aim — peek last pointing UV")
+    if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
+        raise AssertionError("maybePinchFire must not re-gate the verb — fire() owns the phase lock")
     if "function fallbackSkin" not in src:
         raise AssertionError("if Hands dies, skin/NCC fallback must run")
     if "handsPromise" not in src:
@@ -312,6 +319,8 @@ def test_pointing_filter() -> None:
     frame = _js_fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybePinchFire"):
         raise AssertionError("pinch must run after updateMode so lifted is current")
+    if frame.find("maybePinchFire") > frame.find("updateAim"):
+        raise AssertionError("pinch must peek last pointing UV — updateAim after the trigger must not rewrite the shot")
     lost = _js_fn(src, "nccTrack")
     if "age > COAST_MS && S.euroX" in lost:
         raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")

@@ -301,6 +301,7 @@ function peekMuzzleWorld() {
 function fire() {
   if (phase !== "range" && phase !== "bay" && phase !== "lobby" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
   // Peek first. Never wait on a camera frame. Never recompute aim on click.
+  // Pinch is the same peek — maybePinchFire must not publish first.
   const shot = aimBus.fire();
   const now = performance.now();
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;

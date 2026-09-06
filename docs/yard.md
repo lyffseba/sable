@@ -37,11 +37,11 @@ Use these numbers only — not another game’s device list.
 - Playlist: Gallery 60 s (`docs/modes.md`), then later 5v5 on a **SABLE** stadium.
 - One-hit plates / one-hit out in 5v5.
 - Start pad 2.0 × 1.2 m.
-- Fire is HID or a later finger-pinch. Aim is the pointing hand.
+- Fire is HID or pinch. Aim is the pointing hand. Pinch peeks the last pointing `AimBus` UV — the closed fingers must not rewrite the shot.
 - No bloom. No aim-assist.
 
 ## Trigger iterations (MacBook)
 
 0. **Now:** point index at the glass; **tap the trackpad** (or Space).
-1. Next: pinch thumb to index = fire (landmarks), pad still works.
+1. **Now:** pinch thumb to index = fire (peek last pointing UV, including the waiting Yard). Pad still works.
 2. Next: thumb “hammer” or two-finger recoil as optional feel, not the ranked path.

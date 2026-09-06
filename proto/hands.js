@@ -1,8 +1,9 @@
 /* SABLE — hands.js
    MediaPipe Hands / skin+NCC tracker. detectForVideo lives in hands_worker.js.
-   One Euro on UV, then the aim mailbox. Fire never waits on camera or the worker. */
+   One Euro on UV, then the aim mailbox. Fire never waits on camera or the worker.
+   Pinch is the trigger, not a new aim — peek last pointing UV, then fire. */
 
-import { S, W, H, phase, fire, clamp } from "./aim.js";
+import { S, W, H, fire, clamp } from "./aim.js";
 import { cam, proc, pctx, camReady } from "./boot.js";
 
 const PROC_W = 480;
@@ -604,8 +605,11 @@ function maybePinchFire(lm) {
   const p = pinchStrength(lm);
   if (p > 0.72 && !S.pinchHeld && indexExtended(lm)) {
     S.pinchHeld = true;
-    if (phase === "range" || phase === "bay") fire();
-    else if (phase === "calibrate" && S.calibIndex >= 4) fire();
+    // Trigger only. fire() peeks last committed AimBus UV and owns
+    // the phase lock (range / bay / lobby / calib). Do not publish
+    // this pinched landmark first — updateAim stays after the peek.
+    // A second phase gate here muted wait_practice (lobby).
+    fire();
   } else if (p < 0.35) {
     S.pinchHeld = false;
   }

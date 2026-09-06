@@ -159,6 +159,18 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("fire() talks to net — HID is behind the lobby")
     if "coastTrack" in fire or "updateAim" in fire:
         _fail("fire() recomputes aim")
+    pinch = _fn(js, "maybePinchFire")
+    if "fire()" not in pinch:
+        _fail("pinch must peek through fire()")
+    if "updateAim(" in pinch or "publishAim(" in pinch:
+        _fail("pinch rewrites aim — trigger must peek last pointing UV")
+    if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
+        _fail("maybePinchFire re-gates the verb — waiting Yard would mute pinch")
+    frame = _fn(js, "frame")
+    if frame.find("updateMode") > frame.find("maybePinchFire"):
+        _fail("pinch ran before updateMode — lift would be stale")
+    if frame.find("maybePinchFire") > frame.find("updateAim"):
+        _fail("pinch published the closed-finger UV before the peek")
     if "hitscanRange" not in fire:
         _fail("fire() must peek the house sphere")
     if "intersectObjects" in fire:
