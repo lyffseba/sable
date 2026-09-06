@@ -354,10 +354,10 @@ function fire() {
   const muzzleWorld = peekMuzzleWorld();
   const hit = scan.hit;
 
-  // match_live: peek + report. Room owns SCORE / shatter / shots. Do not
-  // locally credit — a HID peek that the rewind misses must not keep
+  // match_live: peek + report. Room owns SCORE / shatter / the click count.
+  // Do not locally credit — a HID peek that the rewind misses must not keep
   // phantom points, and two friends must not both score the same plate.
-  // ACCURACY snaps from the room book — do not invent from local S.shots++.
+  // Results percent snaps from the room book — do not invent from a local increment.
   if (sharedMatch()) {
     if (hit && hit.mesh) addBulletTracer(muzzleWorld, hit.mesh.position.clone());
     else {
