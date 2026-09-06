@@ -360,6 +360,10 @@ def test_gallery_escape() -> None:
         raise AssertionError("updateRange must use closed-form sitPoseY — not an unsynced phase")
     if "flyerPose" not in body:
         raise AssertionError("updateRange must use closed-form flyerPose — not Euler")
+    if "commitSharedPlateLife" not in body:
+        raise AssertionError("updateRange must rewind match_live life — not o.life += dt")
+    if "o.life += dt" not in body:
+        raise AssertionError("Offline / WARM UP must still integrate life locally")
     if "o.vy -=" in body or "o.mesh.position.y +=" in body:
         raise AssertionError("updateRange Euler-integrated flyers — friends would split")
     if "o.phase" in body:

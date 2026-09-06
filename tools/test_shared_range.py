@@ -1400,6 +1400,147 @@ def test_combo_max_authority() -> None:
         raise AssertionError("AimSample fields changed — keep the locked struct")
 
 
+def test_rewind_life_authority() -> None:
+    """match_live plate life is (fire_ms - born_ms). Do not invent from o.life += dt."""
+    hz = 128.0
+    born_ms = 2000.0
+    # Mid-tick observer after the flyer is falling. Poll life is continuous;
+    # fire_ms is the grid. Early-flight Y delta is too small to fail loud.
+    elapsed_poll = born_ms + 2500.0 + 6.0
+    poll_life = (elapsed_poll - born_ms) / 1000.0
+    sim_tick = math.floor(elapsed_poll * hz / 1000.0)
+    steps = 24
+    local_life = poll_life + steps / hz
+    committed_ms = (sim_tick + steps) * (1000.0 / hz)
+    rewind_life = (committed_ms - born_ms) / 1000.0
+    if abs(local_life - rewind_life) < 1e-6:
+        raise AssertionError(
+            "local life += dt after a poll must still miss the rewind clock — that was the hole"
+        )
+    rec = {
+        "id": "p1",
+        "kind": "clay",
+        "x0": -8.5,
+        "y0": 1.089,
+        "z0": -5.054,
+        "vx0": 4.2,
+        "vy0": 1.4,
+        "vz0": -0.8,
+        "baseY": 1.089,
+        "worth": 100,
+        "born_ms": born_ms,
+    }
+    pose_local = lobby.flyer_pose(
+        rec["x0"], rec["y0"], rec["z0"], rec["vx0"], rec["vy0"], rec["vz0"], local_life
+    )
+    pose_rewind = lobby._pose_at(rec, committed_ms)
+    if abs(pose_rewind["life"] - rewind_life) > 1e-12:
+        raise AssertionError(
+            f"_pose_at life left (fire_ms - born_ms) {pose_rewind['life']} vs {rewind_life}"
+        )
+    if abs(pose_local["y"] - pose_rewind["y"]) < 1e-4:
+        raise AssertionError(
+            "local += dt flyer must still miss the rewind sphere — that was the hole"
+        )
+
+    a = lobby.create("HOST")
+    b = lobby.join(a["code"], "P2")
+    t0 = 13_000.0
+    lobby.start(a["code"], a["player"], now=t0, seed=0x51)
+    later_a = lobby.get(a["code"], now=t0 + 3.0)
+    later_b = lobby.get(a["code"], now=t0 + 3.0)
+    fly_a = next(p for p in later_a["plates"] if p["id"] == "p1")
+    fly_b = next(p for p in later_b["plates"] if p["id"] == "p1")
+    if fly_a["kind"] != "clay":
+        raise AssertionError(f"seed 0x51 must still spawn clay p1 {fly_a}")
+    if abs(fly_a["born_ms"] - fly_b["born_ms"]) > 1e-12:
+        raise AssertionError(f"two clients split born_ms {fly_a['born_ms']} vs {fly_b['born_ms']}")
+    fire_ms = lobby.quantize_fire_ms(3000.0)
+    want = lobby._pose_at(
+        {
+            "id": fly_a["id"],
+            "kind": fly_a["kind"],
+            "x0": fly_a["x0"],
+            "y0": fly_a["y0"],
+            "z0": fly_a["z0"],
+            "vx0": fly_a["vx0"],
+            "vy0": fly_a["vy0"],
+            "vz0": fly_a["vz0"],
+            "baseY": fly_a["baseY"],
+            "worth": fly_a["worth"],
+            "born_ms": fly_a["born_ms"],
+        },
+        fire_ms,
+    )
+    if abs(want["life"] - (fire_ms - float(fly_a["born_ms"])) / 1000.0) > 1e-12:
+        raise AssertionError("rewind life must be (fire_ms - born_ms)")
+    uv = list(lobby.uv_for_world(want["x"], want["y"], want["z"]))
+    shot = lobby.hit(
+        a["code"],
+        a["player"],
+        uv=uv,
+        fire_ms=fire_ms,
+        t_hw=90,
+        now=t0 + 3.05,
+    )
+    if shot.get("hit") != fly_a["id"]:
+        raise AssertionError(f"rewind ray must hit the (fire_ms - born_ms) sphere {shot}")
+
+    js = proto_js()
+    spawn = _js_fn(js, "spawnSharedPlate")
+    if "born_ms" not in spawn:
+        raise AssertionError("spawnSharedPlate must keep room born_ms on the orb")
+    if "performance.now()" in spawn:
+        raise AssertionError("spawnSharedPlate must not stamp born_ms from present")
+    apply_m = re.search(
+        r"function applySharedSim\([^)]*\) \{[\s\S]*?\nasync function pullSharedSim",
+        js,
+    )
+    if not apply_m:
+        raise AssertionError("applySharedSim missing")
+    apply = apply_m.group(0)
+    if "o.born_ms = p.born_ms" not in apply:
+        raise AssertionError("applySharedSim must keep room born_ms on the orb")
+    if "commitSharedPlateLife" not in apply:
+        raise AssertionError("applySharedSim must commit rewind life after the view snap")
+    if "function commitSharedPlateLife" not in js:
+        raise AssertionError("commitSharedPlateLife missing")
+    if "committedSimMs()" not in js or "o.born_ms" not in js:
+        raise AssertionError("rewind life must read committedSimMs - born_ms")
+    ranged = _js_fn(js, "updateRange")
+    if "commitSharedPlateLife" not in ranged:
+        raise AssertionError("updateRange must rewind match_live life — not only the poll")
+    if "o.life += dt" not in ranged:
+        raise AssertionError("Offline / WARM UP must still integrate life locally")
+    shared_life = ranged.find("commitSharedPlateLife")
+    local_life_at = ranged.find("o.life += dt")
+    if shared_life < 0 or local_life_at < 0 or shared_life > local_life_at:
+        raise AssertionError("match_live rewind must win before local o.life += dt")
+    if "if (shared)" not in ranged and "shared &&" not in ranged:
+        raise AssertionError("updateRange must park rewind life behind sharedMatch")
+    fire = _js_fn(js, "fire")
+    if "await" in fire:
+        raise AssertionError("fire() must still peek AimBus — rewind life is not a fire gate")
+    if "born_ms" in fire or "commitSharedPlateLife" in fire:
+        raise AssertionError("fire() must not wait on born_ms / rewind life")
+    if "sitPoseY" in fire or "flyerPose" in fire:
+        raise AssertionError("fire() must still peek AimBus — pose is not a fire gate")
+    warm = _js_fn(js, "lobbyWarmup")
+    if "/api/lobby/start" in warm or "/api/lobby/hit" in warm:
+        raise AssertionError("WARM UP must stay local after the rewind-life lock")
+    parked = lobby.create("HOST13")
+    guest = lobby.join(parked["code"], "AA2")
+    parked_warm = lobby.warmup(parked["code"], guest["player"])
+    if parked_warm.get("seed") or parked_warm.get("plates"):
+        raise AssertionError("wait_practice must not open the shared rewind sim")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample fields changed — keep the locked struct")
+
+
 def main() -> int:
     try:
         test_two_clients_share_seed_and_ray_hit()
@@ -1417,6 +1558,7 @@ def main() -> int:
         test_gallery_round_authority()
         test_shot_accuracy_authority()
         test_combo_max_authority()
+        test_rewind_life_authority()
     except AssertionError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1

@@ -127,6 +127,10 @@ def test_client_steps_local_sim_at_128() -> None:
         _fail("updateRange elapsed hitch to wall rangeStart")
     if "performance.now" in ranged:
         _fail("updateRange hitch to present")
+    if "commitSharedPlateLife" not in ranged:
+        _fail("updateRange must rewind match_live life from born_ms")
+    if "o.life += dt" not in ranged:
+        _fail("Offline / WARM UP must still integrate life on the 128 Hz step")
 
 
 def test_fire_never_waits_on_tick() -> None:
@@ -235,6 +239,11 @@ def test_shared_house_is_rewind_not_a_loop() -> None:
     pose = pose_m.group(0)
     if "born_ms" not in pose or "life" not in pose:
         _fail("_pose_at must stay closed-form at elapsed_ms")
+    house = proto_js()
+    if "commitSharedPlateLife" not in house or "o.born_ms" not in house:
+        _fail("client must rewind match_live life from born_ms + committedSimMs")
+    if "o.life += dt" not in _fn(house, "updateRange"):
+        _fail("local practice must still integrate life — rewind is match_live only")
     if "sit_pose_y" not in pose:
         _fail("_pose_at must use closed-form sit_pose_y — sit Y is house authority")
     if "flyer_pose" not in pose:
