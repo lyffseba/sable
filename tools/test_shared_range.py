@@ -921,10 +921,17 @@ def test_gallery_over_authority() -> None:
     apply = apply_m.group(0)
     if "data.over" not in apply or 'setPhase("results")' not in apply:
         raise AssertionError("applySharedSim must snap GALLERY CLEAR from the room")
+    if "S.over" not in apply:
+        raise AssertionError("applySharedSim must snap over onto the HUD")
     book_at = apply.find("data.scores")
     over_at = apply.find("data.over")
     if book_at < 0 or over_at < 0 or over_at < book_at:
         raise AssertionError("applySharedSim must snap the book before the bell")
+    hud = _js_fn(js, "drawHUD")
+    if "sharedMatch" not in hud or "S.over" not in hud:
+        raise AssertionError("drawHUD match_live CLEAR must read room over")
+    if re.search(r'if \(left <= 0\) stateChip = "GALLERY CLEAR"', hud):
+        raise AssertionError("drawHUD invented CLEAR from local left on match_live")
     ranged = _js_fn(js, "updateRange")
     if "galleryOver" not in ranged or 'setPhase("results")' not in ranged:
         raise AssertionError("Offline / WARM UP must still end locally")

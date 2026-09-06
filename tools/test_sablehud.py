@@ -66,6 +66,10 @@ def test_thin_arcade_chips() -> None:
         _fail("HUD lost the 60s GALLERY chip")
     if '"GALLERY CLEAR"' not in hud:
         _fail("HUD lost the end chip")
+    if "sharedMatch" not in hud or "S.over" not in hud:
+        _fail("match_live CLEAR must snap from room over — not local left")
+    if re.search(r'if \(left <= 0\) stateChip = "GALLERY CLEAR"', hud):
+        _fail("match_live CLEAR invented from local left<=0")
     if "Locker.colors.bone" not in hud or "Locker.colors.mint" not in hud or "Locker.colors.rust" not in hud:
         _fail("chips must stay bone / mint / rust")
     if "HUD_PAD" not in hud:

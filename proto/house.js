@@ -994,7 +994,9 @@ function applySharedSim(data) {
     }
   }
   // Room owns the 60 s bell. Snap the book first, then close.
-  if (data.over) setPhase("results");
+  // HUD CLEAR reads S.over — do not invent from local left.
+  S.over = !!data.over;
+  if (S.over) setPhase("results");
 }
 
 async function pullSharedSim() {
@@ -1064,6 +1066,7 @@ function startWaitingYard() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.simTick = 0;
+  S.over = false;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
@@ -1086,6 +1089,7 @@ function startRange() {
   S.score = 0; S.hits = 0; S.shots = 0; S.combo = 0; S.comboMax = 0;
   S.rangeStart = performance.now();
   S.simTick = 0;
+  S.over = false;
   S.recoil = 0; S.punch = 0; S.flash = 0;
   S.sharedDead = new Set();
   S.sharedPending = new Set();
