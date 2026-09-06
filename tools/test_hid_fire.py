@@ -168,6 +168,8 @@ def test_hid_lives_on_window() -> None:
     join = _js_fn(src, "lobbyJoin")
     if "muteJoinPad()" not in join:
         raise AssertionError("lobbyJoin must release leftover JOIN/CODE so the pad peeks")
+    if join.find("muteJoinPad()") > join.find('setPhase("lobby")'):
+        raise AssertionError("muteJoinPad must release leftover JOIN/CODE before setPhase Look")
     create = _js_fn(src, "lobbyCreate")
     leave = _js_fn(src, "lobbyLeave")
     if "clearJoinMute()" not in create or "clearJoinMute()" not in leave:

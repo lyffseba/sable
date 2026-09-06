@@ -254,8 +254,8 @@ async function lobbyCreate() {
   S.slot = data.slot;
   S.online = true;
   paintLobby(data);
-  setPhase("lobby");
   clearJoinMute();
+  setPhase("lobby");
   stopLobbyPoll();
   ensureLobbyPoll();
 }
@@ -281,8 +281,8 @@ async function lobbyJoin(code) {
   S.slot = data.slot;
   S.online = true;
   paintLobby(data);
-  setPhase("lobby");
   muteJoinPad();
+  setPhase("lobby");
   stopLobbyPoll();
   ensureLobbyPoll();
 }
@@ -1075,6 +1075,8 @@ function muteJoinPad() {
   if (lobby) lobby.classList.add("join-mute");
   const inp = $("lobby-join");
   if (inp) inp.blur();
+  const btn = $("btn-lobby-join");
+  if (btn) btn.blur();
 }
 
 function clearJoinMute() {

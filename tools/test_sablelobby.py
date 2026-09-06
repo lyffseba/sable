@@ -180,6 +180,8 @@ def test_waiting_arena_always_practice() -> None:
     join = _js_fn(js, "lobbyJoin")
     if "muteJoinPad()" not in join:
         _fail("JOIN must release leftover CODE/JOIN so the waiting Yard stays a live gun")
+    if join.find("muteJoinPad()") > join.find('setPhase("lobby")'):
+        _fail("muteJoinPad must release leftover JOIN/CODE before setPhase Look")
     create = _js_fn(js, "lobbyCreate")
     leave = _js_fn(js, "lobbyLeave")
     if "clearJoinMute()" not in create or "clearJoinMute()" not in leave:
