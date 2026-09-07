@@ -4,7 +4,7 @@
 Fail loud on silence (verbs gone), a music/ambience bed, third-party
 audio packs, audio that gates HID fire, or mint-tell VO that hides the
 gun. Lift mint-tell must stay a short cue quieter than miss/hit/HUD.
-Does not change SableQA floors.
+Does not change SableQA floors. Waiting-Yard lobby lift must mint-tell.
 """
 
 from __future__ import annotations
@@ -221,6 +221,35 @@ def test_playlist_untouched() -> None:
         _fail("playlist chrome still offers Bay — Yard is the sole active map")
 
 
+def test_lobby_waiting_yard_mint_tell() -> None:
+    js = proto_js()
+    after = _js_fn(js, "afterLiftState")
+    if 'phase === "lobby"' not in after:
+        _fail("waiting-Yard lobby lift skips mint-tell — always-practice must chirp")
+    if 'phase === "range"' not in after:
+        _fail("afterLiftState dropped range from the live mint-tell gate")
+    if "liftTellArmed" not in after:
+        _fail("afterLiftState lost arming hysteresis")
+    if "liftTellArmed = false" not in after:
+        _fail("afterLiftState must re-arm when leaving lobby / the live set")
+    if "mintTell" not in after:
+        _fail("afterLiftState must play mintTell on lobby lift")
+    if re.search(r"await\s+", after) or "async function afterLiftState" in js:
+        _fail("afterLiftState awaits — lift mint must not stall Offline/HID")
+    fire = _js_fn(js, "fire")
+    if "liftMint" in fire or "mintTell" in fire or "afterLiftState" in fire:
+        _fail("lift mint must not enter fire() — never a fire gate")
+    hid = _js_fn(js, "onHidPointerDown")
+    if "mintTell" in hid or "liftMint" in hid or "afterLiftState" in hid:
+        _fail("mint-tell landed inside HID pointerdown — tell is after lift, not the click")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+
+
 def test_lift_mint_after_state() -> None:
     js = proto_js()
     after = _js_fn(js, "afterLiftState")
@@ -301,6 +330,8 @@ def test_docs() -> None:
         _fail("PRODUCTION.md must fail loud through test_sableaudio.py")
     if "hide the gun" not in bible.lower() and "hides the gun" not in bible.lower():
         _fail("PRODUCTION.md must fail loud if mint-tell VO hides the gun")
+    if "`lobby` is live for mint-tell" not in bible:
+        _fail("PRODUCTION.md must name waiting-Yard lobby mint-tell")
     if "v0.20.0" not in bible:
         _fail("do not drop the SableHUD v0.20.0 stand")
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
@@ -310,6 +341,11 @@ def test_docs() -> None:
         _fail("docs/modes.md must lock the mint-tell line")
     if "cuff" not in modes.lower() and "hide the gun" not in modes.lower():
         _fail("docs/modes.md must refuse mint-tell VO over the cuff")
+    if "`lobby` is live for mint-tell" not in modes:
+        _fail("docs/modes.md must name waiting-Yard lobby mint-tell")
+    pipeline = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
+    if "`lobby` is live for mint-tell" not in pipeline:
+        _fail("docs/aim_pipeline.md must name waiting-Yard lobby mint-tell")
     cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
     if "Mint. Lift." not in cancho:
         _fail("cancho.md must record the locked mint-tell VO copy")
@@ -335,6 +371,7 @@ def main() -> int:
         test_gains_stay_thin()
         test_after_resolve_not_a_gate()
         test_lift_mint_after_state()
+        test_lobby_waiting_yard_mint_tell()
         test_vo_does_not_hide_the_gun()
         test_playlist_untouched()
         test_docs()

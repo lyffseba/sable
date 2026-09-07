@@ -1,7 +1,8 @@
 /* SABLE — audio.js
    SableAudio: sparse Salt House / gallery verbs.
    Dry-tick miss + hit punch after shot resolve. Quiet mint-tell lift chirp
-   after the cuff goes GUN. Original oscillators only. Locked VO copy is
+   after the cuff goes GUN. Waiting-Yard lobby is live for the tell.
+   Original oscillators only. Locked VO copy is
    SABLE_AUDIO_MINT_TELL ("Mint. Lift.") — no browser TTS, no third-party
    voices. Spoken CANCHO later only via original synthesis.
    No bed, no ambience, no third-party packs, no Marketplace SFX. */

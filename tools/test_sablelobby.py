@@ -151,6 +151,13 @@ def test_waiting_arena_always_practice() -> None:
         _fail("fire() awaits — HUD-on-Yard trapped HID")
     if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
         _fail("fire() waits on camera arm — shot never waits on a camera")
+    after = _js_fn(js, "afterLiftState")
+    if 'phase === "lobby"' not in after:
+        _fail("waiting-Yard lobby lift skips mint-tell")
+    if "mintTell" not in after and "liftMint" not in after:
+        _fail("waiting-Yard lobby lift lost the mint-tell chirp")
+    if "liftMint" in fire or "mintTell" in fire or "afterLiftState" in fire:
+        _fail("mint-tell landed inside fire() — never a fire gate")
     if 'canvasHUD.addEventListener("pointerdown"' in js:
         _fail("waiting-Yard HID lived on muted #hud — window must own the peek")
     if 'window.addEventListener("pointerdown", onHidPointerDown)' not in js:
@@ -395,6 +402,8 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must name waiting-Yard camera arm")
     if "dead gun" not in modes and "armPracticeCam" not in modes:
         _fail("docs/modes.md must refuse a waiting Yard on a dead gun")
+    if "`lobby` is live for mint-tell" not in modes:
+        _fail("docs/modes.md must name waiting-Yard lobby mint-tell")
     if "enterRangePreserve" not in bible:
         _fail("PRODUCTION.md must name ENTER RANGE phase-preserve")
     if "lobbyWarmup" not in bible or "play()" not in bible:
