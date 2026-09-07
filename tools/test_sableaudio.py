@@ -330,7 +330,7 @@ def test_docs() -> None:
         _fail("PRODUCTION.md must fail loud through test_sableaudio.py")
     if "hide the gun" not in bible.lower() and "hides the gun" not in bible.lower():
         _fail("PRODUCTION.md must fail loud if mint-tell VO hides the gun")
-    if "lobby is live for mint-tell" not in bible:
+    if "`lobby` is live for mint-tell" not in bible:
         _fail("PRODUCTION.md must name waiting-Yard lobby mint-tell")
     if "v0.20.0" not in bible:
         _fail("do not drop the SableHUD v0.20.0 stand")
@@ -341,10 +341,10 @@ def test_docs() -> None:
         _fail("docs/modes.md must lock the mint-tell line")
     if "cuff" not in modes.lower() and "hide the gun" not in modes.lower():
         _fail("docs/modes.md must refuse mint-tell VO over the cuff")
-    if "lobby is live for mint-tell" not in modes:
+    if "`lobby` is live for mint-tell" not in modes:
         _fail("docs/modes.md must name waiting-Yard lobby mint-tell")
     pipeline = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
-    if "lobby is live for mint-tell" not in pipeline:
+    if "`lobby` is live for mint-tell" not in pipeline:
         _fail("docs/aim_pipeline.md must name waiting-Yard lobby mint-tell")
     cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
     if "Mint. Lift." not in cancho:

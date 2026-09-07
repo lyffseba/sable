@@ -402,7 +402,7 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must name waiting-Yard camera arm")
     if "dead gun" not in modes and "armPracticeCam" not in modes:
         _fail("docs/modes.md must refuse a waiting Yard on a dead gun")
-    if "lobby is live for mint-tell" not in modes:
+    if "`lobby` is live for mint-tell" not in modes:
         _fail("docs/modes.md must name waiting-Yard lobby mint-tell")
     if "enterRangePreserve" not in bible:
         _fail("PRODUCTION.md must name ENTER RANGE phase-preserve")
