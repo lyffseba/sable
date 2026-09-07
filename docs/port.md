@@ -10,7 +10,7 @@ A later host adapter plugs in behind these bars. It does not move them.
 
 ### Verb = AimBus / HID peek
 
-The gun is the pointing hand. `fire()` peeks `AimBus` only. `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net. HID pointerdown lives on `window` — `#hud` is `pointer-events: none` and must not mute the pad. Pinch is the trigger, not a new aim — peek last pointing UV after lift, before `updateAim`. Waiting-yard `lobby` uses the same `fire()`. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
+The gun is the pointing hand. `fire()` peeks `AimBus` only. `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net. HID pointerdown lives on `window` — `#hud` is `pointer-events: none` and must not mute the pad. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome. Pinch is the trigger, not a new aim — peek last pointing UV after lift, before `updateAim`. Waiting-yard `lobby` uses the same `fire()`. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
 
 ### Sim tick = 128 Hz, HID outside
 
@@ -26,7 +26,7 @@ Playlist stays SABLE: Offline **GALLERY** (`play("range")`, one click), waiting-
 
 ## Soft-lock (do not touch on this path)
 
-Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5, plus hangar `WAIT` / `READY` / `LIVE` from `S.hangar` and a thin `ROOM` chip from `S.room` on `wait_practice` / `match_live`). Room snapshot owns hangar. SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local as a seam. Shared Bay is rewind, not a lobby friend tick. ENTER RANGE is phase-preserve — skip calib/lock when already lifted; HID never waits on the lobby POST. Behavior unchanged. Player-facing boot **BAY** / lobby **ENTER BAY** stay off chrome (`docs/modes.md`).
+Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off the click. SableHUD thin chips (gallery **and** Bay first-to-5, plus hangar `WAIT` / `READY` / `LIVE` from `S.hangar` and a thin `ROOM` chip from `S.room` on `wait_practice` / `match_live`). Room snapshot owns hangar. SableAudio dry-tick / hit punch / mint-tell (`Mint. Lift.`) — short audio cue only, do not paint VO over the cuff / hide the gun. Boot **BAY** stays local as a seam. Shared Bay is rewind, not a lobby friend tick. ENTER RANGE is phase-preserve — skip calib/lock when already lifted; HID never waits on the lobby POST. After JOIN, leftover CODE/JOIN is not the pad. Behavior unchanged. Player-facing boot **BAY** / lobby **ENTER BAY** stay off chrome (`docs/modes.md`).
 
 ## Ship addendum (Yard look lock)
 

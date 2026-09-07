@@ -154,6 +154,11 @@ def main() -> int:
             _fail("WARM UP no longer drops into Range")
         if "alreadyLifted()" not in warm or 'phase === "lobby"' not in warm:
             _fail("WARM UP from the waiting Yard must not route through play() lock")
+        chrome = _js_fn(js, "hidChromeTarget")
+        if "join-mute" not in chrome or "lobby-join" not in chrome:
+            _fail("leftover JOIN/CODE must not eat waiting-Yard HID after join")
+        if "muteJoinPad()" not in _js_fn(js, "lobbyJoin"):
+            _fail("JOIN must release leftover CODE/JOIN so the waiting Yard stays a live gun")
 
         if 'id="btn-lobby-warmup"' not in html or "WARM UP" not in html:
             _fail("waiting room lost WARM UP — shared house would be the only way to shoot")

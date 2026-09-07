@@ -274,6 +274,11 @@ def test_proto_mailbox() -> None:
         raise AssertionError("HID pointerdown must live on window and spare chrome")
     if 'window.addEventListener("pointerdown", onHidPointerDown)' not in src:
         raise AssertionError("HID click must bind window — Fire is HID")
+    chrome = _js_fn(src, "hidChromeTarget")
+    if "join-mute" not in chrome or "lobby-join" not in chrome:
+        raise AssertionError("leftover JOIN/CODE must not mute waiting-Yard HID")
+    if "muteJoinPad()" not in _js_fn(src, "lobbyJoin"):
+        raise AssertionError("JOIN must release leftover CODE/JOIN so the pad peeks")
 
     move = re.search(r"pointermove[\s\S]{0,280}", src)
     if not move or "if (S.desktop)" not in move.group(0):

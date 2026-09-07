@@ -156,11 +156,29 @@ def test_hid_lives_on_window() -> None:
     chrome = _js_fn(src, "hidChromeTarget")
     if "button" not in chrome or "input" not in chrome:
         raise AssertionError("chrome spare must keep WARM UP / ENTER RANGE / join")
+    if "join-mute" not in chrome or "lobby-join" not in chrome:
+        raise AssertionError("chrome spare must release leftover JOIN/CODE after join")
     if "aimBus" in chrome or "fire(" in chrome:
         raise AssertionError("chrome spare must not gate the peek")
+    mute = _js_fn(src, "muteJoinPad")
+    if "join-mute" not in mute or "blur" not in mute:
+        raise AssertionError("muteJoinPad must blur leftover CODE and drop join-mute")
+    if "aimBus" in mute or "fire(" in mute:
+        raise AssertionError("join-mute must not gate the peek")
+    join = _js_fn(src, "lobbyJoin")
+    if "muteJoinPad()" not in join:
+        raise AssertionError("lobbyJoin must release leftover JOIN/CODE so the pad peeks")
+    if join.find("muteJoinPad()") > join.find('setPhase("lobby")'):
+        raise AssertionError("muteJoinPad must release leftover JOIN/CODE before setPhase Look")
+    create = _js_fn(src, "lobbyCreate")
+    leave = _js_fn(src, "lobbyLeave")
+    if "clearJoinMute()" not in create or "clearJoinMute()" not in leave:
+        raise AssertionError("create/leave must re-arm JOIN/CODE for the next session")
     hud = re.search(r"#hud\s*\{([^}]+)\}", css)
     if not hud or "pointer-events: none" not in hud.group(1):
         raise AssertionError("#hud must stay pointer-events none — window owns HID")
+    if "join-mute" not in css or "#btn-lobby-join" not in css:
+        raise AssertionError("leftover JOIN/CODE must be pointer-events none after join")
 
 
 def _pct(samples: list[float], p: float) -> float:
