@@ -87,6 +87,7 @@ Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns G
 - `fire()` peeks `AimBus` (`shot.lifted` or recent sample). It must not reject a shot only because `S.lifted` flickered while the hand reached the pad.
 - `fire()` must **not** call `coastTrack` or `updateAim`. Hitscan peeks the last committed mailbox UV (`shot.uv`) against the house sphere (`hitscanRange` / `plateRadius` — same 0.50 / 0.62 as lobby rewind). The spun hex mesh is Look only. The track loop publishes; the click only peeks.
 - **Pinch is the trigger, not a new aim.** `maybePinchFire` runs after `updateMode` (lift current) and before `updateAim`. It calls `fire()` — it must not re-gate phase, and it must not publish the pinched landmark first. Waiting-yard `lobby` is the same peek (`fire()` already allows it). A second `phase === "range" || "bay"` gate muted always-practice. A fresh ONLINE arms the camera fire-and-forget (`armPracticeCam`) so lift / pinch can live — do not leave the waiting Yard on a dead gun, and do not route that arm through `play()` lock. WARM UP from that live Yard phase-preserves (`lobbyWarmup`) — do not tax the 60s local gallery through `play()` lock.
+- Waiting-Yard `lobby` is live for mint-tell — `afterLiftState` chirps on first lift, same hysteresis as range. Always-practice must not omit the tell until WARM UP / ENTER RANGE.
 
 `Space` force-guns the Range without a camera so the verb can be tested. `T` forces desktop aim (OS cursor → UV).
 

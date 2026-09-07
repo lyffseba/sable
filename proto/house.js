@@ -307,7 +307,7 @@ let liftTellArmed = false;
 
 function afterLiftState() {
   const lifted = !!(S.lifted || S.desktop || S.forceGun);
-  const live = phase === "range" || phase === "bay" || phase === "calibrate" || phase === "lock";
+  const live = phase === "lobby" || phase === "range" || phase === "bay" || phase === "calibrate" || phase === "lock";
   if (live && lifted && !liftTellArmed) mintTell();
   if (live) liftTellArmed = lifted;
   if (!live) liftTellArmed = false;
