@@ -117,16 +117,31 @@ def test_waiting_arena_always_practice() -> None:
     arm = _js_fn(js, "armPracticeCam")
     if "enableCamera" not in arm or "armVideoTrack" not in arm:
         _fail("waiting Yard must arm cam + Hands without lock")
+    if "armPracticeDesktop()" not in arm:
+        _fail("waiting Yard camera deny must arm desktop on the live lobby")
     if re.search(r"await\s+", arm) or "async function armPracticeCam" in js:
         _fail("armPracticeCam awaits — waiting Yard trapped lift/HID")
     if 'setPhase("lock")' in arm or "goCalib" in arm or "resetLockState" in arm:
         _fail("waiting Yard cam arm forced lock/calib")
+    if "goDesktopRange(" in arm or "enterGame(" in arm:
+        _fail("camera deny dumped lobby through goDesktopRange")
     if "play(" in arm:
         _fail("waiting Yard cam arm routed through play() lock tax")
     if re.search(r"\bfetch\s*\(", arm) or "/api/lobby" in arm:
         _fail("waiting Yard cam arm talks to the room")
     if "aimBus" in arm or "fire(" in arm:
         _fail("cam arm gated fire — gun never waits on getUserMedia")
+    desk = _js_fn(js, "armPracticeDesktop")
+    if "S.desktop = true" not in desk or 'S.mode = "DESKTOP"' not in desk:
+        _fail("camera deny must keep a desktop peek on the waiting Yard")
+    if "camReady" not in desk:
+        _fail("armPracticeDesktop must not steal a live camera")
+    if "goDesktopRange(" in desk or "enterGame(" in desk or 'setPhase("range")' in desk:
+        _fail("armPracticeDesktop must stay lobby — do not dump into the 60s gallery")
+    if re.search(r"await\s+", desk) or "async function armPracticeDesktop" in js:
+        _fail("armPracticeDesktop awaits — waiting Yard trapped lift/HID")
+    if "aimBus" in desk or "fire(" in desk:
+        _fail("desktop arm gated fire — gun never waits on camera deny")
     if "enableCamera" in wait or "armPracticeCam" in wait:
         _fail("startWaitingYard must stay sync — cam arm is fire-and-forget from setPhase")
     match = _js_fn(js, "sharedMatch")
@@ -149,7 +164,7 @@ def test_waiting_arena_always_practice() -> None:
         _fail("maybePinchFire re-gates the verb — waiting Yard muted pinch")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — HUD-on-Yard trapped HID")
-    if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
+    if "enableCamera" in fire or "armPracticeCam" in fire or "armPracticeDesktop" in fire or "getUserMedia" in fire:
         _fail("fire() waits on camera arm — shot never waits on a camera")
     after = _js_fn(js, "afterLiftState")
     if 'phase === "lobby"' not in after:
@@ -421,8 +436,17 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must name waiting-arena always-practice")
     if "armPracticeCam" not in bible:
         _fail("PRODUCTION.md must name waiting-Yard camera arm")
+    if "armPracticeDesktop" not in bible:
+        _fail("PRODUCTION.md must name waiting-Yard camera-deny desktop")
+    if "goDesktopRange" not in bible:
+        _fail("PRODUCTION.md must refuse camera-deny dump through goDesktopRange")
     if "dead gun" not in modes and "armPracticeCam" not in modes:
         _fail("docs/modes.md must refuse a waiting Yard on a dead gun")
+    if "armPracticeDesktop" not in modes:
+        _fail("docs/modes.md must name waiting-Yard camera-deny desktop")
+    pipeline = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
+    if "armPracticeDesktop" not in pipeline:
+        _fail("docs/aim_pipeline.md must name waiting-Yard camera-deny desktop")
     if "`lobby` is live for mint-tell" not in modes:
         _fail("docs/modes.md must name waiting-Yard lobby mint-tell")
     if "enterRangePreserve" not in bible:

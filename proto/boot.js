@@ -6,6 +6,8 @@
    docs/modes.md. Port path: docs/port.md.
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera.
    Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
+   Camera deny arms desktop on that lobby (armPracticeDesktop) — stay
+   waiting Yard; do not dump into the 60s gallery.
    WARM UP from lobby phase-preserves the live Yard — no play() lock tax.
    HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
    none must not mute the pad. Chrome (button/input) still owns its click.
@@ -1021,9 +1023,18 @@ function frame(t) {
   syncCursor();
 }
 
+function armPracticeDesktop() {
+  // Camera deny: waiting Yard stays a live gun. Desktop peek.
+  // Stay lobby — do not leave the waiting arena for the 60s gallery.
+  if (camReady) return;
+  S.desktop = true;
+  S.mode = "DESKTOP";
+}
+
 function armPracticeCam() {
   // Waiting Yard is a live gun. Arm cam + Hands without lock/calib.
   // Fire-and-forget — never a fire gate, never a lobby await.
+  // Camera deny arms desktop on this lobby. Not a fire wait.
   if (camReady) {
     initHands();
     armVideoTrack();
@@ -1033,11 +1044,17 @@ function armPracticeCam() {
   practiceCamArming = true;
   enableCamera().then(function (ok) {
     practiceCamArming = false;
-    if (!ok) return;
+    if (!ok) {
+      armPracticeDesktop();
+      return;
+    }
     return initHands();
   }).then(function () {
     if (camReady) armVideoTrack();
-  }).catch(function () { practiceCamArming = false; });
+  }).catch(function () {
+    practiceCamArming = false;
+    armPracticeDesktop();
+  });
 }
 
 async function enableCamera() {
