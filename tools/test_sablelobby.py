@@ -152,6 +152,30 @@ def test_waiting_arena_always_practice() -> None:
         _fail("frame must run updateMode on DESKTOP even if !camReady")
     if "maybePinchFire" in desk_else.group(1) or "runTrack" in desk_else.group(1):
         _fail("!camReady DESKTOP must not pinch or invent a hand track")
+    keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        keys,
+    )
+    if not t_block:
+        _fail("KeyT handler missing")
+    t_body = t_block.group(1)
+    if 'phase === "lock"' not in t_body or "goDesktopRange()" not in t_body:
+        _fail("Offline lock-phase KeyT must stay goDesktopRange")
+    if "armPracticeDesktop()" not in t_body:
+        _fail("KeyT must re-arm DESKTOP on cam-deny waiting Yard — do not leave a dead gun")
+    if "camReady" not in t_body:
+        _fail("KeyT re-arm must refuse to steal a live camera")
+    if 'phase === "lobby"' not in t_body or "wait_practice" not in t_body:
+        _fail("KeyT re-arm is waiting Yard only — lobby / wait_practice")
+    if "S.desktop = !S.desktop" not in t_body:
+        _fail("KeyT must still toggle DESKTOP off when camReady")
+    if t_body.find("armPracticeDesktop()") > t_body.find("S.desktop = !S.desktop"):
+        _fail("KeyT must re-arm / no-op before toggle-off on cam-deny waiting Yard")
+    if t_body.find("goDesktopRange()") > t_body.find("S.desktop = !S.desktop"):
+        _fail("waiting-Yard KeyT must not dump through goDesktopRange")
+    if re.search(r"if \(camReady\)[\s\S]{0,80}armPracticeDesktop", t_body):
+        _fail("Q4: camReady KeyT must not auto-desktop")
     if "enableCamera" in wait or "armPracticeCam" in wait:
         _fail("startWaitingYard must stay sync — cam arm is fire-and-forget from setPhase")
     match = _js_fn(js, "sharedMatch")
@@ -514,6 +538,20 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         _fail("Space must stay the Q4 force-GUN escape")
     if keys and "goDesktopRange" in keys.group(0):
         _fail("Space must force GUN — do not invent desktop on fail-to-lock")
+    t_keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        t_keys,
+    )
+    if not t_block:
+        _fail("KeyT handler missing")
+    t_body = t_block.group(1)
+    if "S.desktop = !S.desktop" not in t_body:
+        _fail("Q4: camReady KeyT must still toggle DESKTOP off — hand path owns the gun")
+    if re.search(r"if \(camReady\)[\s\S]{0,120}armPracticeDesktop", t_body):
+        _fail("Q4: camReady KeyT must not auto-desktop")
+    if "camReady" not in t_body or "armPracticeDesktop()" not in t_body:
+        _fail("cam-deny waiting Yard KeyT must re-arm DESKTOP — deny is not Q4")
     mode = _js_fn(js, "updateMode")
     if "S.forceGun" not in mode or 'S.mode = "GUN"' not in mode:
         _fail("updateMode must still force GUN from Space")
@@ -663,6 +701,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock DESKTOP updateMode truth without camReady")
     if lock not in pipeline:
         _fail("docs/aim_pipeline.md must lock DESKTOP updateMode truth without camReady")
+    keyt = "KeyT must not disarm DESKTOP on cam-deny waiting Yard"
+    if keyt not in modes:
+        _fail("docs/modes.md must lock KeyT cam-deny waiting-Yard DESKTOP hold")
+    if keyt not in bible:
+        _fail("PRODUCTION.md must lock KeyT cam-deny waiting-Yard DESKTOP hold")
+    if keyt not in pipeline:
+        _fail("docs/aim_pipeline.md must lock KeyT cam-deny waiting-Yard DESKTOP hold")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:
