@@ -708,6 +708,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock KeyT cam-deny waiting-Yard DESKTOP hold")
     if keyt not in pipeline:
         _fail("docs/aim_pipeline.md must lock KeyT cam-deny waiting-Yard DESKTOP hold")
+    cursor = "`syncCursor` shows the OS cursor when `S.desktop`"
+    if cursor not in modes:
+        _fail("docs/modes.md must lock DESKTOP OS-cursor visibility")
+    if cursor not in bible:
+        _fail("PRODUCTION.md must lock DESKTOP OS-cursor visibility")
+    if cursor not in pipeline:
+        _fail("docs/aim_pipeline.md must lock DESKTOP OS-cursor visibility")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:

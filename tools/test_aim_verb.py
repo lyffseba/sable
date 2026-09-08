@@ -419,6 +419,38 @@ def test_desktop_arm_writes_updatemode_truth() -> None:
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
 
 
+def test_desktop_shows_os_cursor() -> None:
+    """DESKTOP aim is the OS cursor. Hide only when the hand owns the pad."""
+    src = proto_js()
+    sync = _js_fn(src, "syncCursor")
+    if "!S.desktop" not in sync:
+        raise AssertionError("syncCursor must show the OS cursor when S.desktop")
+    if 'phase === "lock"' not in sync or "nocursor" not in sync:
+        raise AssertionError("lock-never-cursor: non-DESKTOP live phases still hide")
+    for phase in ("range", "bay", "lobby", "calibrate", "lock"):
+        if f'phase === "{phase}"' not in sync:
+            raise AssertionError(f"syncCursor must still name {phase} for lock-never-cursor")
+    if "S.desktop = true" in sync or "armPracticeDesktop" in sync or "goDesktopRange" in sync:
+        raise AssertionError("syncCursor must not arm DESKTOP — Q4 never auto-desktop")
+    if "aimBus" in sync or "fire(" in sync or "publishAim" in sync:
+        raise AssertionError("syncCursor must not publish or fire — HID peeks")
+    if "AimSample" in sync:
+        raise AssertionError("syncCursor must not touch AimSample")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
+    desk = _js_fn(src, "armPracticeDesktop")
+    if "updateMode(" not in desk:
+        raise AssertionError("#77: armPracticeDesktop must still write updateMode truth")
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        keys,
+    )
+    if not t_block or "armPracticeDesktop()" not in t_block.group(1):
+        raise AssertionError("#78: KeyT must still re-arm DESKTOP on cam-deny waiting Yard")
+
+
 def test_range_gate() -> None:
     src = proto_js()
     fire_body = _js_fn(src, "fire")
@@ -511,6 +543,7 @@ def main() -> int:
         test_proto_mailbox()
         test_pointing_filter()
         test_desktop_arm_writes_updatemode_truth()
+        test_desktop_shows_os_cursor()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()
