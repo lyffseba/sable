@@ -182,6 +182,14 @@ def test_waiting_arena_always_practice() -> None:
         _fail("window HID must peek fire() and spare WARM UP / ENTER RANGE")
     if 'phase === "lobby"' not in hid:
         _fail("window HID must peek on the waiting Yard")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        _fail("waiting-Yard DESKTOP first pad must publish click UV before fire()")
+    if hid.find("publishAim") > hid.find("fire()"):
+        _fail("waiting-Yard DESKTOP publishAim must land before fire()")
+    for m in re.finditer(r"publishAim\s*\(", hid):
+        window = hid[max(0, m.start() - 80) : m.start()]
+        if "S.desktop" not in window:
+            _fail("waiting-Yard HID must not publishAim unless DESKTOP owns the mailbox")
     chrome = _js_fn(js, "hidChromeTarget")
     if "join-mute" not in chrome or "lobby-join" not in chrome:
         _fail("leftover JOIN/CODE must not eat waiting-Yard HID after join")
@@ -630,6 +638,12 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must name alreadyLifted DESKTOP live without camReady")
     if "`alreadyLifted` treats DESKTOP as live" not in bible:
         _fail("PRODUCTION.md must name alreadyLifted DESKTOP live without camReady")
+    if "`onHidPointerDown` publishes click UV when DESKTOP owns the mailbox" not in modes:
+        _fail("docs/modes.md must lock DESKTOP first-pad click UV")
+    if "`onHidPointerDown` publishes click UV when DESKTOP owns the mailbox" not in bible:
+        _fail("PRODUCTION.md must lock DESKTOP first-pad click UV")
+    if "`onHidPointerDown` publishes click UV when DESKTOP owns the mailbox" not in pipeline:
+        _fail("docs/aim_pipeline.md must lock DESKTOP first-pad click UV")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:

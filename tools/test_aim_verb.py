@@ -274,6 +274,19 @@ def test_proto_mailbox() -> None:
         raise AssertionError("HID pointerdown must live on window and spare chrome")
     if 'window.addEventListener("pointerdown", onHidPointerDown)' not in src:
         raise AssertionError("HID click must bind window — Fire is HID")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("DESKTOP HID must publish click UV before fire() peek")
+    if hid.find("publishAim") > hid.find("fire()"):
+        raise AssertionError("DESKTOP publishAim must land before fire()")
+    if "updateAim" in hid or "coastTrack" in hid:
+        raise AssertionError("window HID must not recompute aim — fire() peeks")
+    for m in re.finditer(r"publishAim\s*\(", hid):
+        window = hid[max(0, m.start() - 80) : m.start()]
+        if "S.desktop" not in window:
+            raise AssertionError("HID must not publishAim unless DESKTOP owns the mailbox")
+    if "publishAim" in _js_fn(src, "fire"):
+        raise AssertionError("fire() must peek — DESKTOP publish lives on onHidPointerDown")
     chrome = _js_fn(src, "hidChromeTarget")
     if "join-mute" not in chrome or "lobby-join" not in chrome:
         raise AssertionError("leftover JOIN/CODE must not mute waiting-Yard HID")
