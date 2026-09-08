@@ -161,7 +161,7 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("fire() talks to net — HID is behind the lobby")
     if "coastTrack" in fire or "updateAim" in fire:
         _fail("fire() recomputes aim")
-    if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
+    if "enableCamera" in fire or "armPracticeCam" in fire or "armPracticeDesktop" in fire or "getUserMedia" in fire:
         _fail("fire() waits on camera arm — shot never waits on a camera")
     if 'canvasHUD.addEventListener("pointerdown"' in js:
         _fail("HID click lived on muted #hud — window must own the peek")

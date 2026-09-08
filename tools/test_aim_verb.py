@@ -254,7 +254,7 @@ def test_proto_mailbox() -> None:
         raise AssertionError("fire must not coastTrack / updateAim — last committed sample only")
     if re.search(r"await\s+|requestVideoFrameCallback", fire):
         raise AssertionError("fire must not wait on a camera frame")
-    if "enableCamera" in fire or "armPracticeCam" in fire or "getUserMedia" in fire:
+    if "enableCamera" in fire or "armPracticeCam" in fire or "armPracticeDesktop" in fire or "getUserMedia" in fire:
         raise AssertionError("fire must not wait on camera arm")
     if re.search(r"postMessage|createImageBitmap|detectForVideo|hands_worker", fire):
         raise AssertionError("fire must not wait on the Hands worker")
