@@ -231,6 +231,8 @@ function updateMode(now) {
   const dtm = S.liftTick ? Math.min(40, now - S.liftTick) : 16;
   S.liftTick = now;
   if (S.desktop) {
+    // DESKTOP truth does not need landmarks. Cam-deny / KeyT must
+    // not leave seeking+unlifted in the mailbox.
     S.mode = "DESKTOP"; S.seeking = false; S.lifted = true; S.liftMs = LIFT_ON_MS; return;
   }
   // Hand-visible / recent sample owns lift. HID click must not demote GUN.
@@ -397,6 +399,8 @@ function goDesktopRange() {
   S.lockAdvance = true;
   S.desktop = true;
   S.mode = "DESKTOP";
+  // First pad before the next frame must not lie seeking+unlifted.
+  updateMode(performance.now());
   enterGame();
 }
 

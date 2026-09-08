@@ -63,6 +63,8 @@ def test_named_rate_is_128() -> None:
         _fail("docs/tick.md must keep HID fire outside both clocks")
     if "onHidPointerDown" not in docs:
         _fail("docs/tick.md must name window HID pointerdown")
+    if "`updateMode` writes DESKTOP truth (`seeking` false, `lifted` true) even if `!camReady`" not in docs:
+        _fail("docs/tick.md must lock DESKTOP updateMode truth without camReady")
     if "rewind" not in docs.lower():
         _fail("docs/tick.md must keep shared house as rewind, not a friend tick")
     if "markHid" not in docs or "Look" not in docs:
@@ -184,6 +186,11 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("pinch ran before updateMode — lift would be stale")
     if frame.find("maybePinchFire") > frame.find("updateAim"):
         _fail("pinch published the closed-finger UV before the peek")
+    desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
+    if not desk_else or "updateMode" not in desk_else.group(1):
+        _fail("frame must run updateMode on DESKTOP even if !camReady")
+    if "maybePinchFire" in desk_else.group(1):
+        _fail("!camReady DESKTOP must not pinch")
     if "hitscanRange" not in fire:
         _fail("fire() must peek the house sphere")
     if "intersectObjects" in fire:

@@ -136,12 +136,22 @@ def test_waiting_arena_always_practice() -> None:
         _fail("camera deny must keep a desktop peek on the waiting Yard")
     if "camReady" not in desk:
         _fail("armPracticeDesktop must not steal a live camera")
+    if "updateMode(" not in desk:
+        _fail("armPracticeDesktop must write updateMode DESKTOP truth immediately")
+    if "if (camReady) return" in desk and desk.find("if (camReady) return") > desk.find("updateMode("):
+        _fail("armPracticeDesktop must refuse camReady before writing DESKTOP truth")
     if "goDesktopRange(" in desk or "enterGame(" in desk or 'setPhase("range")' in desk:
         _fail("armPracticeDesktop must stay lobby — do not dump into the 60s gallery")
     if re.search(r"await\s+", desk) or "async function armPracticeDesktop" in js:
         _fail("armPracticeDesktop awaits — waiting Yard trapped lift/HID")
     if "aimBus" in desk or "fire(" in desk:
         _fail("desktop arm gated fire — gun never waits on camera deny")
+    frame = _js_fn(js, "frame")
+    desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
+    if not desk_else or "updateMode" not in desk_else.group(1):
+        _fail("frame must run updateMode on DESKTOP even if !camReady")
+    if "maybePinchFire" in desk_else.group(1) or "runTrack" in desk_else.group(1):
+        _fail("!camReady DESKTOP must not pinch or invent a hand track")
     if "enableCamera" in wait or "armPracticeCam" in wait:
         _fail("startWaitingYard must stay sync — cam arm is fire-and-forget from setPhase")
     match = _js_fn(js, "sharedMatch")
@@ -460,6 +470,8 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         _fail("armPracticeDesktop must refuse to steal a live camera — Q4 is not deny")
     if "S.desktop = true" not in desk or 'S.mode = "DESKTOP"' not in desk:
         _fail("camera deny must still set desktop on !camReady")
+    if "updateMode(" not in desk:
+        _fail("camera deny must write updateMode DESKTOP truth immediately")
     if "goDesktopRange(" in desk:
         _fail("armPracticeDesktop must stay lobby — do not dump into the 60s gallery")
 
@@ -644,6 +656,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock DESKTOP first-pad click UV")
     if "`onHidPointerDown` publishes click UV when DESKTOP owns the mailbox" not in pipeline:
         _fail("docs/aim_pipeline.md must lock DESKTOP first-pad click UV")
+    lock = "`updateMode` writes DESKTOP truth (`seeking` false, `lifted` true) even if `!camReady`"
+    if lock not in modes:
+        _fail("docs/modes.md must lock DESKTOP updateMode truth without camReady")
+    if lock not in bible:
+        _fail("PRODUCTION.md must lock DESKTOP updateMode truth without camReady")
+    if lock not in pipeline:
+        _fail("docs/aim_pipeline.md must lock DESKTOP updateMode truth without camReady")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:

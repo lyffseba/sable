@@ -234,6 +234,12 @@ def test_proto_mailbox() -> None:
         raise AssertionError("updateAim maps camera to screen")
     if "function publishAim" not in src:
         raise AssertionError("one publisher for the mailbox")
+    if "!S.seeking && (S.locked || S.desktop)" not in src:
+        raise AssertionError("publishAim valid must stay !seeking && (locked || desktop)")
+    if "S.lifted" not in _js_fn(src, "publishAim"):
+        raise AssertionError("publishAim must publish S.lifted — do not invent a sixth field")
+    if 'S.seeking = false' not in mode_body or "S.lifted = true" not in mode_body:
+        raise AssertionError("updateMode DESKTOP must clear seeking and arm lifted")
 
     fire = _js_fn(src, "fire")
     if 'S.mode === "PAD"' in fire:
@@ -348,6 +354,15 @@ def test_pointing_filter() -> None:
         raise AssertionError("pinch must run after updateMode so lifted is current")
     if frame.find("maybePinchFire") > frame.find("updateAim"):
         raise AssertionError("pinch must peek last pointing UV — updateAim after the trigger must not rewrite the shot")
+    desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
+    if not desk_else or "updateMode" not in desk_else.group(1):
+        raise AssertionError("frame must run updateMode on DESKTOP even if !camReady")
+    if "maybePinchFire" in desk_else.group(1) or "updateAim" in desk_else.group(1):
+        raise AssertionError("!camReady DESKTOP must not pinch or rewrite aim")
+    if "runTrack" in desk_else.group(1) or "grabFrame" in desk_else.group(1):
+        raise AssertionError("!camReady DESKTOP must not invent a hand track")
+    if frame.find("if (camReady)") > frame.find("else if (S.desktop)"):
+        raise AssertionError("camReady track/pinch path must stay first — do not reorder GUN")
     lost = _js_fn(src, "nccTrack")
     if "age > COAST_MS && S.euroX" in lost:
         raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")
@@ -356,6 +371,32 @@ def test_pointing_filter() -> None:
     mode_body = _js_fn(src, "updateMode")
     if "LIFT_ON_MS" not in mode_body and "S.liftMs" not in mode_body:
         raise AssertionError("lift needs hysteresis so HID noise does not flicker fire")
+
+
+def test_desktop_arm_writes_updatemode_truth() -> None:
+    """Cam-deny / KeyT / goDesktopRange must match DESKTOP updateMode immediately."""
+    src = proto_js()
+    desk = _js_fn(src, "armPracticeDesktop")
+    if "if (camReady) return" not in desk:
+        raise AssertionError("armPracticeDesktop must refuse a live camera")
+    if "updateMode(" not in desk:
+        raise AssertionError("armPracticeDesktop must write updateMode truth before the next frame")
+    if desk.find("if (camReady) return") > desk.find("updateMode"):
+        raise AssertionError("armPracticeDesktop must not steal camReady before writing truth")
+    if "aimBus" in desk or "fire(" in desk or "publishAim" in desk:
+        raise AssertionError("desktop arm must not publish or fire — HID peeks")
+    go = _js_fn(src, "goDesktopRange")
+    if "updateMode(" not in go:
+        raise AssertionError("goDesktopRange must write updateMode truth before enterGame")
+    if go.find("updateMode") > go.find("enterGame"):
+        raise AssertionError("goDesktopRange must arm DESKTOP truth before enterGame")
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    t_block = re.search(r'e\.code === "KeyT"[\s\S]{0,320}', keys)
+    if not t_block or "updateMode(" not in t_block.group(0):
+        raise AssertionError("KeyT DESKTOP must write updateMode truth immediately")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
 
 
 def test_range_gate() -> None:
@@ -449,6 +490,7 @@ def main() -> int:
         test_ruled_out()
         test_proto_mailbox()
         test_pointing_filter()
+        test_desktop_arm_writes_updatemode_truth()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

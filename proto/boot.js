@@ -16,7 +16,9 @@
    After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad.
    `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox —
    first pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
-   Cam / GUN / pinch must not publish on the click. */
+   Cam / GUN / pinch must not publish on the click.
+   `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
+   even if `!camReady`. Arm paths apply that truth immediately. */
 
 import {
   S,
@@ -974,6 +976,10 @@ function frame(t) {
     updateMode(t);
     maybePinchFire(S.handLm);
     updateAim();
+  } else if (S.desktop) {
+    // DESKTOP early-return is safe without landmarks. Cam-deny / KeyT
+    // must not leave seeking+unlifted in the mailbox. Do not pinch here.
+    updateMode(t);
   }
   afterLiftState();
 
@@ -1044,9 +1050,11 @@ function frame(t) {
 function armPracticeDesktop() {
   // Camera deny: waiting Yard stays a live gun. Desktop peek.
   // Stay lobby — do not leave the waiting arena for the 60s gallery.
+  // Write updateMode DESKTOP truth now — frame may not have camReady.
   if (camReady) return;
   S.desktop = true;
   S.mode = "DESKTOP";
+  updateMode(performance.now());
 }
 
 function armPracticeCam() {
@@ -1179,6 +1187,7 @@ window.addEventListener("keydown", (e) => {
     if (phase === "lock") { goDesktopRange(); afterLiftState(); return; }
     S.desktop = !S.desktop;
     if (S.desktop) S.mode = "DESKTOP";
+    updateMode(performance.now());
     afterLiftState();
   }
   if (e.code === "KeyW") Bay.keys.w = true;
