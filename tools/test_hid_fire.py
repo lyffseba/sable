@@ -61,6 +61,29 @@ def test_desktop_first_click_uv() -> None:
     shot = bus.fire()
     assert shot.uv == (0.22, 0.81), "DESKTOP first pad must peek the click UV"
     assert shot.uv != (0.5, 0.5), "DESKTOP first pad must not peek screen-center"
+    assert shot.valid is True and shot.lifted is True, "DESKTOP first pad must be a live gun"
+
+
+def desktop_publish(seeking: bool, lifted: bool, locked: bool, desktop: bool) -> tuple[bool, bool]:
+    """publishAim valid/lifted bits. AimSample schema stays five fields."""
+    valid = (not seeking) and (locked or desktop)
+    return valid, lifted
+
+
+def test_desktop_mailbox_truth() -> None:
+    """Cam-deny DESKTOP must not publish seeking+unlifted. Q4 stays SEEKING."""
+    # The lie: desktop+mode set, seeking/lifted never armed.
+    valid, lifted = desktop_publish(True, False, False, True)
+    if valid or lifted:
+        raise AssertionError("fixture: unarmed DESKTOP must show the mailbox lie")
+    # After updateMode DESKTOP truth.
+    valid, lifted = desktop_publish(False, True, False, True)
+    if not valid or not lifted:
+        raise AssertionError("DESKTOP publishAim must be valid+lifted for a live gun")
+    # Q4: camReady fail-to-lock is SEEKING — never a live desktop sample.
+    valid, lifted = desktop_publish(True, False, False, False)
+    if valid or lifted:
+        raise AssertionError("Q4 SEEKING must not look like a live DESKTOP gun")
 
 
 def _read(rel: str) -> str:
@@ -243,6 +266,7 @@ def main() -> int:
     try:
         test_python_mailbox()
         test_desktop_first_click_uv()
+        test_desktop_mailbox_truth()
         test_client_does_not_wait()
         test_hid_lives_on_window()
         test_sableperf_budget()
