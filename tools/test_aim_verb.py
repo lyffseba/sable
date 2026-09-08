@@ -381,7 +381,7 @@ def test_desktop_arm_writes_updatemode_truth() -> None:
         raise AssertionError("armPracticeDesktop must refuse a live camera")
     if "updateMode(" not in desk:
         raise AssertionError("armPracticeDesktop must write updateMode truth before the next frame")
-    if desk.find("if (camReady) return") > desk.find("updateMode"):
+    if desk.find("if (camReady) return") > desk.find("updateMode("):
         raise AssertionError("armPracticeDesktop must not steal camReady before writing truth")
     if "aimBus" in desk or "fire(" in desk or "publishAim" in desk:
         raise AssertionError("desktop arm must not publish or fire — HID peeks")

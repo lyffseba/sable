@@ -1050,7 +1050,7 @@ function frame(t) {
 function armPracticeDesktop() {
   // Camera deny: waiting Yard stays a live gun. Desktop peek.
   // Stay lobby — do not leave the waiting arena for the 60s gallery.
-  // Write updateMode DESKTOP truth now — frame may not have camReady.
+  // Match DESKTOP lift/seeking now — frame may not have camReady.
   if (camReady) return;
   S.desktop = true;
   S.mode = "DESKTOP";
