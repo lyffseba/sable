@@ -465,9 +465,9 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must name ENTER RANGE phase-preserve")
     if "lobbyWarmup" not in modes or "play()" not in modes:
         _fail("docs/modes.md must refuse WARM UP play() lock tax")
-    if "alreadyLifted treats DESKTOP as live" not in modes:
+    if "`alreadyLifted` treats DESKTOP as live" not in modes:
         _fail("docs/modes.md must name alreadyLifted DESKTOP live without camReady")
-    if "alreadyLifted treats DESKTOP as live" not in bible:
+    if "`alreadyLifted` treats DESKTOP as live" not in bible:
         _fail("PRODUCTION.md must name alreadyLifted DESKTOP live without camReady")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
