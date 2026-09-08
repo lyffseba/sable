@@ -391,9 +391,29 @@ def test_desktop_arm_writes_updatemode_truth() -> None:
     if go.find("updateMode") > go.find("enterGame"):
         raise AssertionError("goDesktopRange must arm DESKTOP truth before enterGame")
     keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
-    t_block = re.search(r'e\.code === "KeyT"[\s\S]{0,320}', keys)
-    if not t_block or "updateMode(" not in t_block.group(0):
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        keys,
+    )
+    if not t_block:
+        raise AssertionError("KeyT handler missing")
+    t_body = t_block.group(1)
+    if "updateMode(" not in t_body:
         raise AssertionError("KeyT DESKTOP must write updateMode truth immediately")
+    if 'phase === "lock"' not in t_body or "goDesktopRange()" not in t_body:
+        raise AssertionError("Offline lock-phase KeyT must stay goDesktopRange")
+    if "armPracticeDesktop()" not in t_body:
+        raise AssertionError("KeyT must re-arm DESKTOP on cam-deny waiting Yard")
+    if "camReady" not in t_body:
+        raise AssertionError("KeyT re-arm must refuse to steal a live camera")
+    if 'phase === "lobby"' not in t_body or "wait_practice" not in t_body:
+        raise AssertionError("KeyT re-arm is waiting Yard only — lobby / wait_practice")
+    if "S.desktop = !S.desktop" not in t_body:
+        raise AssertionError("KeyT must still toggle DESKTOP when camReady")
+    if t_body.find("armPracticeDesktop()") > t_body.find("S.desktop = !S.desktop"):
+        raise AssertionError("KeyT must re-arm / no-op before toggle-off on cam-deny")
+    if t_body.find("goDesktopRange()") > t_body.find("S.desktop = !S.desktop"):
+        raise AssertionError("waiting-Yard KeyT must not dump through goDesktopRange")
     hid = _js_fn(src, "onHidPointerDown")
     if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")

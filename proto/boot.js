@@ -18,7 +18,10 @@
    first pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
    Cam / GUN / pinch must not publish on the click.
    `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
-   even if `!camReady`. Arm paths apply that truth immediately. */
+   even if `!camReady`. Arm paths apply that truth immediately.
+   KeyT must not disarm DESKTOP on cam-deny waiting Yard
+   (`lobby` / `wait_practice`) — re-arm via `armPracticeDesktop`.
+   When `camReady`, KeyT debug toggle-off stays. */
 
 import {
   S,
@@ -1185,6 +1188,13 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "Space") { e.preventDefault(); S.forceGun = true; afterLiftState(); } // Q4 escape: force GUN. Not auto-desktop.
   if (e.code === "KeyT") {
     if (phase === "lock") { goDesktopRange(); afterLiftState(); return; }
+    // Cam-deny waiting Yard: KeyT must not disarm the only live gun.
+    // Hand path owns the gun when camReady — debug toggle-off stays.
+    if (!camReady && (phase === "lobby" || S.hangar === "wait_practice")) {
+      armPracticeDesktop();
+      afterLiftState();
+      return;
+    }
     S.desktop = !S.desktop;
     if (S.desktop) S.mode = "DESKTOP";
     updateMode(performance.now());
