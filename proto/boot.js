@@ -13,7 +13,10 @@
    WARM UP from lobby phase-preserves the live Yard — no play() lock tax.
    HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
    none must not mute the pad. Chrome (button/input) still owns its click.
-   After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad. */
+   After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad.
+   `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox —
+   first pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
+   Cam / GUN / pinch must not publish on the click. */
 
 import {
   S,
@@ -1134,6 +1137,10 @@ function onHidPointerDown(e) {
   if (e.button !== 0) return;
   if (hidChromeTarget(e.target)) return;
   unlockAudio();
+  // Desktop owns the mailbox: commit click UV before the HID peek.
+  // First pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
+  // Cam / GUN / pinch must not publish here — that stomps a hand AimSample.
+  if (S.desktop) publishAim(e.clientX, e.clientY);
   if (phase === "lock") {
     e.preventDefault();
     if (S.tpl && (detGood() || S.smooth)) goCalib();

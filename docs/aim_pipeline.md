@@ -39,7 +39,7 @@ Click is **always** HID / Raw Input against the **latest** AimSample.
 
 `AimBus.fire()` / `AimPipeline.fire()` are peek, not poll.
 
-HID pointerdown lives on `window` (`onHidPointerDown`). `#hud { pointer-events: none }` must not mute the pad — a `canvasHUD` listener never sees a real trackpad tap. Chrome (`button` / `input`) still owns WARM UP / ENTER RANGE / LEAVE / join. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome (`muteJoinPad`) — the pad still peeks. Pinch is the same peek.
+HID pointerdown lives on `window` (`onHidPointerDown`). `#hud { pointer-events: none }` must not mute the pad — a `canvasHUD` listener never sees a real trackpad tap. Chrome (`button` / `input`) still owns WARM UP / ENTER RANGE / LEAVE / join. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome (`muteJoinPad`) — the pad still peeks. Pinch is the same peek. `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox — first pad after cam deny / T / `goDesktopRange` must not peek `{0.5,0.5}`. Cam / GUN / pinch must not publish on the click.
 
 SablePort (`docs/port.md`) may later swap a host *feel*. The verb does not move: click still peeks `AimBus`. `proto/port.js` labels that seam `aimbus-hid-peek`. Do not grow a second fire path for a later migrate.
 
@@ -107,7 +107,7 @@ The shot reads `AimBus` on the click. It does not wait for the next 128 Hz sim s
 
 ## Desktop fallback
 
-If `cv_input` is not loaded, or the operator presses **T**, UV is the OS cursor over the viewport. Confidence = 1. The Range stays testable without a webcam. `alreadyLifted` treats DESKTOP as live without `camReady`; phase-preserve still skips `play()` lock. **Q4 fail-to-lock is SEEKING until lock or Space** on the waiting Yard when `camReady` and no hand — never OS cursor, never auto-`goDesktopRange`. Camera deny is not fail-to-lock (`armPracticeDesktop`). Offline lock timeout → `goDesktopRange` stays Offline.
+If `cv_input` is not loaded, or the operator presses **T**, UV is the OS cursor over the viewport. Confidence = 1. The Range stays testable without a webcam. `alreadyLifted` treats DESKTOP as live without `camReady`; phase-preserve still skips `play()` lock. `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox — do not wait on `pointermove`. **Q4 fail-to-lock is SEEKING until lock or Space** on the waiting Yard when `camReady` and no hand — never OS cursor, never auto-`goDesktopRange`. Camera deny is not fail-to-lock (`armPracticeDesktop`). Offline lock timeout → `goDesktopRange` stays Offline.
 
 ## Tests
 

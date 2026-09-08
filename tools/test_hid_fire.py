@@ -52,6 +52,17 @@ def test_python_mailbox() -> None:
     assert shot.uv != (0.0, 0.0), "must not snap to 0,0"
 
 
+def test_desktop_first_click_uv() -> None:
+    """DESKTOP first pad publishes click UV — default mailbox is screen-center."""
+    bus = AimBus()
+    assert bus.peek().uv == (0.5, 0.5), "AimBus default must stay screen-center"
+    click = AimSample(uv=(0.22, 0.81), valid=True, lifted=True, confidence=1.0, t_hw=7)
+    bus.publish(click)
+    shot = bus.fire()
+    assert shot.uv == (0.22, 0.81), "DESKTOP first pad must peek the click UV"
+    assert shot.uv != (0.5, 0.5), "DESKTOP first pad must not peek screen-center"
+
+
 def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
@@ -88,6 +99,8 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("fire must peek the AimBus mailbox")
     if "coastTrack" in fire_src or "updateAim" in fire_src:
         raise AssertionError("fire must not recompute aim — peek the last committed sample")
+    if "publishAim" in fire_src:
+        raise AssertionError("fire() must peek — DESKTOP publish lives on onHidPointerDown")
     pinch = _js_fn(src, "maybePinchFire")
     if "fire()" not in pinch:
         raise AssertionError("pinch must peek through fire()")
@@ -149,8 +162,22 @@ def test_hid_lives_on_window() -> None:
         raise AssertionError("window HID must spare chrome (button/input)")
     if "fire()" not in hid:
         raise AssertionError("window HID must peek through fire()")
-    if "aimBus" in hid or "updateAim" in hid or "coastTrack" in hid:
+    if "updateAim" in hid or "coastTrack" in hid:
         raise AssertionError("window HID must not recompute aim — fire() peeks")
+    if "aimBus" in hid:
+        raise AssertionError("window HID must use publishAim / fire() — not touch AimBus")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError(
+            "DESKTOP HID must publish click UV before fire() — first pad must not peek {0.5,0.5}"
+        )
+    pub_at = hid.find("if (S.desktop) publishAim(e.clientX, e.clientY)")
+    fire_at = hid.find("fire()")
+    if pub_at < 0 or fire_at < 0 or pub_at > fire_at:
+        raise AssertionError("DESKTOP publishAim must land before fire() peek")
+    for m in re.finditer(r"publishAim\s*\(", hid):
+        window = hid[max(0, m.start() - 80) : m.start()]
+        if "S.desktop" not in window:
+            raise AssertionError("HID must not publishAim unless DESKTOP owns the mailbox")
     if re.search(r"await\s+", hid):
         raise AssertionError("window HID awaits — shot never waits on a camera")
     chrome = _js_fn(src, "hidChromeTarget")
@@ -215,6 +242,7 @@ def test_sableperf_budget() -> None:
 def main() -> int:
     try:
         test_python_mailbox()
+        test_desktop_first_click_uv()
         test_client_does_not_wait()
         test_hid_lives_on_window()
         test_sableperf_budget()
