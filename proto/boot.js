@@ -342,7 +342,8 @@ async function lobbyPoll() {
 }
 
 function alreadyLifted() {
-  return !!(camReady && (S.smooth || S.tpl || S.desktop));
+  // DESKTOP is a live gun without a webcam. Cam tracking still needs camReady.
+  return !!(S.desktop || (camReady && (S.smooth || S.tpl)));
 }
 
 function enterRangePreserve() {
