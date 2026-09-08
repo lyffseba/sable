@@ -285,6 +285,56 @@ def test_lobby_stays_thin() -> None:
         _fail("lobby chrome still offers ENTER BAY — Bay is parked")
 
 
+def test_q4_seeking_chip_thin() -> None:
+    """Q4 SEEKING chip stays on the 22px SableHUD bar — not a tutorial wall."""
+    js = proto_js()
+    chip = _js_fn(js, "seekingHudChip")
+    if "camReady" not in chip or "wait_practice" not in chip:
+        _fail("SEEKING chip must tell camReady fail-to-lock on wait_practice")
+    if '"SEEKING"' not in chip:
+        _fail("SEEKING chip lost the SEEKING label")
+    if "S.forceGun" not in chip:
+        _fail("SEEKING chip must hide when Space forceGun escapes")
+    if "Locker.colors.rust" not in chip and "Locker.colors.bone" not in chip and "Locker.colors.mint" not in chip:
+        _fail("SEEKING chip must stay bone / mint / rust")
+    if "shadowBlur" in chip or "glow" in chip.lower() or "filter" in chip:
+        _fail("SEEKING chip bloomed")
+    if "H * 0.78" in chip or "Impact" in chip or "RAISE YOUR HAND" in chip:
+        _fail("SEEKING chip hides the gun or grew a tutorial wall")
+    if "aimBus" in chip or "fire(" in chip or "AimSample" in chip:
+        _fail("SEEKING chip gated fire / touched AimSample")
+    hud = _js_fn(js, "drawHUD")
+    if "seekingHudChip" not in hud or "drawSableChip" not in hud:
+        _fail("SEEKING chip left the thin SableHUD bar")
+    if "if (seekChip) chips.push(seekChip)" not in hud:
+        _fail("SEEKING chip must stay additive — do not thicken the lobby")
+    if 'phase === "range"' not in hud or '"SCORE "' not in hud:
+        _fail("gallery SCORE must stay range-gated — SEEKING must not thicken lobby")
+    if "SABLE_HUD_H" not in _js_fn(js, "drawSableChip"):
+        _fail("SEEKING chip must stay 22px — do not thicken chrome")
+    if "H * 0.78" in hud or "Impact" in hud or "RAISE YOUR HAND" in hud:
+        _fail("SEEKING chip hides the gun")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    room_at = hud.find("roomHudChip")
+    seek_at = hud.find("seekingHudChip")
+    if mode_at < 0 or hangar_at < 0 or room_at < 0 or seek_at < 0:
+        _fail("SEEKING chip must stay additive with PAD/GUN + WAIT + ROOM")
+    if mode_at > hangar_at or hangar_at > room_at or room_at > seek_at:
+        _fail("SEEKING chip wiped PAD/GUN or hangar / ROOM chips")
+    fire = _js_fn(js, "fire")
+    if "seekingHudChip" in fire:
+        _fail("fire() gated on SEEKING chip — Fire = AimBus HID peek")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+
+
 def test_docs_lock() -> None:
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
@@ -300,6 +350,10 @@ def test_docs_lock() -> None:
         _fail("docs/modes.md must fail loud if a ROOM chip hides the gun")
     if "Do not thicken the lobby" not in modes and "thicken the lobby" not in modes:
         _fail("docs/modes.md must refuse a thicker lobby")
+    if "Q4 fail-to-lock is SEEKING until lock or Space" not in modes:
+        _fail("docs/modes.md must name the Q4 SEEKING chip")
+    if "Q4 fail-to-lock is SEEKING until lock or Space" not in bible:
+        _fail("PRODUCTION.md must name the Q4 SEEKING chip")
     if "test_sablehud.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_sablehud.py")
     if "ROOM" not in bible or "wait_practice" not in bible:
@@ -459,6 +513,7 @@ def main() -> int:
         test_room_chip_on_wait_practice()
         test_sablehud_soft_lock_bars()
         test_lobby_stays_thin()
+        test_q4_seeking_chip_thin()
         test_docs_lock()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
