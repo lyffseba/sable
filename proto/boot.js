@@ -8,6 +8,8 @@
    Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
    Camera deny arms desktop on that lobby (armPracticeDesktop) — stay
    waiting Yard; do not dump into the 60s gallery.
+   Q4 fail-to-lock is SEEKING until lock or Space (forceGun) when camReady
+   and no hand — never auto-desktop. Thin SableHUD SEEKING chip.
    WARM UP from lobby phase-preserves the live Yard — no play() lock tax.
    HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
    none must not mute the pad. Chrome (button/input) still owns its click.
@@ -803,14 +805,25 @@ function roomHudChip() {
   return ["ROOM  " + S.room, Locker.colors.mint];
 }
 
+// Q4: camReady + no hand on wait_practice (waiting Yard / WARM UP).
+// Thin SEEKING tell — never OS cursor, never auto-desktop. Space forceGun escapes.
+function seekingHudChip() {
+  if (!camReady || S.desktop || S.mode === "DESKTOP" || S.forceGun || S.mode === "GUN") return null;
+  if (!(S.seeking || S.mode === "SEEKING")) return null;
+  if (S.hangar !== "wait_practice") return null;
+  return ["SEEKING", Locker.colors.rust];
+}
+
 function drawHUD(now) {
   // Soft-lock: ROOM thin + additive with WAIT/READY/LIVE. No PAD/GUN wipe.
+  // Q4 SEEKING chip additive on wait_practice when camReady && !hand.
   // No bloom. RANGE SCORE/ROUND stay range-gated. 22px charcoal/bone/mint/rust.
   // Never over cuff/reticle. Fire stays AimBus peek. AimSample untouched.
   drawModeChip();
   if (phase !== "range" && phase !== "lobby") return;
   const hangarChip = hangarHudChip();
   const roomChip = roomHudChip();
+  const seekChip = seekingHudChip();
   // match_live ROUND is the room clock. Local simMs must not invent remaining.
   const left = galleryHudLeftMs(simMs());
   const sec = (left / 1000).toFixed(1);
@@ -832,6 +845,7 @@ function drawHUD(now) {
   }
   const chips = [hangarChip];
   if (roomChip) chips.push(roomChip);
+  if (seekChip) chips.push(seekChip);
   if (phase === "range") chips.push(["SCORE " + S.score, bone]);
   if (phase === "range" && S.combo > 1) chips.push([S.combo + "x", rust]);
   if (phase === "range") chips.push(["ROUND " + sec, timeCol]);
@@ -1036,6 +1050,7 @@ function armPracticeCam() {
   // Waiting Yard is a live gun. Arm cam + Hands without lock/calib.
   // Fire-and-forget — never a fire gate, never a lobby await.
   // Camera deny arms desktop on this lobby. Not a fire wait.
+  // Q4: camReady && !hand stays SEEKING until lock or Space — never auto-desktop.
   if (camReady) {
     initHands();
     armVideoTrack();
@@ -1152,7 +1167,7 @@ window.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("keydown", (e) => {
-  if (e.code === "Space") { e.preventDefault(); S.forceGun = true; afterLiftState(); }
+  if (e.code === "Space") { e.preventDefault(); S.forceGun = true; afterLiftState(); } // Q4 escape: force GUN. Not auto-desktop.
   if (e.code === "KeyT") {
     if (phase === "lock") { goDesktopRange(); afterLiftState(); return; }
     S.desktop = !S.desktop;

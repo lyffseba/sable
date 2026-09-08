@@ -420,6 +420,149 @@ def test_hangar_phase_enum() -> None:
         _fail("fire() gated on applyRoomHangar — Fire = AimBus HID peek")
 
 
+def test_q4_fail_to_lock_seeking_until_space() -> None:
+    """Q4: camReady + no hand on waiting Yard → SEEKING until lock or Space.
+
+    Never auto-desktop / goDesktopRange / invent OS cursor because lock
+    timed out while camReady. Distinct from #73 camera-deny desktop.
+    Offline tickLock / play() goDesktopRange stays Offline's path.
+    Thin SableHUD SEEKING chip so the state is not silent.
+    """
+    js = proto_js()
+    arm = _js_fn(js, "armPracticeCam")
+    ready = re.search(r"if \(camReady\) \{([\s\S]*?)\n  \}", arm)
+    if not ready:
+        _fail("armPracticeCam lost the camReady early-return")
+    ready_body = ready.group(1)
+    if "goDesktopRange" in ready_body or "armPracticeDesktop" in ready_body or "S.desktop" in ready_body:
+        _fail("Q4: camReady waiting-Yard arm invented OS-cursor desktop")
+    if "initHands" not in ready_body or "armVideoTrack" not in ready_body:
+        _fail("camReady waiting Yard must still arm Hands — do not dead-gun")
+    if re.search(r"if \(ok\)[\s\S]{0,120}armPracticeDesktop", arm):
+        _fail("camera-ok invented desktop — Q4 is SEEKING until lock or Space")
+    if "LOCK_GIVE_MS" in arm or "setTimeout" in arm:
+        _fail("armPracticeCam grew a lock timeout — never desktop-after-timeout")
+    if "goDesktopRange(" in arm:
+        _fail("camera deny dumped lobby through goDesktopRange")
+    if "armPracticeDesktop()" not in arm:
+        _fail("camera deny must still arm desktop on the live lobby")
+
+    desk = _js_fn(js, "armPracticeDesktop")
+    if "if (camReady) return" not in desk:
+        _fail("armPracticeDesktop must refuse to steal a live camera — Q4 is not deny")
+    if "S.desktop = true" not in desk or 'S.mode = "DESKTOP"' not in desk:
+        _fail("camera deny must still set desktop on !camReady")
+    if "goDesktopRange(" in desk:
+        _fail("armPracticeDesktop must stay lobby — do not dump into the 60s gallery")
+
+    wait = _js_fn(js, "startWaitingYard")
+    if "goDesktopRange" in wait or "armPracticeDesktop" in wait or "S.desktop" in wait:
+        _fail("startWaitingYard invented desktop — Q4 is SEEKING until lock or Space")
+    if "tickLock" in wait or "LOCK_GIVE_MS" in wait:
+        _fail("startWaitingYard copied Offline lock timeout onto fail-to-lock")
+
+    phase = _js_fn(js, "setPhase")
+    if "goDesktopRange(" in phase:
+        _fail("setPhase invented goDesktopRange — waiting Yard must not dump lock timeout")
+    if "armPracticeCam()" not in phase:
+        _fail("setPhase(lobby) must arm the waiting-Yard gun")
+
+    tick = _js_fn(js, "tickLock")
+    if "goDesktopRange" not in tick:
+        _fail("Offline lock timeout goDesktopRange must stay Offline's path")
+    frame = _js_fn(js, "frame")
+    if 'phase === "lock") tickLock' not in frame and 'phase === "lock") { tickLock' not in frame:
+        _fail("tickLock must stay on lock phase — not waiting Yard")
+    if "goDesktopRange" in frame or "armPracticeDesktop" in frame:
+        _fail("frame invented desktop — Q4 waiting Yard must not timeout to OS cursor")
+    if re.search(r'phase === "lobby"[\s\S]{0,200}goDesktopRange', frame):
+        _fail("frame lobby path invented goDesktopRange")
+    if re.search(r'phase === "lobby"[\s\S]{0,200}S\.desktop\s*=\s*true', frame):
+        _fail("frame lobby path invented S.desktop")
+    play = _js_fn(js, "play")
+    if "goDesktopRange" not in play:
+        _fail("Offline play() camera-deny goDesktopRange must stay Offline's path")
+    for name in ("armPracticeCam", "startWaitingYard", "setPhase", "frame"):
+        body = _js_fn(js, name)
+        if "LOCK_GIVE_MS" in body and (
+            "goDesktopRange" in body or "armPracticeDesktop" in body or "S.desktop = true" in body
+        ):
+            _fail(f"{name} copied Offline lock timeout onto waiting-Yard fail-to-lock")
+
+    keys = re.search(r'e\.code === "Space"[\s\S]{0,160}', js)
+    if not keys or "S.forceGun = true" not in keys.group(0):
+        _fail("Space must stay the Q4 force-GUN escape")
+    if keys and "goDesktopRange" in keys.group(0):
+        _fail("Space must force GUN — do not invent desktop on fail-to-lock")
+    mode = _js_fn(js, "updateMode")
+    if "S.forceGun" not in mode or 'S.mode = "GUN"' not in mode:
+        _fail("updateMode must still force GUN from Space")
+    fire = _js_fn(js, "fire")
+    if "S.forceGun" not in fire:
+        _fail("fire() must still honor Space forceGun — Q4 escape is a live gun")
+    if "goDesktopRange" in fire or "armPracticeDesktop" in fire:
+        _fail("fire() invented desktop — Q4 never auto-desktop")
+
+    chip = _js_fn(js, "seekingHudChip")
+    if "camReady" not in chip:
+        _fail("SEEKING chip must require camReady — deny desktop is not Q4")
+    if "S.desktop" not in chip or "DESKTOP" not in chip:
+        _fail("SEEKING chip must refuse DESKTOP — never invent OS cursor")
+    if "S.forceGun" not in chip or '"GUN"' not in chip:
+        _fail("SEEKING chip must hide on Space forceGun — that is the Q4 escape")
+    if '"SEEKING"' not in chip:
+        _fail("waiting-Yard camReady+no hand must paint a thin SEEKING chip")
+    if "wait_practice" not in chip:
+        _fail("SEEKING chip must preserve into WARM UP wait_practice")
+    if "Locker.colors.rust" not in chip and "Locker.colors.bone" not in chip and "Locker.colors.mint" not in chip:
+        _fail("SEEKING chip must stay charcoal / bone / mint / rust")
+    if "#ff2bd6" in chip:
+        _fail("SEEKING SableHUD chip left the thin bar family for mode-chip magenta")
+    if "goDesktopRange" in chip or "armPracticeDesktop" in chip or "S.desktop = true" in chip:
+        _fail("SEEKING chip invented desktop")
+    if "aimBus" in chip or "fire(" in chip or "AimSample" in chip:
+        _fail("SEEKING chip gated fire / touched AimSample")
+    if re.search(r"await\s+", chip) or "fetch(" in chip:
+        _fail("SEEKING chip awaits — HUD trapped HID")
+    if "RAISE YOUR HAND" in chip or "HOLD SPACE" in chip or "Impact" in chip:
+        _fail("SEEKING chip grew a tutorial wall")
+    if "H * 0.78" in chip or "H*0.78" in chip or "H * 0.5" in chip:
+        _fail("SEEKING chip hides the gun")
+    hud = _js_fn(js, "drawHUD")
+    if "seekingHudChip" not in hud or "drawSableChip" not in hud:
+        _fail("SEEKING chip left the thin SableHUD bar")
+    if "if (seekChip) chips.push(seekChip)" not in hud:
+        _fail("SEEKING chip must stay additive with WAIT / ROOM")
+    if 'phase === "range"' not in hud or '"SCORE "' not in hud:
+        _fail("gallery SCORE must stay range-gated — SEEKING must not thicken lobby")
+    mode_at = hud.find("drawModeChip")
+    hangar_at = hud.find("hangarHudChip")
+    room_at = hud.find("roomHudChip")
+    seek_at = hud.find("seekingHudChip")
+    if mode_at < 0 or hangar_at < 0 or room_at < 0 or seek_at < 0:
+        _fail("SEEKING chip must stay additive with PAD/GUN + WAIT + ROOM")
+    if mode_at > hangar_at or hangar_at > room_at or room_at > seek_at:
+        _fail("SEEKING chip wiped PAD/GUN or hangar / ROOM chips")
+    if "H * 0.78" in hud or "Impact" in hud or "RAISE YOUR HAND" in hud:
+        _fail("SEEKING chip hides the gun or grew a tutorial wall")
+    if "setPhase" in hud or "fire(" in hud or "aimBus" in hud:
+        _fail("HUD trapped lift/HID")
+    d2 = _js_fn(js, "draw2D")
+    lobby = d2[d2.find('phase === "lobby"') :]
+    if not lobby or "drawHUD" not in lobby:
+        _fail("waiting arena must paint the Q4 SEEKING chip on the thin SableHUD bar")
+    xh = lobby.find("drawCrosshair")
+    chips = lobby.find("drawHUD")
+    if xh < 0 or chips < 0 or xh > chips:
+        _fail("waiting-arena SEEKING chip must paint over live aim — crosshair then chips")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+
+
 def test_aimsample_and_docs() -> None:
     js = proto_js()
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
@@ -455,6 +598,24 @@ def test_aimsample_and_docs() -> None:
     pipeline = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
     if "armPracticeDesktop" not in pipeline:
         _fail("docs/aim_pipeline.md must name waiting-Yard camera-deny desktop")
+    if "Q4 fail-to-lock is SEEKING until lock or Space" not in bible:
+        _fail("PRODUCTION.md must lock Q4 fail-to-lock as SEEKING until lock or Space")
+    if "never OS cursor" not in bible:
+        _fail("PRODUCTION.md must refuse OS cursor on waiting-Yard fail-to-lock")
+    if "Camera deny is not fail-to-lock" not in bible:
+        _fail("PRODUCTION.md must distinguish #73 camera-deny desktop from Q4")
+    if "`goDesktopRange` stays Offline" not in bible:
+        _fail("PRODUCTION.md must keep Offline lock timeout goDesktopRange on Offline")
+    if "forceGun" not in bible:
+        _fail("PRODUCTION.md must name Space forceGun as the Q4 escape")
+    if "Q4 fail-to-lock is SEEKING until lock or Space" not in modes:
+        _fail("docs/modes.md must lock Q4 fail-to-lock as SEEKING until lock or Space")
+    if "Camera deny is not fail-to-lock" not in modes:
+        _fail("docs/modes.md must distinguish camera-deny desktop from Q4")
+    if "Q4 fail-to-lock is SEEKING until lock or Space" not in pipeline:
+        _fail("docs/aim_pipeline.md must lock Q4 fail-to-lock as SEEKING until lock or Space")
+    if "Camera deny is not fail-to-lock" not in pipeline:
+        _fail("docs/aim_pipeline.md must distinguish camera-deny desktop from Q4")
     if "`lobby` is live for mint-tell" not in modes:
         _fail("docs/modes.md must name waiting-Yard lobby mint-tell")
     if "enterRangePreserve" not in bible:
@@ -574,6 +735,7 @@ def main() -> int:
         test_waiting_arena_always_practice()
         test_enter_range_stays_shared()
         test_hangar_phase_enum()
+        test_q4_fail_to_lock_seeking_until_space()
         test_aimsample_and_docs()
         test_room_chip_thin()
     except AssertionError as exc:
