@@ -1282,7 +1282,9 @@ $("btn-recal").addEventListener("click", () => {
 });
 
 function syncCursor() {
-  const hide = phase === "range" || phase === "bay" || phase === "lobby" || phase === "calibrate" || phase === "lock";
+  // DESKTOP aim is the OS cursor. Hide only when the hand owns the pad.
+  // Q4 SEEKING never arms DESKTOP just to show a pointer.
+  const hide = !S.desktop && (phase === "range" || phase === "bay" || phase === "lobby" || phase === "calibrate" || phase === "lock");
   canvas3D.classList.toggle("nocursor", hide);
   canvasHUD.classList.toggle("nocursor", hide);
   const v = hide ? "none" : "";

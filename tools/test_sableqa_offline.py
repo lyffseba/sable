@@ -98,6 +98,10 @@ def main() -> int:
         sync = _js_fn(js, "syncCursor")
         if 'phase === "lock"' not in sync or "nocursor" not in sync:
             _fail("lock phase must hide the OS cursor")
+        if "!S.desktop" not in sync:
+            _fail("DESKTOP must show the OS cursor — syncCursor hid the pointer")
+        if "S.desktop = true" in sync or "armPracticeDesktop" in sync:
+            _fail("syncCursor armed DESKTOP — Q4 never auto-desktop")
 
         fire = _js_fn(js, "fire")
         if re.search(r"await\s+", fire):
