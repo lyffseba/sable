@@ -305,6 +305,14 @@ def test_enter_range_stays_shared() -> None:
     lifted = _js_fn(js, "alreadyLifted")
     if "camReady" not in lifted or "S.smooth" not in lifted or "S.tpl" not in lifted:
         _fail("alreadyLifted must keep the live tracking predicate")
+    if "S.desktop" not in lifted:
+        _fail("alreadyLifted must treat DESKTOP as a live gun")
+    if re.search(r"camReady\s*&&\s*\([^)]*S\.desktop", lifted) or re.search(
+        r"camReady\s*&&\s*S\.desktop", lifted
+    ) or re.search(r"S\.desktop\s*&&\s*camReady", lifted) or re.search(
+        r"\([^)]*S\.desktop[^)]*\)\s*&&\s*camReady", lifted
+    ):
+        _fail("alreadyLifted ANDs camReady with S.desktop — DESKTOP is already a live gun")
     if "resetLockState" in lifted:
         _fail("alreadyLifted must not reset lock")
     poll = _js_fn(js, "lobbyPoll")
@@ -457,6 +465,10 @@ def test_aimsample_and_docs() -> None:
         _fail("docs/modes.md must name ENTER RANGE phase-preserve")
     if "lobbyWarmup" not in modes or "play()" not in modes:
         _fail("docs/modes.md must refuse WARM UP play() lock tax")
+    if "`alreadyLifted` treats DESKTOP as live" not in modes:
+        _fail("docs/modes.md must name alreadyLifted DESKTOP live without camReady")
+    if "`alreadyLifted` treats DESKTOP as live" not in bible:
+        _fail("PRODUCTION.md must name alreadyLifted DESKTOP live without camReady")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:

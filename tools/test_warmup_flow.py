@@ -60,6 +60,19 @@ def main() -> int:
             raise AssertionError("WARM UP from lobby must not tax play() lock")
         if "resetLockState" in warm or 'setPhase("lock")' in warm:
             raise AssertionError("WARM UP forced lock — waiting-Yard gun died")
+        lifted = _js_fn(js, "alreadyLifted")
+        if "S.desktop" not in lifted:
+            raise AssertionError("alreadyLifted must treat DESKTOP as a live gun")
+        if "camReady" not in lifted or "S.smooth" not in lifted or "S.tpl" not in lifted:
+            raise AssertionError("alreadyLifted must keep the live tracking predicate")
+        if re.search(r"camReady\s*&&\s*\([^)]*S\.desktop", lifted) or re.search(
+            r"camReady\s*&&\s*S\.desktop", lifted
+        ) or re.search(r"S\.desktop\s*&&\s*camReady", lifted) or re.search(
+            r"\([^)]*S\.desktop[^)]*\)\s*&&\s*camReady", lifted
+        ):
+            raise AssertionError(
+                "alreadyLifted ANDs camReady with S.desktop — DESKTOP is already a live gun"
+            )
 
         ret = _js_fn(js, "returnToLobby")
         if "/api/lobby/leave" in ret:

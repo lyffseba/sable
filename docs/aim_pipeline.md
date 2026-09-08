@@ -86,7 +86,7 @@ Physical ADS. Hand-visible / recent landmark (or recent good `AimSample`) owns G
 - Trackpad / HID motion does **not** demote lift during the click (`kLiftHidHoldMs` / `LIFT_HID_HOLD_MS` = 180). HID idle is not required to charge.
 - `fire()` peeks `AimBus` (`shot.lifted` or recent sample). It must not reject a shot only because `S.lifted` flickered while the hand reached the pad.
 - `fire()` must **not** call `coastTrack` or `updateAim`. Hitscan peeks the last committed mailbox UV (`shot.uv`) against the house sphere (`hitscanRange` / `plateRadius` — same 0.50 / 0.62 as lobby rewind). The spun hex mesh is Look only. The track loop publishes; the click only peeks.
-- **Pinch is the trigger, not a new aim.** `maybePinchFire` runs after `updateMode` (lift current) and before `updateAim`. It calls `fire()` — it must not re-gate phase, and it must not publish the pinched landmark first. Waiting-yard `lobby` is the same peek (`fire()` already allows it). A second `phase === "range" || "bay"` gate muted always-practice. A fresh ONLINE arms the camera fire-and-forget (`armPracticeCam`) so lift / pinch can live — do not leave the waiting Yard on a dead gun, and do not route that arm through `play()` lock. Camera deny arms desktop on the live lobby (`armPracticeDesktop`) — do not dump into `goDesktopRange`. WARM UP from that live Yard phase-preserves (`lobbyWarmup`) — do not tax the 60s local gallery through `play()` lock.
+- **Pinch is the trigger, not a new aim.** `maybePinchFire` runs after `updateMode` (lift current) and before `updateAim`. It calls `fire()` — it must not re-gate phase, and it must not publish the pinched landmark first. Waiting-yard `lobby` is the same peek (`fire()` already allows it). A second `phase === "range" || "bay"` gate muted always-practice. A fresh ONLINE arms the camera fire-and-forget (`armPracticeCam`) so lift / pinch can live — do not leave the waiting Yard on a dead gun, and do not route that arm through `play()` lock. Camera deny arms desktop on the live lobby (`armPracticeDesktop`) — do not dump into `goDesktopRange`. WARM UP from that live Yard phase-preserves (`lobbyWarmup`) — do not tax the 60s local gallery through `play()` lock. `alreadyLifted` treats DESKTOP as live without `camReady`.
 - Waiting-Yard `lobby` is live for mint-tell — `afterLiftState` chirps on first lift, same hysteresis as range. Always-practice must not omit the tell until WARM UP / ENTER RANGE.
 
 `Space` force-guns the Range without a camera so the verb can be tested. `T` forces desktop aim (OS cursor → UV).
@@ -107,7 +107,7 @@ The shot reads `AimBus` on the click. It does not wait for the next 128 Hz sim s
 
 ## Desktop fallback
 
-If `cv_input` is not loaded, or the operator presses **T**, UV is the OS cursor over the viewport. Confidence = 1. The Range stays testable without a webcam.
+If `cv_input` is not loaded, or the operator presses **T**, UV is the OS cursor over the viewport. Confidence = 1. The Range stays testable without a webcam. `alreadyLifted` treats DESKTOP as live without `camReady`; phase-preserve still skips `play()` lock.
 
 ## Tests
 
