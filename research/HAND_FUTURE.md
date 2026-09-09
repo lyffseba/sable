@@ -265,13 +265,13 @@ Index + middle up toward the ceiling is product reload. Keep the lock in PRODUCT
 
 ### (b) Deprecate product HID-as-gun in GUN mode
 
-`productGunHidFire()` returns **false**. `onHidPointerDown` on range / bay / lobby calls `fire()` only when `S.desktop || productGunHidFire()`.
+`productGunHidFire()` returns **false**. `onHidPointerDown` on range / bay / lobby calls `fire()` only when `S.desktop || S.forceGun || productGunHidFire()`.
 
 - Product GUN + live camera: pad is **menus only** (chrome still owns WARM UP / ENTER RANGE / LEAVE).
 - DESKTOP / cam-deny: HID publish+peek **stays** — labeled **non-product** emergency honesty.
 - Calibrate / lock HID for corners is not GUN shoot.
 - Pinch is removed. It must not peek `fire()`. `pinchStrength` stays the shark-fin safe gate (>0.48).
-- Space `forceGun` stays the Q4 fail-to-lock escape — **not** product shoot.
+- Space `forceGun` stays the Q4 fail-to-lock escape — **not** product shoot. While held, pad may peek (emergency only).
 
 ### (c) Chromium / MacBook Pro perf floor
 
@@ -298,8 +298,8 @@ Keep the honesty bars. Label them. Do not sell them.
 | Fallback | When | Product? |
 |----------|------|----------|
 | **DESKTOP** / cam-deny (`armPracticeDesktop`, KeyT, Offline lock timeout `goDesktopRange`) | Camera denied or debug | **Non-product.** OS cursor + HID peek. Confidence 1. No mint reticle stacked |
-| **Space** `forceGun` | Q4 fail-to-lock (`camReady`, no hand) | **Non-product.** SEEKING until lock or Space. Never auto-desktop. Not a shot |
-| **HID pad** in GUN + `camReady` | MacBook reach | **Deprecated as gun.** Menus only. `productGunHidFire` is false |
+| **Space** `forceGun` | Q4 fail-to-lock (`camReady`, no hand) | **Non-product.** SEEKING until lock or Space. Never auto-desktop. Not a shot. Pad re-arms while held |
+| **HID pad** in GUN + `camReady` | MacBook reach | **Deprecated as gun** unless `forceGun`. Menus only. `productGunHidFire` is false |
 | **Pinch** | Retired as a fire() caller | Removed. Safe-gate only (`pinchStrength` > 0.48 refuses shark-fin) |
 | **`fallbackSkin`** (findHand + NCC) | WASM/landmarks fail this frame | Tracker else-path. Not a mouse. Not product shoot |
 | **skin/NCC as primary** | — | Ruled out (`research/HANDS.md`) |
@@ -330,7 +330,7 @@ Five fields. Existing `publish` / `peek` / `fire` only. Gesture bits stay on `S`
 - Shark-fin / reload must not publish `updateAim` / `publishAim` before a peek. Pinch must not peek `fire()`.
 - Parallel thumb cannot fire. Held shark-fin cannot auto-fire. Held charger cannot auto-reload.
 - Reload cannot invent mag. Reload cannot `fire()`.
-- Product GUN + `camReady` cannot HID-fire (`productGunHidFire === false`).
+- Product GUN + `camReady` cannot HID-fire unless `forceGun` (`productGunHidFire === false`).
 - DESKTOP / cam-deny never runs the product gesture FSM as the story — gestures no-op when `S.desktop`.
 - Space still only sets `forceGun` + `updateMode` — no `fire()`.
 - AimSample still five fields. SAM / Sapiens / YOLO are not the default tracker and must not enter `fire()`.

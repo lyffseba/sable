@@ -5,8 +5,10 @@
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
    Product GUN is hands-only (research/HAND_FUTURE.md). Trackpad / HID
-   click peeks AimBus only on DESKTOP — never waits on camera. GUN +
-   camReady pad is menus only (productGunHidFire is false).
+   click peeks AimBus on DESKTOP or forceGun — never waits on camera.
+   GUN + camReady pad is menus only unless forceGun (productGunHidFire
+   is false). forceGun re-arms pad as Q4 emergency only; Space is not
+   a shot.
    Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
    Camera deny arms desktop on that lobby (armPracticeDesktop) — stay
    waiting Yard; do not dump into the 60s gallery.
@@ -16,12 +18,14 @@
    HID pointerdown lives on window (onHidPointerDown). #hud pointer-events:
    none must not mute the pad. Chrome (button/input) still owns its click.
    After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad.
-   `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox —
-   first pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
+   `onHidPointerDown` publishes click UV when DESKTOP or forceGun owns
+   the mailbox — first pad after cam deny / T / goDesktopRange / Space
+   must not peek {0.5,0.5}. Never S.desktop=true on forceGun (Q4).
    `productGunHidFire()` is false — range/bay/lobby pad peeks/fires only
-   when `S.desktop || productGunHidFire()`. Product GUN is shark-fin
-   only; HID must not replace that trigger or bypass the mag.
-   Cam / GUN / shark-fin / reload must not publish on the click.
+   when `S.desktop || S.forceGun || productGunHidFire()`. forceGun
+   re-arms pad as Q4 emergency only; Space is not a shot. Product GUN
+   is shark-fin only; HID must not replace that trigger or bypass the mag.
+   Cam / product GUN / shark-fin / reload must not publish on the click.
    `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
    even if `!camReady`. Arm paths apply that truth immediately.
    `Space` forceGun invokes `updateMode` before `afterLiftState`.
@@ -1164,8 +1168,9 @@ function hidChromeTarget(el) {
 }
 
 function productGunHidFire() {
-  // Product GUN never uses the pad as a gun. DESKTOP / cam-deny is the
-  // labeled non-product emergency honesty path. See HAND_FUTURE.md.
+  // Product GUN never uses the pad as a gun. DESKTOP / cam-deny and
+  // Q4 forceGun (Space held) are labeled non-product emergency honesty.
+  // This gate stays false. See HAND_FUTURE.md.
   return false;
 }
 
@@ -1175,10 +1180,11 @@ function onHidPointerDown(e) {
   if (e.button !== 0) return;
   if (hidChromeTarget(e.target)) return;
   unlockAudio();
-  // Desktop owns the mailbox: commit click UV before the HID peek.
-  // First pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
-  // Cam / GUN / shark-fin / reload must not publish here — that stomps a hand AimSample.
-  if (S.desktop) publishAim(e.clientX, e.clientY);
+  // DESKTOP / forceGun own this click's mailbox: commit OS cursor UV
+  // before the HID peek. First pad after cam deny / T / goDesktopRange
+  // / Space must not peek {0.5,0.5}. Q4 forbids S.desktop=true here.
+  // Product GUN / shark-fin / reload must not publish — that stomps a hand AimSample.
+  if (S.desktop || S.forceGun) publishAim(e.clientX, e.clientY);
   if (phase === "lock") {
     e.preventDefault();
     if (S.tpl && (detGood() || S.smooth)) goCalib();
@@ -1199,8 +1205,9 @@ function onHidPointerDown(e) {
   if (phase === "range" || phase === "bay" || phase === "lobby") {
     e.preventDefault();
     // Product GUN: pad is menus only. HID-as-gun is DESKTOP / cam-deny
-    // emergency honesty — never the product story.
-    if (S.desktop || productGunHidFire()) fire();
+    // or Q4 forceGun emergency honesty — never the product story.
+    // Space itself does not peek. productGunHidFire stays false.
+    if (S.desktop || S.forceGun || productGunHidFire()) fire();
   }
 }
 

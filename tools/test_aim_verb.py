@@ -211,6 +211,30 @@ def _js_fn(src: str, name: str) -> str:
     return m.group(0)
 
 
+HID_CLICK_UV = r"if \(S\.desktop \|\| S\.forceGun\) publishAim\(e\.clientX, e\.clientY\)"
+HID_FIRE_GATE = r"if \(S\.desktop \|\| S\.forceGun \|\| productGunHidFire\(\)\)"
+FORCEGUN_LOCK = (
+    "`forceGun` re-arms pad as Q4 emergency only; Space is not a shot; "
+    "`productGunHidFire` stays false."
+)
+
+
+def _hid_click_uv(hid: str) -> bool:
+    return bool(re.search(HID_CLICK_UV, hid))
+
+
+def _hid_fire_gate(body: str) -> bool:
+    return bool(re.search(HID_FIRE_GATE, body))
+
+
+def _space_keydown(src: str) -> str:
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    space = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', keys)
+    if not space:
+        raise AssertionError("Space forceGun handler missing")
+    return space.group(1)
+
+
 def test_proto_mailbox() -> None:
     src = proto_js()
     mode_body = _js_fn(src, "updateMode")
@@ -281,10 +305,10 @@ def test_proto_mailbox() -> None:
     if 'window.addEventListener("pointerdown", onHidPointerDown)' not in src:
         raise AssertionError("HID click must bind window — Fire is HID")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
-        raise AssertionError("DESKTOP HID must publish click UV before fire() peek")
+    if not _hid_click_uv(hid):
+        raise AssertionError("DESKTOP / forceGun HID must publish click UV before fire() peek")
     if hid.find("publishAim") > hid.find("fire()"):
-        raise AssertionError("DESKTOP publishAim must land before fire()")
+        raise AssertionError("DESKTOP / forceGun publishAim must land before fire()")
     if "updateAim" in hid or "coastTrack" in hid:
         raise AssertionError("window HID must not recompute aim — fire() peeks")
     gate = _js_fn(src, "productGunHidFire")
@@ -299,14 +323,22 @@ def test_proto_mailbox() -> None:
     live_body = live.group(1)
     if re.search(r"^\s*fire\(\);\s*$", live_body, re.M):
         raise AssertionError(
-            "range/lobby HID must not fire() when !S.desktop — product GUN is shark-fin"
+            "range/lobby HID must not fire() when !S.desktop && !S.forceGun — product GUN is shark-fin"
         )
-    if "S.desktop" not in live_body or "productGunHidFire()" not in live_body:
-        raise AssertionError("range/lobby HID fire must be S.desktop || productGunHidFire()")
+    if "S.desktop" not in live_body or "S.forceGun" not in live_body or "productGunHidFire()" not in live_body:
+        raise AssertionError(
+            "range/lobby HID fire must be S.desktop || S.forceGun || productGunHidFire()"
+        )
+    if not _hid_fire_gate(live_body):
+        raise AssertionError(
+            "range/lobby HID must gate fire() on S.desktop || S.forceGun || productGunHidFire()"
+        )
     for m in re.finditer(r"publishAim\s*\(", hid):
         window = hid[max(0, m.start() - 80) : m.start()]
-        if "S.desktop" not in window:
-            raise AssertionError("HID must not publishAim unless DESKTOP owns the mailbox")
+        if "S.desktop" not in window and "S.forceGun" not in window:
+            raise AssertionError(
+                "HID must not publishAim unless DESKTOP or forceGun owns the mailbox"
+            )
     if "publishAim" in _js_fn(src, "fire"):
         raise AssertionError("fire() must peek — DESKTOP publish lives on onHidPointerDown")
     chrome = _js_fn(src, "hidChromeTarget")
@@ -449,7 +481,7 @@ def test_desktop_arm_writes_updatemode_truth() -> None:
     if t_body.find("goDesktopRange()") > t_body.find("S.desktop = !S.desktop"):
         raise AssertionError("waiting-Yard KeyT must not dump through goDesktopRange")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
 
 
@@ -471,7 +503,7 @@ def test_desktop_shows_os_cursor() -> None:
     if "AimSample" in sync:
         raise AssertionError("syncCursor must not touch AimSample")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
     desk = _js_fn(src, "armPracticeDesktop")
     if "updateMode(" not in desk:
@@ -508,7 +540,7 @@ def test_desktop_skips_mint_crosshair() -> None:
     if "!S.desktop" not in sync:
         raise AssertionError("#79: syncCursor must still show the OS cursor when S.desktop")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
     desk = _js_fn(src, "armPracticeDesktop")
     if "updateMode(" not in desk:
@@ -558,7 +590,7 @@ def test_desktop_publishes_confidence_one() -> None:
     if "!S.desktop" not in sync:
         raise AssertionError("#79: syncCursor must still show the OS cursor when S.desktop")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
     desk = _js_fn(src, "armPracticeDesktop")
     if "updateMode(" not in desk:
@@ -607,7 +639,7 @@ def test_desktop_arm_invokes_afterliftstate() -> None:
     if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
         raise AssertionError("AimSample must stay five fields — do not invent a sixth")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
     keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
     t_block = re.search(
@@ -645,6 +677,8 @@ def test_space_forcegun_invokes_updatemode() -> None:
         raise AssertionError("Space must invoke updateMode before afterLiftState — same order as KeyT")
     if "goDesktopRange" in space or "armPracticeDesktop" in space or "S.desktop" in space:
         raise AssertionError("Space must force GUN — do not invent desktop on fail-to-lock")
+    if "fire(" in space:
+        raise AssertionError("Space must not peek fire() — Q4 escape is not a shot")
     mode = _js_fn(src, "updateMode")
     if "S.forceGun" not in mode or 'S.mode = "GUN"' not in mode:
         raise AssertionError("updateMode must still force GUN from Space")
@@ -655,7 +689,7 @@ def test_space_forcegun_invokes_updatemode() -> None:
     if "afterLiftState()" not in desk:
         raise AssertionError("#82: armPracticeDesktop must still invoke afterLiftState")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
     chip = _js_fn(src, "drawModeChip")
     label = re.search(r"const label = ([^;]+);", chip)
@@ -728,7 +762,7 @@ def test_entergame_invokes_afterliftstate() -> None:
     if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
         raise AssertionError("AimSample must stay five fields — do not invent a sixth")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
     keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
     t_block = re.search(
@@ -774,7 +808,7 @@ def test_product_gun_mutes_hid_fire() -> None:
     if "return false" not in gate:
         raise AssertionError("productGunHidFire must return false")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if not _hid_click_uv(hid):
         raise AssertionError("DESKTOP HID must still publish click UV before fire()")
     live = re.search(
         r'if \(phase === "range" \|\| phase === "bay" \|\| phase === "lobby"\) \{([\s\S]*?)\n  \}',
@@ -785,14 +819,80 @@ def test_product_gun_mutes_hid_fire() -> None:
     body = live.group(1)
     if re.search(r"^\s*fire\(\);\s*$", body, re.M):
         raise AssertionError(
-            "range/lobby HID must not fire() when !S.desktop — product GUN is shark-fin"
+            "range/lobby HID must not fire() when !S.desktop && !S.forceGun — product GUN is shark-fin"
         )
-    if "S.desktop" not in body or "productGunHidFire()" not in body or "fire()" not in body:
-        raise AssertionError("DESKTOP pad must still peek; product GUN must gate on productGunHidFire")
-    if not re.search(r"if \(S\.desktop \|\| productGunHidFire\(\)\)", body) and not re.search(
-        r"if \(productGunHidFire\(\) \|\| S\.desktop\)", body
+    if "S.desktop" not in body or "S.forceGun" not in body or "productGunHidFire()" not in body or "fire()" not in body:
+        raise AssertionError(
+            "DESKTOP / forceGun pad must still peek; product GUN must gate on productGunHidFire"
+        )
+    if not _hid_fire_gate(body):
+        raise AssertionError(
+            "range/lobby HID must gate fire() on S.desktop || S.forceGun || productGunHidFire()"
+        )
+
+
+def test_forcegun_rearms_pad() -> None:
+    """Q4 Space re-arms pad peek. Space itself is not a shot. productGunHidFire stays false."""
+    src = proto_js()
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+    gate = _js_fn(src, "productGunHidFire")
+    if "return true" in gate:
+        raise AssertionError("productGunHidFire must stay false — HID is not product GUN shoot")
+    if "return false" not in gate:
+        raise AssertionError("productGunHidFire must return false")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "S.desktop = true" in hid or "armPracticeDesktop" in hid or "goDesktopRange" in hid:
+        raise AssertionError("forceGun pad must not auto-desktop — Q4 forbids S.desktop=true")
+    if not _hid_click_uv(hid):
+        raise AssertionError("forceGun pad must publish OS cursor UV like DESKTOP")
+    live = re.search(
+        r'if \(phase === "range" \|\| phase === "bay" \|\| phase === "lobby"\) \{([\s\S]*?)\n  \}',
+        hid,
+    )
+    if not live:
+        raise AssertionError("onHidPointerDown must still see range/bay/lobby")
+    body = live.group(1)
+    if "S.forceGun" not in body:
+        raise AssertionError("forceGun + pad must peek fire() — GUN chip with no legal fire() is a lie")
+    if not _hid_fire_gate(body):
+        raise AssertionError(
+            "range/lobby HID must gate fire() on S.desktop || S.forceGun || productGunHidFire()"
+        )
+    if re.search(r"^\s*fire\(\);\s*$", body, re.M):
+        raise AssertionError(
+            "!desktop && !forceGun pad must not fire() on product GUN — shark-fin owns shoot"
+        )
+    space = _space_keydown(src)
+    if "S.forceGun = true" not in space:
+        raise AssertionError("Space must stay the Q4 forceGun escape")
+    if "fire(" in space:
+        raise AssertionError("Space must not peek fire() — Q4 escape is not a shot")
+    if "updateMode(" not in space or "afterLiftState()" not in space:
+        raise AssertionError("Space still only forceGun + updateMode + afterLiftState")
+    if "S.desktop" in space or "goDesktopRange" in space or "armPracticeDesktop" in space:
+        raise AssertionError("Space must not invent desktop")
+    chip = _js_fn(src, "drawModeChip")
+    label = re.search(r"const label = ([^;]+);", chip)
+    if not label:
+        raise AssertionError("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0 or "S.forceGun" not in cond[:seek_at]:
+        raise AssertionError("chip must stay GUN on forceGun — do not leave SEEKING")
+    for rel in (
+        "docs/PRODUCTION.md",
+        "docs/aim_pipeline.md",
+        "research/TRACKING.md",
+        "docs/modes.md",
     ):
-        raise AssertionError("range/lobby HID must gate fire() on S.desktop || productGunHidFire()")
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        if FORCEGUN_LOCK not in text:
+            raise AssertionError(f"{rel} must lock forceGun pad re-arm")
 
 
 def test_range_gate() -> None:
@@ -894,6 +994,7 @@ def main() -> int:
         test_entergame_invokes_afterliftstate()
         test_space_forcegun_invokes_updatemode()
         test_product_gun_mutes_hid_fire()
+        test_forcegun_rearms_pad()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

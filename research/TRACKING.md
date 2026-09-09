@@ -48,6 +48,7 @@ See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimB
 - HID click must not be the lie that replaces the shoot gesture in gun mode
 - Product path is hands-only (`research/HAND_FUTURE.md`)
 - `productGunHidFire()` is false — pad tap on the product GUN path must not peek `fire()`; DESKTOP / cam-deny still does
+- `forceGun` re-arms pad as Q4 emergency only; Space is not a shot; `productGunHidFire` stays false.
 
 ## History (superseded for aim target)
 Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Mouse-as-gun / mouse-cam aim are **retired**. No mouse mesh as a shipping product art step (Kruidenhof flat — out of SABLE scope). Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP. Keep docs for archaeology only; invent/spike path open (Meta SAM-class object gate + landmark FSM). MediaPipe Hands-class is **interim** until that stack ships.
