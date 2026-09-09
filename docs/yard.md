@@ -44,4 +44,4 @@ Use these numbers only — not another game’s device list.
 
 0. **Now:** point index at the glass. **Shark-fin** (thumb UP) = fire (rising-edge peek last pointing UV, including the waiting Yard). Thumb parallel = safe. Pad HID is DESKTOP / cam-deny fallback — `#hud` must not mute the tap. After JOIN, leftover CODE/JOIN under the hidden cursor must not eat the pad. Space is Q4 forceGun escape, not product shoot.
 1. Pinch thumb to index stays interim / secondary (same peek). A fresh ONLINE arms the camera so shark-fin / pinch can live — no lock tax. WARM UP from that live Yard keeps the gun — no lock tax.
-2. Reload (index+middle up) is out of scope this cut.
+2. Reload (index+middle up / charger-plug) is this cut — `maybeReloadGesture` rising-edge refill. Do not invent reload on DESKTOP / HID / Space.

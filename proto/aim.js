@@ -90,6 +90,10 @@ if (typeof globalThis !== "undefined") globalThis.SablePerf = SablePerf;
 
 const HID_IDLE_MS = 40;
 const LIFT_ON_MS = 50;
+// Tiny mag honesty on the hand / GUN gesture path. Not a sixth AimSample
+// field. DESKTOP / HID pad / Space forceGun stay fallbacks — they do not
+// own reload. Six rounds; empty dry-clicks; charger-plug refills.
+const MAG_CAP = 6;
 // Recent landmark / good AimSample owns GUN through a MacBook pad reach.
 // Coast UV stays 100 ms (do not invent pose). Lift sticks longer.
 const LIFT_STICKY_MS = 550;
@@ -133,7 +137,7 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false, hands: false, handsWorker: false },
-  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, finHeld: false, handLm: null, rvfc: false,
+  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, finHeld: false, reloadHeld: false, mag: MAG_CAP, handLm: null, rvfc: false,
   mpBusy: false, mpDelegate: "",
   online: false,
   playlist: "gallery",
@@ -301,6 +305,20 @@ function peekMuzzleWorld() {
   return p;
 }
 
+function refillMag() {
+  S.mag = MAG_CAP;
+}
+
+function spendGestureRound() {
+  // Product shoot spends a round. HID / DESKTOP / forceGun do not invent
+  // a mag story — those paths stay engineering fallbacks.
+  if (!(S.finHeld || S.pinchHeld)) return true;
+  const n = S.mag == null ? MAG_CAP : S.mag;
+  if (n <= 0) return false;
+  S.mag = n - 1;
+  return true;
+}
+
 function fire() {
   if (phase !== "range" && phase !== "bay" && phase !== "lobby" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
   // Peek first. Never wait on a camera frame. Never recompute aim on click.
@@ -311,6 +329,8 @@ function fire() {
   const recent = !!S.smooth && since <= LIFT_STICKY_MS;
   const busLift = !!(shot && shot.lifted);
   if (!S.desktop && !S.lifted && !busLift && !recent && !S.forceGun) return;
+  // Empty mag cannot silent-fire on shark-fin / pinch. Dry-tick is the click.
+  if (!spendGestureRound()) { missTick(); return; }
 
   // Probe HID→hitscan: peek UV → house sphere. bang() is a silent hook.
   // Look (gun kick, muzzle world, tracers) stays after markHid.
@@ -414,6 +434,9 @@ export {
   LIFT_ON_MS,
   LIFT_STICKY_MS,
   LIFT_HID_HOLD_MS,
+  MAG_CAP,
+  refillMag,
+  spendGestureRound,
   S,
   clamp,
   solveLinear,

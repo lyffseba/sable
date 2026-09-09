@@ -16,7 +16,7 @@
    After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad.
    `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox —
    first pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
-   Cam / GUN / shark-fin / pinch must not publish on the click.
+   Cam / GUN / shark-fin / pinch / reload must not publish on the click.
    `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
    even if `!camReady`. Arm paths apply that truth immediately.
    `Space` forceGun invokes `updateMode` before `afterLiftState`.
@@ -39,6 +39,7 @@ import {
   updateAim,
   fire,
   goDesktopRange,
+  MAG_CAP,
   clamp,
   screenCorners,
   computeH,
@@ -49,6 +50,7 @@ import {
   coastTrack,
   maybeSharkFinFire,
   maybePinchFire,
+  maybeReloadGesture,
   initHands,
   armVideoTrack,
   resetTrackFilters,
@@ -191,6 +193,7 @@ function resetLockState() {
   S.lockTplAt = 0; S.lockSince = 0; S.locked = false; S.lockAdvance = false;
   S.desktop = false; S.mode = "SEEKING"; S.smooth = null;
   S.lifted = false; S.liftMs = 0; S.liftTick = 0; S.pinchHeld = false; S.finHeld = false;
+  S.reloadHeld = false; S.mag = MAG_CAP;
   resetTrackFilters();
 }
 let lobbyTimer = 0;
@@ -983,15 +986,17 @@ function frame(t) {
     if (grabFrame()) runTrack(t);
     else coastTrack(t);
     // Lift first, then shark-fin (product) peeks last pointing UV,
-    // then pinch (interim), then publish. Gesture must not rewrite the shot.
+    // then pinch (interim), then charger-plug reload, then publish.
+    // Gesture must not rewrite the shot. Reload must not fire.
     updateMode(t);
     maybeSharkFinFire(S.handLm);
     maybePinchFire(S.handLm);
+    maybeReloadGesture(S.handLm);
     updateAim();
   } else if (S.desktop) {
     // DESKTOP early-return is safe without landmarks. Cam-deny / KeyT
     // must not leave seeking+unlifted in the mailbox. Do not shark-fin
-    // or pinch here — HID publish+peek stays the pad fallback.
+    // or pinch or reload here — HID publish+peek stays the pad fallback.
     updateMode(t);
   }
   afterLiftState();
@@ -1162,7 +1167,7 @@ function onHidPointerDown(e) {
   unlockAudio();
   // Desktop owns the mailbox: commit click UV before the HID peek.
   // First pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
-  // Cam / GUN / shark-fin / pinch must not publish here — that stomps a hand AimSample.
+  // Cam / GUN / shark-fin / pinch / reload must not publish here — that stomps a hand AimSample.
   if (S.desktop) publishAim(e.clientX, e.clientY);
   if (phase === "lock") {
     e.preventDefault();
