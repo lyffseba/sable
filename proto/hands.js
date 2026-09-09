@@ -1,10 +1,11 @@
 /* SABLE — hands.js
    MediaPipe Hands / skin+NCC tracker. detectForVideo lives in hands_worker.js.
    One Euro on UV, then the aim mailbox. Fire never waits on camera or the worker.
-   Shark-fin thumb-up is the product trigger; pinch is interim. Both peek
-   last pointing UV, then fire — neither rewrites the shot. */
+   Shark-fin thumb-up is product shoot; index+middle ceiling is reload;
+   pinch is interim shoot. Shoot peeks last pointing UV — neither
+   trigger nor reload rewrites the shot. */
 
-import { S, W, H, fire, clamp } from "./aim.js";
+import { S, W, H, fire, clamp, refillMag } from "./aim.js";
 import { cam, proc, pctx, camReady } from "./boot.js";
 
 const PROC_W = 480;
@@ -542,6 +543,26 @@ function thumbParallel(lm) {
   return off < 0.55;
 }
 
+function fingerCeiling(lm, mcpI, pipI, tipI) {
+  // Extended finger pointing up at the ceiling. Image Y grows down:
+  // tip sits above the MCP, and the ray is more vertical than across.
+  const w = lm[0], pip = lm[pipI], tip = lm[tipI], mcp = lm[mcpI];
+  if (!w || !pip || !tip || !mcp) return false;
+  const dTip = Math.hypot(tip.x - w.x, tip.y - w.y);
+  const dPip = Math.hypot(pip.x - w.x, pip.y - w.y);
+  if (dTip <= dPip * 1.06) return false;
+  if (tip.y >= mcp.y - 0.02) return false;
+  const dx = tip.x - mcp.x, dy = mcp.y - tip.y;
+  if (dy <= Math.abs(dx) * 0.85) return false;
+  return true;
+}
+
+function chargerPlug(lm) {
+  // Product reload pose: index + middle up into the magwell / charger.
+  if (!lm) return false;
+  return fingerCeiling(lm, 5, 6, 8) && fingerCeiling(lm, 9, 10, 12);
+}
+
 function sharkFin(lm) {
   // Product shoot: thumb UP like a shark fin. Parallel = safe.
   // Landmarks already on the hand path — no mailbox sixth field.
@@ -552,6 +573,15 @@ function sharkFin(lm) {
   // Image Y grows down. Shark-fin tip sits above the knuckle.
   if (tip.y >= mcp.y - 0.02) return false;
   if (pinchStrength(lm) > 0.48) return false;
+  // Index+middle ceiling is reload, not shoot.
+  if (chargerPlug(lm)) return false;
+  return true;
+}
+
+function reloadGesture(lm) {
+  // Product reload. Shark-fin owns shoot — poses stay exclusive.
+  if (!chargerPlug(lm)) return false;
+  if (sharkFin(lm)) return false;
   return true;
 }
 
@@ -661,11 +691,26 @@ function maybeSharkFinFire(lm) {
   }
 }
 
+function maybeReloadGesture(lm) {
+  // Product reload on the hand / GUN path. DESKTOP keeps HID fallback
+  // — do not invent a pad reload. Rising edge only. Do not fire, do
+  // not publish, do not re-gate phase (waiting Yard stays live).
+  if (S.desktop) { S.reloadHeld = false; return; }
+  if (!lm) { S.reloadHeld = false; return; }
+  const pose = reloadGesture(lm);
+  if (pose && !S.reloadHeld) {
+    S.reloadHeld = true;
+    refillMag();
+  } else if (!pose) {
+    S.reloadHeld = false;
+  }
+}
+
 function maybePinchFire(lm) {
   if (!lm) { S.pinchHeld = false; return; }
-  // Shark-fin is product shoot. Skip pinch on the same pose so both
-  // live paths cannot double-fire one frame.
-  if (S.finHeld || sharkFin(lm)) { S.pinchHeld = false; return; }
+  // Shark-fin is product shoot; charger-plug is reload. Skip pinch on
+  // those poses so one frame cannot double-fire or reload+shoot.
+  if (S.finHeld || sharkFin(lm) || S.reloadHeld || reloadGesture(lm)) { S.pinchHeld = false; return; }
   const p = pinchStrength(lm);
   if (p > 0.72 && !S.pinchHeld && indexExtended(lm)) {
     S.pinchHeld = true;
@@ -797,6 +842,7 @@ function fallbackSkin(now) {
   S.handLm = null;
   S.pinchHeld = false;
   S.finHeld = false;
+  S.reloadHeld = false;
   if (S.tpl && S.tpl.fromHands) S.tpl = null;
   if (!S.skin || !S.gray) return false;
   const hand = findHand();
@@ -927,13 +973,17 @@ export {
   thumbExtended,
   distPointToSeg,
   thumbParallel,
+  fingerCeiling,
+  chargerPlug,
   sharkFin,
+  reloadGesture,
   applyMpLandmarks,
   onHandsWorkerMsg,
   kickWorkerDetect,
   mpTrackMain,
   mpTrack,
   maybeSharkFinFire,
+  maybeReloadGesture,
   maybePinchFire,
   armVideoTrack,
   initHands,

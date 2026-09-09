@@ -43,11 +43,11 @@ See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else). Produc
 
 ## Pipeline
 
-Product gun path (lock above): **shark-fin shoot is this cut** (`maybeSharkFinFire` rising-edge peek). Index+middle-up reload stays out of scope. DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain shipped honesty fallbacks — do not drop those bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). HID click must not replace the shoot gesture in gun mode.
+Product gun path (lock above): **shark-fin shoot** (`maybeSharkFinFire` rising-edge peek) and **index+middle-up reload** (`maybeReloadGesture` rising-edge charger-plug) **are this cut**. DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain shipped honesty fallbacks — do not drop those bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). HID click must not replace the shoot gesture in gun mode. Do not invent reload on those fallbacks.
 
 1. **MediaPipe Hands** (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two.
 2. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
-3. **HID fire** peeks `AimBus`. **Shark-fin** (thumb UP from MediaPipe landmarks, rising edge after lift, before `updateAim`) is product shoot on the hand / GUN path. Thumb parallel to the other fingers is safe. Pinch (thumb↔index) stays interim / secondary. Trackpad is DESKTOP / cam-deny pad fallback — do not force shark-fin when `S.desktop`. Shot never waits on a camera frame. Shark-fin must not publish gesture UV first, and must not re-gate off the waiting Yard. Space `forceGun` is the Q4 fail-to-lock escape, not product shoot.
+3. **HID fire** peeks `AimBus`. **Shark-fin** (thumb UP from MediaPipe landmarks, rising edge after lift, before `updateAim`) is product shoot on the hand / GUN path. Thumb parallel to the other fingers is safe. **Reload** is index+middle pointing up at the ceiling (`chargerPlug` / `maybeReloadGesture` after pinch, before `updateAim`) — rising-edge refill, mutually exclusive with shark-fin. Pinch (thumb↔index) stays interim / secondary. Trackpad is DESKTOP / cam-deny pad fallback — do not force shark-fin or reload when `S.desktop`. Shot never waits on a camera frame. Neither gesture must publish UV first, and neither must re-gate off the waiting Yard. Space `forceGun` is the Q4 fail-to-lock escape, not product shoot.
 4. Gemini may **seed** a lock. Not the hot path.
 
 `AimSample { uv, valid, lifted, confidence, t_hw }`

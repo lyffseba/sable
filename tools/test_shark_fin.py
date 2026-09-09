@@ -325,11 +325,16 @@ def test_docs_lock() -> None:
     if "Thumb up like a shark fin" not in product:
         _fail("PRODUCT.md must keep the Juan SHOOT = shark-fin lock")
     js = proto_js()
-    if "maybeReload" in js or "function reloadGesture" in js:
-        _fail("reload must stay out of scope — do not invent maybeReload")
+    if "function maybeReloadGesture" not in js or "function reloadGesture" not in js:
+        _fail("reload is this cut — maybeReloadGesture must exist next to shark-fin")
+    fin_fn = _fn(js, "sharkFin")
+    if "chargerPlug" not in fin_fn:
+        _fail("sharkFin must refuse charger-plug — do not false-fire reload")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_shark_fin.py" not in ci:
         _fail("ci.sh must run the shark-fin contract")
+    if "test_reload_gesture.py" not in ci:
+        _fail("ci.sh must run the reload gesture contract")
 
 
 def main() -> int:
