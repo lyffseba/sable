@@ -46,6 +46,6 @@ Architecture soT: `research/HAND_FUTURE.md` — keep Meta SAM-class hybrid hones
 
 `AimSample { uv, valid, lifted, confidence, t_hw }` — AimSample locked. Five fields. Invent around the mailbox.
 
-#86 shark-fin remains first ship when Juan merges — do not block on invent docs. Soft-lock this spike. Do not merge.
+#86 shark-fin is on tip. #87 charger-plug reload may still be open — do not reimplement; do not block. Soft-lock this spike when MERGEABLE. Do not merge.
 
 HID / DESKTOP / Space stay **engineering fallbacks** (non-product emergency if still in code) — never the product story.
