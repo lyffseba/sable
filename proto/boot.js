@@ -731,7 +731,8 @@ function drawModeChip() {
   ctx.textBaseline = "middle";
   ctx.fillText(label, 27, 28);
 
-  const q = clamp(Math.round(S.quality), 0, 100);
+  // DESKTOP confidence is 1 (mailbox). Do not paint leftover tracker rust.
+  const q = S.desktop ? 100 : clamp(Math.round(S.quality), 0, 100);
   const qLabel = "CONF " + q;
   ctx.letterSpacing = "0.12em";
   const qw = ctx.measureText(qLabel).width + 22;

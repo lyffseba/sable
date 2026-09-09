@@ -722,6 +722,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock DESKTOP mint-reticle skip")
     if mint not in pipeline:
         _fail("docs/aim_pipeline.md must lock DESKTOP mint-reticle skip")
+    conf = "`publishAim` writes confidence 1 when `S.desktop`"
+    if conf not in modes:
+        _fail("docs/modes.md must lock DESKTOP publishAim confidence 1")
+    if conf not in bible:
+        _fail("PRODUCTION.md must lock DESKTOP publishAim confidence 1")
+    if conf not in pipeline:
+        _fail("docs/aim_pipeline.md must lock DESKTOP publishAim confidence 1")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:
