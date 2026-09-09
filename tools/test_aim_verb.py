@@ -320,6 +320,17 @@ def test_pointing_filter() -> None:
         raise AssertionError("hand is the gun: findHand must exist")
     if "function mpTrack" not in src or "function initHands" not in src:
         raise AssertionError("MediaPipe Hands (landmark 8) must be the primary tracker")
+    if "function maybeSharkFinFire" not in src or "function sharkFin" not in src:
+        raise AssertionError("shark-fin thumb-up must be product fire on the hand path")
+    fin = _js_fn(src, "maybeSharkFinFire")
+    if "fire()" not in fin:
+        raise AssertionError("shark-fin must peek through fire()")
+    if "updateAim(" in fin or "publishAim(" in fin:
+        raise AssertionError("shark-fin must not rewrite aim — peek last pointing UV")
+    if 'phase === "range"' in fin or 'phase === "bay"' in fin:
+        raise AssertionError("maybeSharkFinFire must not re-gate the verb — fire() owns the phase lock")
+    if "S.desktop" not in fin:
+        raise AssertionError("shark-fin must no-op when DESKTOP owns the pad fallback")
     if "function maybePinchFire" not in src:
         raise AssertionError("pinch thumb-index must be able to fire")
     pinch = _js_fn(src, "maybePinchFire")
@@ -350,6 +361,12 @@ def test_pointing_filter() -> None:
         if "detectForVideo" in body or "mpTrackMain" in body:
             raise AssertionError(f"{name} must not run HandLandmarker.detect on main")
     frame = _js_fn(src, "frame")
+    if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
+        raise AssertionError("shark-fin must run after updateMode so lifted is current")
+    if frame.find("maybeSharkFinFire") > frame.find("maybePinchFire"):
+        raise AssertionError("shark-fin must run before pinch — product shoot first")
+    if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
+        raise AssertionError("shark-fin must peek last pointing UV — updateAim after the trigger must not rewrite the shot")
     if frame.find("updateMode") > frame.find("maybePinchFire"):
         raise AssertionError("pinch must run after updateMode so lifted is current")
     if frame.find("maybePinchFire") > frame.find("updateAim"):
@@ -357,6 +374,8 @@ def test_pointing_filter() -> None:
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
     if not desk_else or "updateMode" not in desk_else.group(1):
         raise AssertionError("frame must run updateMode on DESKTOP even if !camReady")
+    if "maybeSharkFinFire" in desk_else.group(1):
+        raise AssertionError("!camReady DESKTOP must not shark-fin — HID is the pad fallback")
     if "maybePinchFire" in desk_else.group(1) or "updateAim" in desk_else.group(1):
         raise AssertionError("!camReady DESKTOP must not pinch or rewrite aim")
     if "runTrack" in desk_else.group(1) or "grabFrame" in desk_else.group(1):

@@ -47,7 +47,7 @@ Product gun path (lock above): shark-fin shoot; index+middle-up reload. Not impl
 
 1. **MediaPipe Hands** (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two.
 2. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
-3. **HID fire** peeks `AimBus`. Pinch (thumb↔index, hand-scaled, after lift, before `updateAim`) or trackpad. Shot never waits on a camera frame. Pinch must not publish the closed-finger UV first, and must not re-gate off the waiting Yard.
+3. **HID fire** peeks `AimBus`. **Shark-fin** (thumb UP from MediaPipe landmarks, rising edge after lift, before `updateAim`) is product shoot on the hand / GUN path. Thumb parallel to the other fingers is safe. Pinch (thumb↔index) stays interim / secondary. Trackpad is DESKTOP / cam-deny pad fallback — do not force shark-fin when `S.desktop`. Shot never waits on a camera frame. Shark-fin must not publish gesture UV first, and must not re-gate off the waiting Yard. Space `forceGun` is the Q4 fail-to-lock escape, not product shoot.
 4. Gemini may **seed** a lock. Not the hot path.
 
 `AimSample { uv, valid, lifted, confidence, t_hw }`

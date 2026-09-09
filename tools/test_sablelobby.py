@@ -154,6 +154,8 @@ def test_waiting_arena_always_practice() -> None:
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
     if not desk_else or "updateMode" not in desk_else.group(1):
         _fail("frame must run updateMode on DESKTOP even if !camReady")
+    if "maybeSharkFinFire" in desk_else.group(1):
+        _fail("!camReady DESKTOP must not shark-fin — HID is the pad fallback")
     if "maybePinchFire" in desk_else.group(1) or "runTrack" in desk_else.group(1):
         _fail("!camReady DESKTOP must not pinch or invent a hand track")
     keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
@@ -195,6 +197,11 @@ def test_waiting_arena_always_practice() -> None:
         _fail("HID fire must peek on the waiting Yard")
     if "aimBus.fire" not in fire:
         _fail("fire() no longer peeks AimBus")
+    fin = _js_fn(js, "maybeSharkFinFire")
+    if "fire()" not in fin:
+        _fail("shark-fin must peek through fire() on the waiting Yard")
+    if 'phase === "range"' in fin or 'phase === "bay"' in fin:
+        _fail("maybeSharkFinFire re-gates the verb — waiting Yard muted shark-fin")
     pinch = _js_fn(js, "maybePinchFire")
     if "fire()" not in pinch:
         _fail("pinch must peek through fire() on the waiting Yard")
