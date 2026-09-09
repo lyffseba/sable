@@ -451,6 +451,43 @@ def test_desktop_shows_os_cursor() -> None:
         raise AssertionError("#78: KeyT must still re-arm DESKTOP on cam-deny waiting Yard")
 
 
+def test_desktop_skips_mint_crosshair() -> None:
+    """DESKTOP aim is the OS cursor. Do not stack the mint reticle."""
+    src = proto_js()
+    d2 = _js_fn(src, "draw2D")
+    for m in re.finditer(r"drawCrosshair\s*\(", d2):
+        window = d2[max(0, m.start() - 80) : m.start()]
+        if "S.desktop" not in window:
+            raise AssertionError("draw2D must skip drawCrosshair when S.desktop")
+    if d2.count("drawCrosshair") < 2:
+        raise AssertionError("non-DESKTOP live phases must still paint the mint reticle")
+    for phase in ("range", "bay", "lobby", "calibrate", "lock"):
+        if f'phase === "{phase}"' not in d2:
+            raise AssertionError(f"draw2D must still name {phase} for the mint tell")
+    if "S.desktop = true" in d2 or "armPracticeDesktop" in d2 or "goDesktopRange" in d2:
+        raise AssertionError("draw2D must not arm DESKTOP — Q4 never auto-desktop")
+    if "aimBus" in d2 or "fire(" in d2 or "publishAim" in d2:
+        raise AssertionError("draw2D must not publish or fire — HID peeks")
+    if "AimSample" in d2:
+        raise AssertionError("draw2D must not touch AimSample")
+    sync = _js_fn(src, "syncCursor")
+    if "!S.desktop" not in sync:
+        raise AssertionError("#79: syncCursor must still show the OS cursor when S.desktop")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
+    desk = _js_fn(src, "armPracticeDesktop")
+    if "updateMode(" not in desk:
+        raise AssertionError("#77: armPracticeDesktop must still write updateMode truth")
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        keys,
+    )
+    if not t_block or "armPracticeDesktop()" not in t_block.group(1):
+        raise AssertionError("#78: KeyT must still re-arm DESKTOP on cam-deny waiting Yard")
+
+
 def test_range_gate() -> None:
     src = proto_js()
     fire_body = _js_fn(src, "fire")
@@ -544,6 +581,7 @@ def main() -> int:
         test_pointing_filter()
         test_desktop_arm_writes_updatemode_truth()
         test_desktop_shows_os_cursor()
+        test_desktop_skips_mint_crosshair()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

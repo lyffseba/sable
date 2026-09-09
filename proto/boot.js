@@ -918,12 +918,14 @@ function drawCalib(now) {
 // --- Main Render Loop ---
 function draw2D(now) {
   ctx.clearRect(0, 0, W, H);
+  // DESKTOP aim is the OS cursor (#79). Mint reticle is the hand/GUN tell.
+  // Skip drawCrosshair only when already DESKTOP — Q4 SEEKING stays mint.
   if (phase === "lock") {
-    if (S.aim) drawCrosshair(S.aim.x, S.aim.y);
+    if (S.aim && !S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawModeChip();
   } else if (phase === "calibrate") {
     drawCalib(now);
-    drawCrosshair(S.aim.x, S.aim.y);
+    if (!S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawModeChip();
   } else if (phase === "range") {
     for (const p of S.pops) {
@@ -935,7 +937,7 @@ function draw2D(now) {
       ctx.fillText(p.text, p.x, p.y);
       ctx.globalAlpha = 1;
     }
-    drawCrosshair(S.aim.x, S.aim.y);
+    if (!S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawHUD(now);
   } else if (phase === "lobby") {
     for (const p of S.pops) {
@@ -947,10 +949,10 @@ function draw2D(now) {
       ctx.fillText(p.text, p.x, p.y);
       ctx.globalAlpha = 1;
     }
-    drawCrosshair(S.aim.x, S.aim.y);
+    if (!S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawHUD(now);
   } else if (phase === "bay") {
-    drawCrosshair(S.aim.x, S.aim.y);
+    if (!S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawBayHUD();
   }
 }

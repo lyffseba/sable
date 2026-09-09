@@ -715,6 +715,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock DESKTOP OS-cursor visibility")
     if cursor not in pipeline:
         _fail("docs/aim_pipeline.md must lock DESKTOP OS-cursor visibility")
+    mint = "`draw2D` skips `drawCrosshair` when `S.desktop`"
+    if mint not in modes:
+        _fail("docs/modes.md must lock DESKTOP mint-reticle skip")
+    if mint not in bible:
+        _fail("PRODUCTION.md must lock DESKTOP mint-reticle skip")
+    if mint not in pipeline:
+        _fail("docs/aim_pipeline.md must lock DESKTOP mint-reticle skip")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:
