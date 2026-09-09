@@ -66,8 +66,9 @@ See `research/HANDS.md` for the MediaPipe interim audit (Tasks Vision HandLandma
 
 Product gun path (locks above): point aims; **shark-fin shoot** (`maybeSharkFinFire`) and **index+middle-up reload** (`maybeReloadGesture` charger-plug) **are on tip** (#86 / #87). Product GUN HID-as-gun is deprecated (`productGunHidFire` is false — pad menus only). DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain **shipped engineering fallbacks, labeled non-product** — do not drop those honesty bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). They are never the product story. HID click must not replace the shoot gesture in gun mode. Do not invent reload on those fallbacks.
 
-1. **Interim:** MediaPipe Hands-class (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two. Published full float16/1 `.task` only.
+1. **Ship default (interim vs Meta invent):** MediaPipe Tasks Vision Hand Landmarker — 21 landmarks, MediaPipe order, WASM+GPU/WebGL in a Worker (do not share the Three.js WebGL context on main). Published full float16/1 `.task` only; self-host pinned, CDN pinned fallback. See `research/HAND_FUTURE.md`.
 2. **Invent:** Meta object-recognition (SAM-class gate + landmark FSM hybrid) when it is game-ready on Chromium. Not the v1 hot path. Never inside `fire()`.
+2b. **Stretch only:** micro-handpose (WebGPU compute, MediaPipe landmark order, Chrome 113+) — after a MacBook Chromium bench if MediaPipe is the latency wall. Not the invent default. Not in proto yet.
 3. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
 4. **Product shoot** peeks `AimBus` on shark-fin rising edge (`maybeSharkFinFire`, #86). **Reload** is index+middle ceiling (`chargerPlug` / `maybeReloadGesture` after pinch, before `updateAim`, #87) — rising-edge refill, mutually exclusive with shark-fin. Pinch is **interim**. Shot never waits on a camera frame. Neither gesture must publish UV first or re-gate off the waiting Yard. Do not force shark-fin or reload when `S.desktop`. Space `forceGun` is the Q4 fail-to-lock escape, not product shoot.
 5. Gemini may **seed** a lock. Not the hot path.

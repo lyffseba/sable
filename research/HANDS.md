@@ -74,9 +74,9 @@ No counterexample kills F for this SKU.
 
 | Stage | Tracker | Proof it survived |
 |-------|---------|-------------------|
-| **Do it** | MediaPipe Tasks Vision HandLandmarker, landmark 8, mirror X, One Euro | Only in-browser fingertip at camera rate |
+| **Do it** | MediaPipe Tasks Vision HandLandmarker (ship default), landmark 8, MediaPipe order, Worker GPU/WebGL then CPU, mirror X, One Euro | Only in-browser fingertip at camera rate. Do not share Three.js WebGL on main |
 | **Do it right** | `detectForVideo` runs in `proto/hands_worker.js` (GPU, then CPU). Queue depth 1; drop stale. Main applies One Euro on UV then the mailbox. If WASM/landmarks fail **this frame**, `fallbackSkin` (findHand + NCC) still writes the muzzle. HID fire never waits on cam/worker. `initHands` promise must resolve before play. Shark-fin after `updateMode`, before `updateAim`. | Worker + fallback + mailbox |
-| **Do it better** | Meta SAM-class gate + landmark FSM (`research/HAND_FUTURE.md`); shark-fin product shoot (#86 on tip); charger-plug reload (#87); 120 FPS | After lock is green on a lid cam. Pinch stays interim. |
+| **Do it better** | Meta SAM-class gate + landmark FSM (`research/HAND_FUTURE.md`); micro-handpose stretch only after MacBook Chromium bench; shark-fin product shoot (#86 on tip); charger-plug reload (#87); 120 FPS | After lock is green on a lid cam. Pinch stays interim. micro-handpose is not the invent default. |
 
 **Model (confirmed):** Tasks Vision publishes one HandLandmarker `.task` — Google **float16/1 full** (`hand_landmarker.task`, 7819105 bytes). There is no `hand_landmarker_lite.task` on the model garden (404). Legacy Hands `hand_landmark_lite.tflite` is not a Tasks bundle. Keep the vendored float16/1 file. Sapiens / YOLO / egocentric are not defaults.
 

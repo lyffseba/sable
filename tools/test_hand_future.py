@@ -98,15 +98,36 @@ def test_vision_stack_honesty() -> None:
         _fail("HAND_FUTURE.md must say SAM-class is not the Chromium 60 Hz hot path")
     if "Sapiens" not in future or "YOLO" not in future:
         _fail("HAND_FUTURE.md must call out Sapiens/YOLO as not defaults")
+    if "Sapiens2" not in future:
+        _fail("HAND_FUTURE.md must name Sapiens2 as not a default")
+    if "MediaPipe Tasks Vision Hand Landmarker" not in future:
+        _fail("HAND_FUTURE.md must keep MediaPipe Tasks Vision as the ship default")
+    if "Three.js WebGL" not in future or "Worker + careful delegate" not in future:
+        _fail("HAND_FUTURE.md must lock Worker GPU vs Three.js WebGL conflict")
+    if "self-host" not in future.lower() and "Self-host" not in future:
+        _fail("HAND_FUTURE.md must pin self-host / CDN")
+    if "micro-handpose" not in future:
+        _fail("HAND_FUTURE.md must name the micro-handpose stretch")
+    if "Not the invent default" not in future:
+        _fail("HAND_FUTURE.md must keep micro-handpose off the invent default")
+    if "Chrome 113" not in future:
+        _fail("HAND_FUTURE.md must keep the Chrome 113+ floor for the stretch")
+    if "author bench" not in future.lower():
+        _fail("HAND_FUTURE.md must not treat micro-handpose ~2x as a SABLE bench")
     hands = _read("proto/hands.js")
     worker = _read("proto/hands_worker.js")
     if "hand_landmarker_lite" in hands or "hand_landmarker_lite" in worker:
         _fail("do not point proto at a non-existent lite .task")
     if "sapiens" in hands.lower() or "yolo" in hands.lower() or "sam2" in hands.lower():
         _fail("Sapiens/YOLO/SAM must not become the shipped default tracker")
+    if "micro-handpose" in hands or "micro-handpose" in worker:
+        _fail("micro-handpose must not land in proto before a MacBook Chromium bench")
     fire = _js_fn(proto_js(), "fire")
     if re.search(r"SAM|Sapiens|detectForVideo|createImageBitmap", fire):
         _fail("fire() must not wait on Meta/SAM/detect")
+    tracking = _read("research/TRACKING.md")
+    if "micro-handpose" not in tracking:
+        _fail("TRACKING.md must name micro-handpose as stretch only")
 
 
 def test_reload_stub() -> None:

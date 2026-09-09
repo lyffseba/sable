@@ -96,25 +96,56 @@ Order after lift (`updateMode`): **shark-fin** (#86 — assume it lands) → **r
 
 ---
 
-## Vision stack — Meta invent path; MediaPipe Hands-class interim
+## Vision stack — Meta invent path; MediaPipe Hands-class ship default (interim)
 
-**Locked invent path:** Meta object-recognition (SAM-class gate + landmark FSM hybrid). Hands + Meta vision must feel as precise as a mouse shooter. MediaPipe Hands-class **may stay interim** until that stack ships on the Chromium floor. No mouse ever.
+**Locked invent path:** Meta object-recognition (SAM-class gate + landmark FSM hybrid). Hands + Meta vision must feel as precise as a mouse shooter. MediaPipe Hands-class **is the default ship stack** until that Meta cut is game-ready on the Chromium floor. No mouse ever.
 
-### Default *shipped* tracker today (interim)
+Non-binding vision research below was verified **2026-09-09**. Discarded where wrong (lite `.task`); kept where it matches live docs / author benches / SABLE proto.
+
+### Default *ship* stack — MacBook Chromium (already in proto)
+
+**MediaPipe Tasks Vision Hand Landmarker.** 21 landmarks, **MediaPipe order** (`0` wrist … `4` thumb tip … `8` index … `12` middle … `20` pinky). On-device **WASM + GPU/WebGL** (Tasks `delegate: "GPU"`, then CPU). Detect **off the main thread** in a classic Worker. Already shipped: `proto/hands_worker.js` + vendored `hand_landmarker.task`.
 
 Verified against live Google AI Edge docs on **2026-09-09**:
 
-| Claim | Live docs / garden |
-|-------|--------------------|
+| Claim | Live docs / garden / proto |
+|-------|----------------------------|
 | Tasks Vision **Hand Landmarker** | [Hand landmarks detection guide](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker) — 21 landmarks, VIDEO mode, GPU delegate |
 | Published `.task` | **HandLandmarker (full)** float16/1 only. Pixel 6 bench: 17.12 ms CPU / **12.27 ms GPU** |
-| `hand_landmarker_lite.task` | **404** on the model garden (`…/hand_landmarker_lite/float16/1/hand_landmarker_lite.task`). Legacy Hands `hand_landmark_lite.tflite` is **not** a Tasks bundle |
-| Vendored file | `proto/vendor/mediapipe/hand_landmarker.task` — **7819105** bytes, float16/1. Keep it. Do not point at a lite 404 |
-| Worker + GPU | Official web samples run `detectForVideo` in a Worker with `delegate: "GPU"` then CPU. SABLE already does this (`proto/hands_worker.js`) |
+| `hand_landmarker_lite.task` | **404** on the model garden. Legacy Hands `hand_landmark_lite.tflite` is **not** a Tasks bundle. **Lite/full tradeoff is not a Tasks SKU choice** — there is one published full bundle |
+| Vendored / pin | **Self-host first:** `proto/vendor/mediapipe/hand_landmarker.task` — **7819105** bytes, float16/1. CDN fallback is pinned `@mediapipe/tasks-vision@0.10.21` + garden `float16/1` (`handsModelTries`). Do not float an unpinned CDN |
+| Worker + GPU | Official web samples run `detectForVideo` in a Worker. SABLE already does this |
 
-**Hypothesis correction:** “Hand Landmarker **lite** + GPU + worker” is half-right. GPU + worker is the floor. **Lite `.task` does not exist.** Interim default is the published **full** float16/1 bundle + GPU Worker + One Euro on main + `fallbackSkin` if WASM/landmarks die this frame.
+**Three.js WebGL conflict (keep the Worker):** MediaPipe GPU is WebGL2. Three.js owns the main-thread WebGL context (`proto/house.js` renderer). Putting the GPU delegate on **main** next to that renderer can lose the context (`CONTEXT_LOST_WEBGL` / Emscripten `emscripten_webgl_create_context` failures — community + Google issues). **Prefer Worker + careful delegate:** GPU first inside the Worker (ImageBitmap), CPU if Worker GPU fails. Never `detectForVideo` on rAF beside Three.js. `initHandsMain` (main-thread last resort) must stay last resort.
+
+**Hypothesis correction:** “Hand Landmarker **lite** + GPU + worker” is half-right. GPU + worker is the floor. **Lite `.task` does not exist.** Ship default is the published **full** float16/1 bundle + GPU Worker + One Euro on main + `fallbackSkin` if WASM/landmarks die this frame.
 
 Apache-2.0. First download ~8 MB, cache. Safari may need nosimd WASM — Tasks ships both; we vendor both.
+
+### Stretch — only if MediaPipe is the latency wall
+
+**[micro-handpose](https://github.com/svenflow/micro-handpose)** (`@svenflow/micro-handpose`). Verified **2026-09-09** against the project README (not a SABLE bench):
+
+| Claim | Held? |
+|-------|--------|
+| WebGPU compute (no WASM / no ONNX Runtime) | yes — 15 compute shaders + landmark model |
+| 21 landmarks, **MediaPipe order** | yes — same `wrist` … `pinky_tip` indices our FSM already uses |
+| Chrome 113+ / Edge 113+ | yes (Safari 18+ also claimed) |
+| ~**2×** MediaPipe desktop | **author bench only** — Mac Mini M4 Pro / Chrome 134: 2.2 ms median vs MediaPipe WebGPU 4.0 ms. **Not** a MacBook Pro lid-cam + SABLE rAF + Three.js bench |
+| License | MIT JS; weights derived from MediaPipe Hands (Apache-2.0). Not GPL. Still **do not vendor** until we bench |
+
+**Not the invent default. Not the ship default.** Prototype path **only after** a MacBook Pro + Chromium bench on the Yard (`?sableperf=1` + Worker detect p50/p99 vs MediaPipe full). If MediaPipe is not the latency wall, discard. If it wins, it must stay a Worker, same 21-order FSM, self-hosted weights (no live jsDelivr in the zip), and never enter `fire()`.
+
+Do not grow a second landmark schema. Do not run WebGPU compute on the Three.js device without a Worker experiment.
+
+### Not game-ready defaults (retired / discard)
+
+| Stack | Verdict |
+|-------|---------|
+| **Sapiens / Sapiens2** | Heavy whole-body. Not a Chromium 60 Hz lid-cam SKU. **Not a default.** |
+| **Heavy egocentric** (Ego4D / Hot3D class) | Research. Not vendored web. **Not a default.** |
+| **YOLO mouse-body** | Retired for aim. Box = stock. sable-mouse **STOP**. |
+| Cloud VLM / Gemini every frame | Seed only. One round-trip > one frame. |
 
 ### Meta object-recognition invent path (SAM-class gate + landmark FSM)
 
@@ -141,7 +172,7 @@ This is the **product vision invent**, not the v1 hot path.
 
 Do **not** ship a SAM encoder on the rAF or inside `fire()`. Do **not** grow a second mailbox. When a Meta cut is game-ready (Worker, GPU, ≤ aim-capture budget, Apache-2.0, no mouse), it **replaces** MediaPipe as primary and MediaPipe becomes the else-path the way `fallbackSkin` is today.
 
-Until then: **MediaPipe Hands-class interim.** Invent docs must not pretend SAM is the live tracker.
+Until then: **MediaPipe Hands-class is the ship default (interim vs Meta invent).** Invent docs must not pretend SAM is the live tracker. micro-handpose is stretch-only after a MacBook Chromium bench.
 
 ---
 
@@ -195,6 +226,7 @@ Feel DNA may name CS-class honesty and Beat Saber–class shoot energy in **rese
 | Reticle | 50–80 ms may lag | Do not bloom to hide it |
 | Gesture → peek | **< 8 ms** same as HID→hitscan | `fire()` peeks; shark-fin / reload must not wait on detect |
 | SAM-class | **not** in the 8 ms bar | Sparse gate / seed only, after markHid, never inside `fire()` |
+| micro-handpose | stretch only | After MacBook Chromium bench if MediaPipe is the latency wall. Not the invent default |
 | Net | fire-and-forget | Shared house rewind. Bay parked |
 
 Turn AE/AWB off when possible. 720p MJPEG noisy lid cam must still point.
@@ -245,4 +277,7 @@ Five fields. Existing `publish` / `peek` / `fire` only. Gesture bits stay on `S`
 - Space still only sets `forceGun` + `updateMode` — no `fire()`.
 - AimSample still five fields. SAM / Sapiens / YOLO are not the default tracker and must not enter `fire()`.
 - No mouse-body optical lock. No mouse mesh. sable-mouse **STOP**.
-- MediaPipe lite `.task` must not be invented. Full float16/1 stays until Meta stack ships.
+- MediaPipe lite `.task` must not be invented. Full float16/1 is the ship default until Meta stack ships.
+- GPU HandLandmarker must not share the Three.js WebGL context on main — Worker + careful delegate.
+- micro-handpose must not land in proto until a MacBook Chromium bench says MediaPipe is the wall. Not the invent default.
+- Sapiens2 / heavy egocentric / YOLO mouse-body stay not-defaults / retired for aim.
