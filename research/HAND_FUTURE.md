@@ -138,41 +138,78 @@ Apache-2.0. First download ~8 MB, cache. Safari may need nosimd WASM — Tasks s
 
 Do not grow a second landmark schema. Do not run WebGPU compute on the Three.js device without a Worker experiment.
 
-### Not game-ready defaults (retired / discard)
+### Meta vision audit — MacBook Chromium (Juan lock 2026-09-09)
 
-| Stack | Verdict |
-|-------|---------|
-| **Sapiens / Sapiens2** | Heavy whole-body. Not a Chromium 60 Hz lid-cam SKU. **Not a default.** |
-| **Heavy egocentric** (Ego4D / Hot3D class) | Research. Not vendored web. **Not a default.** |
-| **YOLO mouse-body** | Retired for aim. Box = stock. sable-mouse **STOP**. |
-| Cloud VLM / Gemini every frame | Seed only. One round-trip > one frame. |
+**Product invent target:** in-game hand tracking on **Meta models for object recognition**. Invent the gesture system (aim/point, shark-fin fire, charger reload) **on that stack**. No mouse.
 
-### Meta object-recognition invent path (SAM-class gate + landmark FSM)
+**Honesty first:** Meta SAM-class is **not game-ready** as a Chromium 60 Hz hot path. No Meta-family model publishes a 21-landmark hand FSM that runs 60–120 FPS on MacBook Chromium today. Official SAM 2 “real-time” is **A100 + torch.compile** (hiera_tiny **91.2 FPS**, Hiera-B+ **43.8 FPS** — Meta README / paper). That is not a lid-cam Worker. **Do not pretend Detectron2 or full SAM runs real-time in the browser.**
 
-This is the **product vision invent**, not the v1 hot path.
+Label every line **interim** vs **product invent**.
 
-**Why Meta / SAM-class:** Juan lock — hands + Meta vision models must feel as precise as a mouse shooter. A landmark-only tracker foreshortens when the player points *into* the glass; a mask gate can hold the **hand silhouette** (nail extremum toward the camera) when landmarks jitter. That is the mouse-nose lesson applied to a hand: mask = body, landmark 8 / mask extremum = muzzle.
+```
+                    ┌─ PRODUCT INVENT (Meta object recognition) ─────────┐
+ lid cam            │  SAM-class segmenter = hand / object gate          │
+ getUserMedia  ──►  │  sparse encode; prompt last hand ROI / landmark hull│
+                    │  mask extremum = muzzle when landmarks foreshorten │
+                    └──────────────────────┬────────────────────────────┘
+                                           │ same 21-order points
+                    ┌─ INTERIM SHIP (until Meta is browser-ready) ───────┐
+                    │  MediaPipe Tasks Hand Landmarker (default, in proto)│
+                    │  micro-handpose stretch after MacBook Chromium bench│
+                    │  gesture FSM: AIM / SHARK-FIN / SAFE / RELOAD      │
+                    └──────────────────────┬────────────────────────────┘
+                                           ▼
+                              AimSample { uv, valid, lifted, confidence, t_hw }
+                              fire() peeks — never waits on SAM / detect
+```
 
-**Hybrid (invent, not shipped):**
+#### 1. What runs in Chromium today (WASM / WebGPU / ORT-web)
 
-1. **SAM-class gate (sparse):** encode the lid-cam frame; prompt the hand ROI (palm detector box, or last landmark hull). Output: hand mask. Use as a **gate / extremum**, not as a per-frame 60 Hz encoder.
-2. **Landmark FSM (dense):** 21 points drive AIM / SHARK-FIN / RELOAD at camera rate. Same FSM table as above.
-3. **Muzzle:** landmark 8 when index is extended and the mask agrees; else mask extremum along the 6→8 ray. Still one UV into the five-field mailbox.
+| Family | In Chromium? | Lid-cam 60 Hz? | Honest use |
+|--------|--------------|----------------|------------|
+| **SAM 2 / 2.1 tiny–large** via onnxruntime-web WebGPU (WebSAM / community ORT) | **yes**, experimental. Encoders 145–878 MB. Must pre-convert `.ort` (raw ONNX optimizer can crash). Worker required | **no** — encode-once / decode-many photo UI. Community: MobileSAM ~**345 ms** encode, SAM2 tiny ~**700 ms**. Microsoft SAM demo: encoder ~**45 s WASM**; WebGPU makes encode “feasible,” decoder ~30–200 ms. Not a gun | **Product invent, sparse.** Gate / lock seed. Never 60 Hz. Never inside `fire()` |
+| **MobileSAM / SlimSAM** (SAM-family distill) | **yes** — MobileSAM ~45 MB; SlimSAM-77 ~14 MB INT8 can WASM | **no** — still hundreds of ms encode. SlimSAM is “works without WebGPU,” not 60 Hz | Lightest **in-browser Meta-family** gate. Still invent, not interim ship |
+| **Detectron2** Mask/Faster R-CNN ONNX → ORT-web | **fragile yes** — community: WASM boxes+masks OK; **WebGPU masks broken** (one mask of N). Export exists (`tools/deploy/export_model.py`) | **no** — COCO detector, not 21 hand landmarks. Too heavy for the MacBook floor as a gun | **Not the invent default.** Research/export only. Do not vendor |
+| **DINOv2** INT8 ONNX | theoretically ORT-web; ViT-L INT8 still **~1.5 GB** | **no** | Encoder features. Not a hand. Research-only |
+| **Sapiens / Sapiens2** 0.1B INT8 (community ORT-web) | **yes** on Chrome 113+ WebGPU | **no** — published **1–3 s/image WebGPU**, 20–60 s WASM. CLS embedding / whole-body, not 21 hand points | **Research-only.** Too heavy for MacBook floor |
+| **Meta WebXR hands** | Quest Browser | n/a on lid cam | Ruled out for this SKU |
+| **MediaPipe Hands-class** | **yes** — already in proto | **yes** (interim ship) | **Interim landmark FSM** until Meta is browser-ready |
+| **micro-handpose** | **yes** Chrome 113+ WebGPU | author ~2× MediaPipe desktop — **not our bench** | Stretch interim, not invent default |
 
-**Honesty — not game-ready on Chromium as a 60 Hz hot path (2026-09-09):**
+Apache-2.0 where it matters: SAM 2 / SAM 2.1 code+weights, Detectron2, MediaPipe Hands. Do not add GPL.
 
-| Stack | Chromium / MacBook? | Game-ready 60–120 FPS lid cam? | License / size | Verdict |
-|-------|---------------------|--------------------------------|----------------|---------|
-| **SAM 2 / MobileSAM in-browser** (ONNX Runtime WebGPU demos) | yes, experimental | **no** — encode is hundreds of ms to seconds per frame (community: MobileSAM ~345 ms encode; SAM2 tiny ~700 ms; some hybrid splits 5–10 s encode). Decoder 30–60 ms/click is a photo UI, not a gun | SAM 2 is Apache-2.0; **do not vendor until a cut fits the 1–3 ms aim-capture budget** | **Invent path.** Gate / seed only. Never the HID peek. Never a fire wait |
-| Meta **Sapiens** (2D/3D whole-body) | research, not a Tasks WASM SKU | **no** | research weights; not a Chromium game bundle | Not default. Not interim |
-| Meta **WebXR hands** (Quest joints) | Quest Browser / headset | n/a on MacBook lid cam | — | Ruled out for this SKU |
-| YOLO / detector boxes | painful in-browser | box = palm = stock | weights | Ruled out for muzzle (same failure as COCO mouse) |
-| Egocentric (Ego4D / Hot3D class) | research | not a vendored web SKU | datasets | Not v1. Not default |
-| Cloud VLM / Gemini every frame | yes | **no** (100 ms–2 s) | API | Seed / lock assist only |
+#### 2. Thin native / local bridge — does it serve web ship?
 
-Do **not** ship a SAM encoder on the rAF or inside `fire()`. Do **not** grow a second mailbox. When a Meta cut is game-ready (Worker, GPU, ≤ aim-capture budget, Apache-2.0, no mouse), it **replaces** MediaPipe as primary and MediaPipe becomes the else-path the way `fallbackSkin` is today.
+Meta’s **own** SAM 2 web demo is frontend + **Python backend** (locally deployable, same idea as sam2.metademolab.com). A thin localhost helper (Python / ORT / Metal on the MacBook) could run hiera_tiny closer to native rates than ORT-web.
 
-Until then: **MediaPipe Hands-class is the ship default (interim vs Meta invent).** Invent docs must not pretend SAM is the live tracker. micro-handpose is stretch-only after a MacBook Chromium bench.
+| Question | Answer |
+|----------|--------|
+| Would it run? | **Yes**, as an optional process next to `tools/serve_proto.py` — same class as Gemini lock-assist |
+| Does it serve the **web ship**? | **No as a required bar.** Juan lock: MacBook Pro + **Chromium** floor. A required native bridge invents a **second product** (install a helper). Godot/native stays engineering-only if it serves the web SKU |
+| Allowed use | **Optional seed / calib / lock-assist**, fire-and-forget, never a `fire()` wait — same honesty as `/api/gemini/lock` |
+| Forbidden use | Ranking, GUN shoot, or “must install the Meta helper to play” |
+
+#### 3. Research-only / too heavy for the MacBook floor
+
+- **Detectron2** full zoo (X-101, panoptic, DensePose): not a Chromium gun. Keypoint heads are COCO **person**, not MediaPipe 21-hand.
+- **SAM 2 large** (878 MB) / **DINOv2-L**: first-download and VRAM kill the zip + 1080p60 floor.
+- **Sapiens2** (seconds per frame): whole-body research.
+- **Heavy egocentric** (Ego4D / Hot3D class): datasets, not a vendored web SKU.
+- **YOLO mouse-body**: retired for aim. sable-mouse **STOP**.
+- Cloud VLM / Gemini every frame: seed only.
+
+#### Gesture system on the stack (invent around the mailbox)
+
+Product verbs do **not** wait for Meta to ship 60 Hz. Invent the FSM on **MediaPipe-order 21** (interim landmarker) so a later SAM-class mask plugs in as a gate:
+
+1. **AIM** — index extended; muzzle = landmark 8 along 6→8; if SAM-class mask is fresh, extremum along that ray may win when 8 foreshortens.
+2. **SHOOT** — shark-fin thumb-up rising edge → `AimBus` peek. Not HID.
+3. **SAFE** — thumb parallel. Held shark-fin does not auto-fire.
+4. **RELOAD** — index+middle ceiling rising edge → `onReloadStub`. No mag.
+
+When a Meta cut is game-ready (Worker, GPU, ≤ aim-capture budget **or** honest sparse-not-hot-path, Apache-2.0, no mouse), it becomes the **object-recognition primary**. MediaPipe / micro-handpose become the else-path the way `fallbackSkin` is today. Until then they are **labeled interim**.
+
+Do **not** ship a SAM / Detectron encoder on the rAF or inside `fire()`. Do **not** grow a second mailbox. Do **not** vendor Detectron2 or Sapiens2.
 
 ---
 
@@ -281,3 +318,5 @@ Five fields. Existing `publish` / `peek` / `fire` only. Gesture bits stay on `S`
 - GPU HandLandmarker must not share the Three.js WebGL context on main — Worker + careful delegate.
 - micro-handpose must not land in proto until a MacBook Chromium bench says MediaPipe is the wall. Not the invent default.
 - Sapiens2 / heavy egocentric / YOLO mouse-body stay not-defaults / retired for aim.
+- Detectron2 / full SAM must not be documented as real-time in Chromium. Official SAM 2 FPS is A100.
+- A required local Meta helper must not become the web ship. Optional seed only.

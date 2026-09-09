@@ -15,7 +15,7 @@ HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; 
 Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
 Platform: MacBook Pro + Chromium web floor.
 
-Architecture invent: `research/HAND_FUTURE.md`.
+Architecture invent: `research/HAND_FUTURE.md` (Meta object-recognition invent target; MediaPipe / micro-handpose labeled **interim** until a Meta cut is browser-ready on Chromium. Detectron2 / full SAM are **not** real-time in-browser).
 
 ## Vision
 - **Feel DNA:** Counter-Strike–class competitive shooter (rounds, aim honesty, map literacy) **with new hand mechanics**

@@ -96,6 +96,16 @@ def test_vision_stack_honesty() -> None:
         _fail("HAND_FUTURE.md must name the SAM-class invent path")
     if "not game-ready" not in future.lower():
         _fail("HAND_FUTURE.md must say SAM-class is not the Chromium 60 Hz hot path")
+    if "Detectron2" not in future or "real-time in the browser" not in future:
+        _fail("HAND_FUTURE.md must refuse Detectron2 / full SAM as real-time in Chromium")
+    if "A100" not in future or "91.2" not in future:
+        _fail("HAND_FUTURE.md must keep official SAM 2 FPS as A100, not MacBook")
+    if "second product" not in future:
+        _fail("HAND_FUTURE.md must refuse a required local Meta bridge as web ship")
+    if "Interim landmark FSM" not in future:
+        _fail("HAND_FUTURE.md must label MediaPipe as interim vs Meta invent")
+    if "product invent" not in future.lower():
+        _fail("HAND_FUTURE.md must label Meta object recognition as product invent")
     if "Sapiens" not in future or "YOLO" not in future:
         _fail("HAND_FUTURE.md must call out Sapiens/YOLO as not defaults")
     if "Sapiens2" not in future:
