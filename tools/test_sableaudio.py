@@ -243,6 +243,11 @@ def test_lobby_waiting_yard_mint_tell() -> None:
         _fail("armPracticeDesktop must still write updateMode DESKTOP truth")
     if desk.find("updateMode(") > desk.find("afterLiftState()"):
         _fail("afterLiftState must run after updateMode writes DESKTOP truth")
+    enter = _js_fn(js, "enterGame")
+    if "afterLiftState()" not in enter:
+        _fail("enterGame must invoke afterLiftState when Offline DESKTOP arms")
+    if enter.find("setPhase") > enter.find("afterLiftState()"):
+        _fail("afterLiftState must run after setPhase so range/bay is live")
     fire = _js_fn(js, "fire")
     if "liftMint" in fire or "mintTell" in fire or "afterLiftState" in fire:
         _fail("lift mint must not enter fire() — never a fire gate")
@@ -285,6 +290,11 @@ def test_lift_mint_after_state() -> None:
     play = _js_fn(js, "play")
     if "mintTell" in play or "liftMint" in play or "afterLiftState" in play:
         _fail("play() must not wait on the mint-tell — Offline stays one-click")
+    enter = _js_fn(js, "enterGame")
+    if "afterLiftState()" not in enter:
+        _fail("enterGame must invoke afterLiftState when Offline DESKTOP arms")
+    if enter.find("setPhase") > enter.find("afterLiftState()"):
+        _fail("afterLiftState must run after setPhase so range/bay is live")
 
 
 def test_vo_does_not_hide_the_gun() -> None:
@@ -360,6 +370,13 @@ def test_docs() -> None:
         _fail("docs/modes.md must lock cam-deny mint-tell after DESKTOP truth")
     if tell not in pipeline:
         _fail("docs/aim_pipeline.md must lock cam-deny mint-tell after DESKTOP truth")
+    offline = "`enterGame` invokes `afterLiftState` after `setPhase`"
+    if offline not in bible:
+        _fail("PRODUCTION.md must lock Offline DESKTOP mint-tell on enterGame")
+    if offline not in modes:
+        _fail("docs/modes.md must lock Offline DESKTOP mint-tell on enterGame")
+    if offline not in pipeline:
+        _fail("docs/aim_pipeline.md must lock Offline DESKTOP mint-tell on enterGame")
     cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
     if "Mint. Lift." not in cancho:
         _fail("cancho.md must record the locked mint-tell VO copy")

@@ -595,6 +595,88 @@ def test_desktop_arm_invokes_afterliftstate() -> None:
         raise AssertionError("#81: publishAim must still write confidence 1 when S.desktop")
 
 
+def test_entergame_invokes_afterliftstate() -> None:
+    """Offline / lock-skip / lock-timeout DESKTOP must mint-tell when enterGame arms."""
+    src = proto_js()
+    enter = _js_fn(src, "enterGame")
+    if "afterLiftState()" not in enter:
+        raise AssertionError("enterGame must invoke afterLiftState after setPhase")
+    if "setPhase" not in enter:
+        raise AssertionError("enterGame must still setPhase range/bay")
+    if enter.find("setPhase") > enter.find("afterLiftState()"):
+        raise AssertionError("afterLiftState must run after setPhase so range/bay is live")
+    if re.search(r"await\s+", enter) or "async function enterGame" in src:
+        raise AssertionError("enterGame awaits — Offline DESKTOP mint must not stall HID")
+    go = _js_fn(src, "goDesktopRange")
+    if "enterGame()" not in go:
+        raise AssertionError("goDesktopRange must still enter through enterGame")
+    if "updateMode(" not in go:
+        raise AssertionError("goDesktopRange must still write updateMode truth before enterGame")
+    if go.find("updateMode") > go.find("enterGame"):
+        raise AssertionError("goDesktopRange must arm DESKTOP truth before enterGame")
+    play = _js_fn(src, "play")
+    if "goDesktopRange" not in play:
+        raise AssertionError("Offline play() camera-deny goDesktopRange must stay Offline's path")
+    if "afterLiftState" in play or "mintTell" in play:
+        raise AssertionError("play() must not wait on the mint-tell — Offline stays one-click")
+    tick = _js_fn(src, "tickLock")
+    if "goDesktopRange" not in tick:
+        raise AssertionError("Offline lock timeout goDesktopRange must stay Offline's path")
+    if "afterLiftState" in tick:
+        raise AssertionError("tickLock must not duplicate afterLiftState — enterGame owns the tell")
+    desk = _js_fn(src, "armPracticeDesktop")
+    if "afterLiftState()" not in desk:
+        raise AssertionError("#82: armPracticeDesktop must still invoke afterLiftState")
+    if "if (camReady) return" not in desk:
+        raise AssertionError("armPracticeDesktop must refuse a live camera")
+    arm = _js_fn(src, "armPracticeCam")
+    ready = re.search(r"if \(camReady\) \{([\s\S]*?)\n  \}", arm)
+    if not ready:
+        raise AssertionError("armPracticeCam lost the camReady early-return")
+    ready_body = ready.group(1)
+    if "armPracticeDesktop" in ready_body or "S.desktop" in ready_body or "goDesktopRange" in ready_body:
+        raise AssertionError("Q4: camReady waiting-Yard arm invented OS-cursor desktop")
+    fire = _js_fn(src, "fire")
+    if "afterLiftState" in fire or "mintTell" in fire or "liftMint" in fire:
+        raise AssertionError("mint-tell must not enter fire() — never a fire gate")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        keys,
+    )
+    if not t_block:
+        raise AssertionError("KeyT handler missing")
+    t_body = t_block.group(1)
+    if 'phase === "lock"' not in t_body or "goDesktopRange()" not in t_body:
+        raise AssertionError("Offline lock-phase KeyT must stay goDesktopRange")
+    if "afterLiftState()" not in t_body:
+        raise AssertionError("KeyT must still cue afterLiftState (idempotent with enterGame)")
+    if "armPracticeDesktop()" not in t_body:
+        raise AssertionError("#78: KeyT must still re-arm DESKTOP on cam-deny waiting Yard")
+    if "S.desktop = !S.desktop" not in t_body:
+        raise AssertionError("KeyT must still toggle DESKTOP when camReady")
+    sync = _js_fn(src, "syncCursor")
+    if "!S.desktop" not in sync:
+        raise AssertionError("#79: syncCursor must still show the OS cursor when S.desktop")
+    d2 = _js_fn(src, "draw2D")
+    for m in re.finditer(r"drawCrosshair\s*\(", d2):
+        window = d2[max(0, m.start() - 80) : m.start()]
+        if "S.desktop" not in window:
+            raise AssertionError("#80: draw2D must still skip drawCrosshair when S.desktop")
+    pub = _js_fn(src, "publishAim")
+    if "S.desktop ? 1" not in pub:
+        raise AssertionError("#81: publishAim must still write confidence 1 when S.desktop")
+
+
 def test_range_gate() -> None:
     src = proto_js()
     fire_body = _js_fn(src, "fire")
@@ -691,6 +773,7 @@ def main() -> int:
         test_desktop_skips_mint_crosshair()
         test_desktop_publishes_confidence_one()
         test_desktop_arm_invokes_afterliftstate()
+        test_entergame_invokes_afterliftstate()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

@@ -168,6 +168,8 @@ async function requestGeminiLock() {
 }
 function enterGame() {
   setPhase(targetGameMode === "bay" ? "bay" : "range");
+  // Mint-tell must land when Offline DESKTOP arms — do not wait on the next frame / KeyT.
+  afterLiftState();
 }
 function goCalib() {
   if (S.lockAdvance) return;
