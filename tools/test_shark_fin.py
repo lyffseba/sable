@@ -313,8 +313,20 @@ def test_docs_lock() -> None:
         _fail("aim_pipeline.md must name maybeSharkFinFire")
     if "shark-fin" not in track.lower() and "shark fin" not in track.lower():
         _fail("TRACKING.md must point at shark-fin as product shoot")
+    if "Juan LOCK" not in track or "PRODUCT.md" not in track:
+        _fail("TRACKING.md must keep the #85 Juan lock and PRODUCT.md pointer")
+    if "Not implemented in this docs cut" in track:
+        _fail("TRACKING.md must not still claim shark-fin is unimplemented")
+    if "maybeSharkFinFire" not in track:
+        _fail("TRACKING.md must name maybeSharkFinFire as this cut")
     if "AimSample" not in track or "t_hw" not in track:
         _fail("TRACKING.md must keep the five-field AimSample pointer")
+    product = (ROOT / "research/PRODUCT.md").read_text(encoding="utf-8")
+    if "Thumb up like a shark fin" not in product:
+        _fail("PRODUCT.md must keep the Juan SHOOT = shark-fin lock")
+    js = proto_js()
+    if "maybeReload" in js or "function reloadGesture" in js:
+        _fail("reload must stay out of scope — do not invent maybeReload")
     ci = (ROOT / "tools/ci.sh").read_text(encoding="utf-8")
     if "test_shark_fin.py" not in ci:
         _fail("ci.sh must run the shark-fin contract")

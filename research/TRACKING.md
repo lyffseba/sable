@@ -43,7 +43,7 @@ See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else). Produc
 
 ## Pipeline
 
-Product gun path (lock above): shark-fin shoot; index+middle-up reload. Not implemented in this docs cut. DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain shipped honesty fallbacks — do not drop those bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). HID click must not replace the shoot gesture in gun mode.
+Product gun path (lock above): **shark-fin shoot is this cut** (`maybeSharkFinFire` rising-edge peek). Index+middle-up reload stays out of scope. DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain shipped honesty fallbacks — do not drop those bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). HID click must not replace the shoot gesture in gun mode.
 
 1. **MediaPipe Hands** (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two.
 2. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
