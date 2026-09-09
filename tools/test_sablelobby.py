@@ -534,6 +534,13 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
     play = _js_fn(js, "play")
     if "goDesktopRange" not in play:
         _fail("Offline play() camera-deny goDesktopRange must stay Offline's path")
+    if "afterLiftState" in play:
+        _fail("play() must not wait on the mint-tell — Offline stays one-click")
+    enter = _js_fn(js, "enterGame")
+    if "afterLiftState()" not in enter:
+        _fail("enterGame must invoke afterLiftState when Offline DESKTOP arms")
+    if enter.find("setPhase") > enter.find("afterLiftState()"):
+        _fail("afterLiftState must run after setPhase so range/bay is live")
     for name in ("armPracticeCam", "startWaitingYard", "setPhase", "frame"):
         body = _js_fn(js, name)
         if "LOCK_GIVE_MS" in body and (
@@ -744,6 +751,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock cam-deny mint-tell after DESKTOP truth")
     if tell not in pipeline:
         _fail("docs/aim_pipeline.md must lock cam-deny mint-tell after DESKTOP truth")
+    offline = "`enterGame` invokes `afterLiftState` after `setPhase`"
+    if offline not in modes:
+        _fail("docs/modes.md must lock Offline DESKTOP mint-tell on enterGame")
+    if offline not in bible:
+        _fail("PRODUCTION.md must lock Offline DESKTOP mint-tell on enterGame")
+    if offline not in pipeline:
+        _fail("docs/aim_pipeline.md must lock Offline DESKTOP mint-tell on enterGame")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:
