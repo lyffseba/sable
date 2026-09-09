@@ -488,6 +488,56 @@ def test_desktop_skips_mint_crosshair() -> None:
         raise AssertionError("#78: KeyT must still re-arm DESKTOP on cam-deny waiting Yard")
 
 
+def test_desktop_publishes_confidence_one() -> None:
+    """DESKTOP AimSample.confidence is 1. Leftover tracker quality must not lie."""
+    src = proto_js()
+    pub = _js_fn(src, "publishAim")
+    if "S.desktop ? 1" not in pub:
+        raise AssertionError("publishAim must write confidence 1 when S.desktop")
+    if "S.quality / 100" not in pub:
+        raise AssertionError("non-DESKTOP publishAim must still use S.quality")
+    if "clamp(S.quality / 100, 0, 1)" in pub and "S.desktop ? 1" not in pub:
+        raise AssertionError("publishAim must not always write leftover tracker quality")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+    if "new AimSample" not in pub or "aimBus.publish" not in pub:
+        raise AssertionError("publishAim must still publish one five-field AimSample")
+    if "S.desktop = true" in pub or "armPracticeDesktop" in pub or "goDesktopRange" in pub:
+        raise AssertionError("publishAim must not arm DESKTOP — Q4 never auto-desktop")
+    chip = src[src.find("function drawModeChip") : src.find("function drawModeChip") + 1400]
+    if "S.desktop ? 100" not in chip:
+        raise AssertionError("drawModeChip must paint CONF 100 when S.desktop")
+    if "S.quality" not in chip:
+        raise AssertionError("non-DESKTOP cuff must still paint S.quality")
+    if "S.desktop = true" in chip or "armPracticeDesktop" in chip:
+        raise AssertionError("drawModeChip must not arm DESKTOP — Q4 never auto-desktop")
+    d2 = _js_fn(src, "draw2D")
+    for m in re.finditer(r"drawCrosshair\s*\(", d2):
+        window = d2[max(0, m.start() - 80) : m.start()]
+        if "S.desktop" not in window:
+            raise AssertionError("#80: draw2D must still skip drawCrosshair when S.desktop")
+    sync = _js_fn(src, "syncCursor")
+    if "!S.desktop" not in sync:
+        raise AssertionError("#79: syncCursor must still show the OS cursor when S.desktop")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
+    desk = _js_fn(src, "armPracticeDesktop")
+    if "updateMode(" not in desk:
+        raise AssertionError("#77: armPracticeDesktop must still write updateMode truth")
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    t_block = re.search(
+        r'if \(e\.code === "KeyT"\) \{([\s\S]*?)\n  if \(e\.code === "KeyW"\)',
+        keys,
+    )
+    if not t_block or "armPracticeDesktop()" not in t_block.group(1):
+        raise AssertionError("#78: KeyT must still re-arm DESKTOP on cam-deny waiting Yard")
+
+
 def test_range_gate() -> None:
     src = proto_js()
     fire_body = _js_fn(src, "fire")
@@ -582,6 +632,7 @@ def main() -> int:
         test_desktop_arm_writes_updatemode_truth()
         test_desktop_shows_os_cursor()
         test_desktop_skips_mint_crosshair()
+        test_desktop_publishes_confidence_one()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

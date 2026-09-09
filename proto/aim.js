@@ -264,7 +264,8 @@ function publishAim(x, y) {
     { x: clamp(x / W, 0, 1), y: clamp(y / H, 0, 1) },
     !S.seeking && (S.locked || S.desktop),
     S.lifted,
-    clamp(S.quality / 100, 0, 1),
+    // DESKTOP gun is live OS-cursor UV. Leftover tracker quality must not lie.
+    S.desktop ? 1 : clamp(S.quality / 100, 0, 1),
     nowUs
   );
   aimBus.publish(sample);

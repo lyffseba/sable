@@ -70,6 +70,13 @@ def desktop_publish(seeking: bool, lifted: bool, locked: bool, desktop: bool) ->
     return valid, lifted
 
 
+def desktop_confidence(desktop: bool, quality: float) -> float:
+    """publishAim confidence. DESKTOP is 1; cam keeps S.quality. Five fields."""
+    if desktop:
+        return 1.0
+    return max(0.0, min(1.0, quality / 100.0))
+
+
 def test_desktop_mailbox_truth() -> None:
     """Cam-deny DESKTOP must not publish seeking+unlifted. Q4 stays SEEKING."""
     # The lie: desktop+mode set, seeking/lifted never armed.
@@ -84,6 +91,27 @@ def test_desktop_mailbox_truth() -> None:
     valid, lifted = desktop_publish(True, False, False, False)
     if valid or lifted:
         raise AssertionError("Q4 SEEKING must not look like a live DESKTOP gun")
+
+
+def test_desktop_confidence() -> None:
+    """Cam-deny DESKTOP must not publish leftover tracker quality as confidence."""
+    # The lie: S.quality stays ~0 from the hand tracker while DESKTOP owns aim.
+    if desktop_confidence(True, 0) != 1.0:
+        raise AssertionError("DESKTOP publishAim confidence must be 1 independent of S.quality")
+    if desktop_confidence(True, 37) != 1.0:
+        raise AssertionError("DESKTOP publishAim confidence must ignore leftover tracker quality")
+    if desktop_confidence(False, 0) != 0.0:
+        raise AssertionError("non-DESKTOP must still use S.quality")
+    if abs(desktop_confidence(False, 80) - 0.8) > 1e-9:
+        raise AssertionError("non-DESKTOP must still scale S.quality / 100")
+    # Q4: camReady fail-to-lock is SEEKING — leftover quality stays cam, not 1.
+    if desktop_confidence(False, 12) == 1.0:
+        raise AssertionError("Q4 SEEKING must not invent DESKTOP confidence 1")
+    pub = _js_fn(proto_js(), "publishAim")
+    if "S.desktop ? 1" not in pub:
+        raise AssertionError("publishAim must write confidence 1 when S.desktop")
+    if "S.quality / 100" not in pub:
+        raise AssertionError("non-DESKTOP publishAim must still use S.quality")
 
 
 def _read(rel: str) -> str:
@@ -267,6 +295,7 @@ def main() -> int:
         test_python_mailbox()
         test_desktop_first_click_uv()
         test_desktop_mailbox_truth()
+        test_desktop_confidence()
         test_client_does_not_wait()
         test_hid_lives_on_window()
         test_sableperf_budget()
