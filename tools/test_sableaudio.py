@@ -281,6 +281,16 @@ def test_lift_mint_after_state() -> None:
     keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
     if "afterLiftState" not in keys:
         _fail("Space / T lift must still cue mint-tell (DESKTOP / force GUN)")
+    space_m = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', keys)
+    if not space_m or "S.forceGun = true" not in space_m.group(1):
+        _fail("Space must stay the Q4 force-GUN escape")
+    space = space_m.group(1)
+    if "updateMode(" not in space:
+        _fail("Space forceGun must invoke updateMode before afterLiftState")
+    if space.find("updateMode(") > space.find("afterLiftState()"):
+        _fail("Space must invoke updateMode before afterLiftState — same order as KeyT")
+    if "armPracticeDesktop" in space or "S.desktop" in space:
+        _fail("Space must force GUN — do not invent desktop on fail-to-lock")
     fire = _js_fn(js, "fire")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — audio must not gate HID")
@@ -377,6 +387,13 @@ def test_docs() -> None:
         _fail("docs/modes.md must lock Offline DESKTOP mint-tell on enterGame")
     if offline not in pipeline:
         _fail("docs/aim_pipeline.md must lock Offline DESKTOP mint-tell on enterGame")
+    space_lock = "`Space` forceGun invokes `updateMode` before `afterLiftState`"
+    if space_lock not in bible:
+        _fail("PRODUCTION.md must lock Space forceGun updateMode before afterLiftState")
+    if space_lock not in modes:
+        _fail("docs/modes.md must lock Space forceGun updateMode before afterLiftState")
+    if space_lock not in pipeline:
+        _fail("docs/aim_pipeline.md must lock Space forceGun updateMode before afterLiftState")
     cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
     if "Mint. Lift." not in cancho:
         _fail("cancho.md must record the locked mint-tell VO copy")

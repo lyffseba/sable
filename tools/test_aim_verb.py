@@ -595,6 +595,54 @@ def test_desktop_arm_invokes_afterliftstate() -> None:
         raise AssertionError("#81: publishAim must still write confidence 1 when S.desktop")
 
 
+def test_space_forcegun_invokes_updatemode() -> None:
+    """Space forceGun must write GUN/lifted truth before afterLiftState — not the next rAF."""
+    src = proto_js()
+    keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
+    space_m = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', keys)
+    if not space_m or "S.forceGun = true" not in space_m.group(1):
+        raise AssertionError("Space must stay the Q4 force-GUN escape")
+    space = space_m.group(1)
+    if "updateMode(" not in space:
+        raise AssertionError("Space must invoke updateMode after forceGun — MODE/mailbox must not wait a frame")
+    if space.find("S.forceGun = true") > space.find("updateMode("):
+        raise AssertionError("Space must set forceGun before updateMode")
+    if space.find("updateMode(") > space.find("afterLiftState()"):
+        raise AssertionError("Space must invoke updateMode before afterLiftState — same order as KeyT")
+    if "goDesktopRange" in space or "armPracticeDesktop" in space or "S.desktop" in space:
+        raise AssertionError("Space must force GUN — do not invent desktop on fail-to-lock")
+    mode = _js_fn(src, "updateMode")
+    if "S.forceGun" not in mode or 'S.mode = "GUN"' not in mode:
+        raise AssertionError("updateMode must still force GUN from Space")
+    enter = _js_fn(src, "enterGame")
+    if "afterLiftState()" not in enter:
+        raise AssertionError("#83: enterGame must still invoke afterLiftState after setPhase")
+    desk = _js_fn(src, "armPracticeDesktop")
+    if "afterLiftState()" not in desk:
+        raise AssertionError("#82: armPracticeDesktop must still invoke afterLiftState")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
+    chip = _js_fn(src, "drawModeChip")
+    label = re.search(r"const label = ([^;]+);", chip)
+    if not label:
+        raise AssertionError("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0:
+        raise AssertionError("drawModeChip must still paint SEEKING when not forceGun / GUN")
+    if "S.forceGun" not in cond[:seek_at]:
+        raise AssertionError("drawModeChip prefers SEEKING on Space forceGun — MODE must match seekingHudChip")
+    if 'S.mode !== "GUN"' not in cond[:seek_at] and 'S.mode != "GUN"' not in cond[:seek_at]:
+        raise AssertionError("drawModeChip prefers SEEKING when S.mode is GUN — MODE must match seekingHudChip")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+
+
 def test_entergame_invokes_afterliftstate() -> None:
     """Offline / lock-skip / lock-timeout DESKTOP must mint-tell when enterGame arms."""
     src = proto_js()
@@ -774,6 +822,7 @@ def main() -> int:
         test_desktop_publishes_confidence_one()
         test_desktop_arm_invokes_afterliftstate()
         test_entergame_invokes_afterliftstate()
+        test_space_forcegun_invokes_updatemode()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

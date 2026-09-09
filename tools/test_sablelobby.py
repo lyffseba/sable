@@ -548,10 +548,19 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         ):
             _fail(f"{name} copied Offline lock timeout onto waiting-Yard fail-to-lock")
 
-    keys = re.search(r'e\.code === "Space"[\s\S]{0,160}', js)
-    if not keys or "S.forceGun = true" not in keys.group(0):
+    keys = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', js)
+    if not keys or "S.forceGun = true" not in keys.group(1):
         _fail("Space must stay the Q4 force-GUN escape")
-    if keys and "goDesktopRange" in keys.group(0):
+    space = keys.group(1)
+    if "goDesktopRange" in space:
+        _fail("Space must force GUN — do not invent desktop on fail-to-lock")
+    if "updateMode(" not in space:
+        _fail("Space must invoke updateMode after forceGun — MODE/mailbox must not wait a frame")
+    if space.find("S.forceGun = true") > space.find("updateMode("):
+        _fail("Space must set forceGun before updateMode")
+    if space.find("updateMode(") > space.find("afterLiftState()"):
+        _fail("Space must invoke updateMode before afterLiftState — same order as KeyT")
+    if "armPracticeDesktop" in space or "S.desktop" in space:
         _fail("Space must force GUN — do not invent desktop on fail-to-lock")
     t_keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
     t_block = re.search(
@@ -575,6 +584,21 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         _fail("fire() must still honor Space forceGun — Q4 escape is a live gun")
     if "goDesktopRange" in fire or "armPracticeDesktop" in fire:
         _fail("fire() invented desktop — Q4 never auto-desktop")
+
+    mode_chip = _js_fn(js, "drawModeChip")
+    label = re.search(r"const label = ([^;]+);", mode_chip)
+    if not label:
+        _fail("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0:
+        _fail("drawModeChip must still paint SEEKING when not forceGun / GUN")
+    if "S.forceGun" not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING on Space forceGun — MODE must match seekingHudChip")
+    if 'S.mode !== "GUN"' not in cond[:seek_at] and 'S.mode != "GUN"' not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING when S.mode is GUN — MODE must match seekingHudChip")
+    if "S.desktop = true" in mode_chip or "armPracticeDesktop" in mode_chip:
+        _fail("drawModeChip invented desktop")
 
     chip = _js_fn(js, "seekingHudChip")
     if "camReady" not in chip:
@@ -758,6 +782,20 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock Offline DESKTOP mint-tell on enterGame")
     if offline not in pipeline:
         _fail("docs/aim_pipeline.md must lock Offline DESKTOP mint-tell on enterGame")
+    space = "`Space` forceGun invokes `updateMode` before `afterLiftState`"
+    if space not in modes:
+        _fail("docs/modes.md must lock Space forceGun updateMode before afterLiftState")
+    if space not in bible:
+        _fail("PRODUCTION.md must lock Space forceGun updateMode before afterLiftState")
+    if space not in pipeline:
+        _fail("docs/aim_pipeline.md must lock Space forceGun updateMode before afterLiftState")
+    mode_lock = '`drawModeChip` does not prefer SEEKING when `S.forceGun` or `S.mode === "GUN"`'
+    if mode_lock not in modes:
+        _fail("docs/modes.md must lock drawModeChip forceGun / GUN over SEEKING")
+    if mode_lock not in bible:
+        _fail("PRODUCTION.md must lock drawModeChip forceGun / GUN over SEEKING")
+    if mode_lock not in pipeline:
+        _fail("docs/aim_pipeline.md must lock drawModeChip forceGun / GUN over SEEKING")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:

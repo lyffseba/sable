@@ -295,6 +295,18 @@ def test_q4_seeking_chip_thin() -> None:
         _fail("SEEKING chip lost the SEEKING label")
     if "S.forceGun" not in chip:
         _fail("SEEKING chip must hide when Space forceGun escapes")
+    mode_chip = _js_fn(js, "drawModeChip")
+    label = re.search(r"const label = ([^;]+);", mode_chip)
+    if not label:
+        _fail("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0:
+        _fail("drawModeChip must still paint SEEKING when not forceGun / GUN")
+    if "S.forceGun" not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING on Space forceGun — MODE must match seekingHudChip")
+    if 'S.mode !== "GUN"' not in cond[:seek_at] and 'S.mode != "GUN"' not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING when S.mode is GUN — MODE must match seekingHudChip")
     if "Locker.colors.rust" not in chip and "Locker.colors.bone" not in chip and "Locker.colors.mint" not in chip:
         _fail("SEEKING chip must stay bone / mint / rust")
     if "shadowBlur" in chip or "glow" in chip.lower() or "filter" in chip:
@@ -354,6 +366,11 @@ def test_docs_lock() -> None:
         _fail("docs/modes.md must name the Q4 SEEKING chip")
     if "Q4 fail-to-lock is SEEKING until lock or Space" not in bible:
         _fail("PRODUCTION.md must name the Q4 SEEKING chip")
+    mode_lock = '`drawModeChip` does not prefer SEEKING when `S.forceGun` or `S.mode === "GUN"`'
+    if mode_lock not in modes:
+        _fail("docs/modes.md must lock drawModeChip forceGun / GUN over SEEKING")
+    if mode_lock not in bible:
+        _fail("PRODUCTION.md must lock drawModeChip forceGun / GUN over SEEKING")
     if "test_sablehud.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_sablehud.py")
     if "ROOM" not in bible or "wait_practice" not in bible:
