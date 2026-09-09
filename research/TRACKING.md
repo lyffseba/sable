@@ -32,7 +32,7 @@ Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose
 
 Lid camera. Player **points the index at the glass**. Shot pixel = **index nail**, not palm, not wrist, not box center.
 
-See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else). Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`.
+See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else). Product brief: `research/PRODUCT.md`. Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`.
 
 ## Muzzle
 
