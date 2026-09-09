@@ -28,6 +28,8 @@
 Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Keep docs for archaeology; ship hand tracking (MediaPipe Hands-class or better) with gesture shoot/reload.
 
 ## Hardware floor
+Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Godot/native is not the tracking host.
+
 2021 G14 — clip cam top-center if needed, AE off, 720p+. Camera tilted down at hands.
 
 Lid camera. Player **points the index at the glass**. Shot pixel = **index nail**, not palm, not wrist, not box center.

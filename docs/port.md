@@ -2,15 +2,23 @@
 
 Ownership: **SablePort**. North star: keep SABLE original IP while leaving honest seams so a later migrate toward a CS2-class and/or Creative / UEFN-class *host feel* is possible. Feeling and architecture only. **Zero Valve / Epic IP in this tree now** — no stolen assets, maps, guns, names, audio, or chrome.
 
-This is not a rewrite and not a content pack. Runtime host is **SABLE**. Code seam: `proto/port.js`. Literacy that names other titles lives here and in `research/`, never in runtime art.
+This is not a rewrite and not a content pack. Runtime host is **SABLE** (`SABLE_PORT_HOST = "sable"`). Code seam: `proto/port.js`. Literacy that names other titles lives here and in `research/`, never in runtime art. CS2 / UEFN stay literacy-only behind `sableHostFeel()` — adapters read the SABLE feel; they do not import foreign DNA.
+
+## Ship floor (locked)
+
+The playable product surface is **Chromium on MacBook Pro–class** (lid camera). Not optional. `SablePort.feel().surface` is `chromium-macbook` (`SABLE_PORT_SURFACE`). Host id stays `sable` — do not rename the host to a desktop title.
+
+Godot / native work is an **engineering path only** — it may serve the web ship (kernels, capture experiments, CI). It is **not a second product** and not the product host. Soft-lock / ship only cuts that match hand-only + this Chromium / MacBook floor. Invent / Meta / SAM vision stays in-browser or a thin local bridge; this cut does not vendor a heavy model.
 
 ## Locked boundaries
 
 A later host adapter plugs in behind these bars. It does not move them.
 
-### Verb = AimBus / HID peek
+### Verb = AimBus hand gesture (`aimbus-hand-gesture`)
 
-The gun is the pointing hand. `fire()` peeks `AimBus` only. `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net. HID pointerdown lives on `window` — `#hud` is `pointer-events: none` and must not mute the pad. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome. Shark-fin is the product trigger, not a new aim — peek last pointing UV after lift, before `updateAim`. Thumb parallel is safe. Pinch stays interim. Waiting-yard `lobby` uses the same `fire()`. Do not force shark-fin when DESKTOP owns the pad. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
+Product verb: **hand point** (aim) + **shark-fin** (shoot) → `AimBus` peek. Reload is **charger-plug** (index+middle ceiling). The shot still peeks `AimBus` only — `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net.
+
+DESKTOP HID pad (trackpad / mouse click) stays an **honesty fallback**, not the product verb. HID pointerdown lives on `window` — `#hud` is `pointer-events: none` and must not mute the pad. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome. Pinch is interim, not a new aim — peek last pointing UV after lift, before `updateAim`. Waiting-yard `lobby` uses the same `fire()`. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
 
 ### Sim tick = 128 Hz, HID outside
 
@@ -30,12 +38,12 @@ Offline one-click. `AimSample` locked. Fire peek. R6 128 Hz. Hands Worker off th
 
 ## Ship addendum (Yard look lock)
 
-Ship this Look cut with the same bars. Fortnite-class = silhouette literacy only. `tools/test_sableport.py` fails loud if Epic / UEFN / Valve DNA lands in `proto/` (minus vendor) or `art/`. No bloom over the reticle. Offline / WARM UP stay one-click. Bay stays parked. `AimSample` untouched. Fire peeks `AimBus` only.
+Ship this Look cut with the same bars. Fortnite-class = silhouette literacy only. `tools/test_sableport.py` fails loud if Epic / UEFN / Valve DNA lands in `proto/` (minus vendor) or `art/`. No bloom over the reticle. Offline / WARM UP stay one-click. Bay stays parked. `AimSample` untouched. Product fire peeks `AimBus` from the hand gesture. Chromium / MacBook Pro floor stays the ship surface.
 
 ## What a later port may take
 
 - *Feeling*: peek-geometry literacy, island cadence, booth pressure — as architecture notes, then original SABLE rooms that rhyme.
-- *Architecture*: a host adapter behind `SablePort.feel()` / `sableHostFeel()`. Today that function returns the SABLE identity. A later cut may swap the host id without rewriting the verb.
+- *Architecture*: a host adapter behind `SablePort.feel()` / `sableHostFeel()`. Today that function returns host `sable`, surface `chromium-macbook`, verb `aimbus-hand-gesture`. A later cut may swap host *feel* without rewriting the verb or leaving the Chromium floor.
 - Tick honesty and HID-outside-both. Those travel.
 
 ## What a later port must not take
@@ -43,6 +51,7 @@ Ship this Look cut with the same bars. Fortnite-class = silhouette literacy only
 - Names, maps, guns, audio, UI chrome, or silhouettes from Valve or Epic titles.
 - `de_*` halls, `.vmf` / `.bsp` / `.vmap`, Marketplace / Fab packs, published Creative / UEFN islands, league bunker catalogs.
 - Changing `AimSample`, gating fire on cam / worker / tick, blooming the reticle, or making gallery the only gun.
+- A second product on Godot or a desktop binary. Native stays an engineering path only.
 
 ## Runtime vs notes
 
@@ -55,4 +64,4 @@ Ship this Look cut with the same bars. Fortnite-class = silhouette literacy only
 
 ## Product gate
 
-`tools/test_sableport.py` plus the existing Offline / tick / HUD / audio locks. Merge when CI is green. Prefer docs + thin seams over a second game.
+`tools/test_sableport.py` plus the existing Offline / tick / HUD / audio locks. Fail loud if the Chromium / MacBook floor dies, if host id leaves `sable`, if this file makes a desktop binary the product host, or if runtime invents foreign DNA. Merge when CI is green. Prefer docs + thin seams over a second game.

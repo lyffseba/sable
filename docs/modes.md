@@ -43,7 +43,7 @@ CS / Fortnite layout literacy is **architecture notes only** (`docs/port.md`, `r
 
 ## Port path
 
-SablePort owns later-migrate notes. Verb stays AimBus / HID peek. Sim stays 128 Hz with fire outside. Look bible stays charcoal / bone / mint / rust. Playlist stays this file. Runtime host is SABLE — `proto/port.js` is identity only. Destinations named in `docs/port.md` are feeling / architecture, not content.
+SablePort owns later-migrate notes. Product verb is AimBus hand gesture (point + shark-fin peek; charger-plug reload) — DESKTOP HID is honesty fallback. Sim stays 128 Hz with fire outside. Look bible stays charcoal / bone / mint / rust. Playlist stays this file. Runtime host is SABLE; ship floor is Chromium on MacBook Pro–class — `proto/port.js` is identity only. Destinations named in `docs/port.md` are feeling / architecture, not content.
 
 ## Do not
 

@@ -23,4 +23,4 @@ Camera tracks **hands**, not the mouse. Mouse may stay pad HID for menus/movemen
 - Always-practice / lobby never soft-locks warm-up
 
 ## Platform note
-Primary playable surface = Chromium on MacBook Pro–class. Godot/native work stays engineering path only if it serves the web ship; do not invent a second product.
+Primary playable surface = Chromium on MacBook Pro–class. Godot/native work stays engineering path only if it serves the web ship; do not invent a second product. SablePort lock: `docs/port.md` / `SABLE_PORT_SURFACE = chromium-macbook` / verb `aimbus-hand-gesture`. DESKTOP HID is honesty fallback, not the product verb.
