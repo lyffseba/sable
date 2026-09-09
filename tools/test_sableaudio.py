@@ -236,6 +236,13 @@ def test_lobby_waiting_yard_mint_tell() -> None:
         _fail("afterLiftState must play mintTell on lobby lift")
     if re.search(r"await\s+", after) or "async function afterLiftState" in js:
         _fail("afterLiftState awaits — lift mint must not stall Offline/HID")
+    desk = _js_fn(js, "armPracticeDesktop")
+    if "afterLiftState()" not in desk:
+        _fail("cam-deny DESKTOP must invoke afterLiftState when the gun arms")
+    if "updateMode(" not in desk:
+        _fail("armPracticeDesktop must still write updateMode DESKTOP truth")
+    if desk.find("updateMode(") > desk.find("afterLiftState()"):
+        _fail("afterLiftState must run after updateMode writes DESKTOP truth")
     fire = _js_fn(js, "fire")
     if "liftMint" in fire or "mintTell" in fire or "afterLiftState" in fire:
         _fail("lift mint must not enter fire() — never a fire gate")
@@ -346,6 +353,13 @@ def test_docs() -> None:
     pipeline = (ROOT / "docs/aim_pipeline.md").read_text(encoding="utf-8")
     if "`lobby` is live for mint-tell" not in pipeline:
         _fail("docs/aim_pipeline.md must name waiting-Yard lobby mint-tell")
+    tell = "`armPracticeDesktop` invokes `afterLiftState` after writing DESKTOP truth"
+    if tell not in bible:
+        _fail("PRODUCTION.md must lock cam-deny mint-tell after DESKTOP truth")
+    if tell not in modes:
+        _fail("docs/modes.md must lock cam-deny mint-tell after DESKTOP truth")
+    if tell not in pipeline:
+        _fail("docs/aim_pipeline.md must lock cam-deny mint-tell after DESKTOP truth")
     cancho = (ROOT / "docs/operators/cancho.md").read_text(encoding="utf-8")
     if "Mint. Lift." not in cancho:
         _fail("cancho.md must record the locked mint-tell VO copy")

@@ -1057,10 +1057,12 @@ function armPracticeDesktop() {
   // Camera deny: waiting Yard stays a live gun. Desktop peek.
   // Stay lobby — do not leave the waiting arena for the 60s gallery.
   // Match DESKTOP lift/seeking now — frame may not have camReady.
+  // Mint-tell must land when this gun arms — do not wait on the next frame / KeyT.
   if (camReady) return;
   S.desktop = true;
   S.mode = "DESKTOP";
   updateMode(performance.now());
+  afterLiftState();
 }
 
 function armPracticeCam() {
