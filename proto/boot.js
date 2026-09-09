@@ -1181,8 +1181,8 @@ function onHidPointerDown(e) {
   if (hidChromeTarget(e.target)) return;
   unlockAudio();
   // DESKTOP / forceGun own this click's mailbox: commit OS cursor UV
-  // before the HID peek. First pad after cam deny / T / goDesktopRange
-  // / Space must not peek {0.5,0.5}. Q4 forbids S.desktop=true here.
+  // before the HID peek. First pad after cam deny / T / desktop-arm
+  // / Space must not peek {0.5,0.5}. Q4 forbids auto-desktop here.
   // Product GUN / shark-fin / reload must not publish — that stomps a hand AimSample.
   if (S.desktop || S.forceGun) publishAim(e.clientX, e.clientY);
   if (phase === "lock") {

@@ -296,7 +296,7 @@ def test_forcegun_rearms_pad() -> None:
     if "return false" not in gate:
         raise AssertionError("productGunHidFire must return false")
     hid = _js_fn(src, "onHidPointerDown")
-    if "S.desktop = true" in hid or "armPracticeDesktop" in hid or "goDesktopRange" in hid:
+    if re.search(r"S\.desktop\s*=\s*true", hid) or "armPracticeDesktop(" in hid or "goDesktopRange(" in hid:
         raise AssertionError("forceGun pad must not auto-desktop — Q4 forbids S.desktop=true")
     if not _hid_click_uv(hid):
         raise AssertionError("forceGun pad must publish OS cursor UV like DESKTOP")
