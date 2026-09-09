@@ -548,18 +548,19 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         ):
             _fail(f"{name} copied Offline lock timeout onto waiting-Yard fail-to-lock")
 
-    keys = re.search(r'e\.code === "Space"[\s\S]{0,220}', js)
-    if not keys or "S.forceGun = true" not in keys.group(0):
+    keys = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', js)
+    if not keys or "S.forceGun = true" not in keys.group(1):
         _fail("Space must stay the Q4 force-GUN escape")
-    if keys and "goDesktopRange" in keys.group(0):
+    space = keys.group(1)
+    if "goDesktopRange" in space:
         _fail("Space must force GUN — do not invent desktop on fail-to-lock")
-    if "updateMode(" not in keys.group(0):
+    if "updateMode(" not in space:
         _fail("Space must invoke updateMode after forceGun — MODE/mailbox must not wait a frame")
-    if keys.group(0).find("S.forceGun = true") > keys.group(0).find("updateMode("):
+    if space.find("S.forceGun = true") > space.find("updateMode("):
         _fail("Space must set forceGun before updateMode")
-    if keys.group(0).find("updateMode(") > keys.group(0).find("afterLiftState()"):
+    if space.find("updateMode(") > space.find("afterLiftState()"):
         _fail("Space must invoke updateMode before afterLiftState — same order as KeyT")
-    if "armPracticeDesktop" in keys.group(0) or "S.desktop" in keys.group(0):
+    if "armPracticeDesktop" in space or "S.desktop" in space:
         _fail("Space must force GUN — do not invent desktop on fail-to-lock")
     t_keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
     t_block = re.search(

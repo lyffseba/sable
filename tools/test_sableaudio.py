@@ -281,14 +281,15 @@ def test_lift_mint_after_state() -> None:
     keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
     if "afterLiftState" not in keys:
         _fail("Space / T lift must still cue mint-tell (DESKTOP / force GUN)")
-    space = re.search(r'e\.code === "Space"[\s\S]{0,220}', keys)
-    if not space or "S.forceGun = true" not in space.group(0):
+    space_m = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', keys)
+    if not space_m or "S.forceGun = true" not in space_m.group(1):
         _fail("Space must stay the Q4 force-GUN escape")
-    if "updateMode(" not in space.group(0):
+    space = space_m.group(1)
+    if "updateMode(" not in space:
         _fail("Space forceGun must invoke updateMode before afterLiftState")
-    if space.group(0).find("updateMode(") > space.group(0).find("afterLiftState()"):
+    if space.find("updateMode(") > space.find("afterLiftState()"):
         _fail("Space must invoke updateMode before afterLiftState — same order as KeyT")
-    if "armPracticeDesktop" in space.group(0) or "S.desktop" in space.group(0):
+    if "armPracticeDesktop" in space or "S.desktop" in space:
         _fail("Space must force GUN — do not invent desktop on fail-to-lock")
     fire = _js_fn(js, "fire")
     if re.search(r"await\s+", fire):

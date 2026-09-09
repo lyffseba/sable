@@ -599,16 +599,17 @@ def test_space_forcegun_invokes_updatemode() -> None:
     """Space forceGun must write GUN/lifted truth before afterLiftState — not the next rAF."""
     src = proto_js()
     keys = src[src.find('addEventListener("keydown"') : src.find('addEventListener("keyup"')]
-    space = re.search(r'e\.code === "Space"[\s\S]{0,220}', keys)
-    if not space or "S.forceGun = true" not in space.group(0):
+    space_m = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', keys)
+    if not space_m or "S.forceGun = true" not in space_m.group(1):
         raise AssertionError("Space must stay the Q4 force-GUN escape")
-    if "updateMode(" not in space.group(0):
+    space = space_m.group(1)
+    if "updateMode(" not in space:
         raise AssertionError("Space must invoke updateMode after forceGun — MODE/mailbox must not wait a frame")
-    if space.group(0).find("S.forceGun = true") > space.group(0).find("updateMode("):
+    if space.find("S.forceGun = true") > space.find("updateMode("):
         raise AssertionError("Space must set forceGun before updateMode")
-    if space.group(0).find("updateMode(") > space.group(0).find("afterLiftState()"):
+    if space.find("updateMode(") > space.find("afterLiftState()"):
         raise AssertionError("Space must invoke updateMode before afterLiftState — same order as KeyT")
-    if "goDesktopRange" in space.group(0) or "armPracticeDesktop" in space.group(0) or "S.desktop" in space.group(0):
+    if "goDesktopRange" in space or "armPracticeDesktop" in space or "S.desktop" in space:
         raise AssertionError("Space must force GUN — do not invent desktop on fail-to-lock")
     mode = _js_fn(src, "updateMode")
     if "S.forceGun" not in mode or 'S.mode = "GUN"' not in mode:
