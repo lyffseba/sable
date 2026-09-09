@@ -106,6 +106,20 @@ def test_vision_stack_honesty() -> None:
         _fail("HAND_FUTURE.md must label MediaPipe as interim vs Meta invent")
     if "product invent" not in future.lower():
         _fail("HAND_FUTURE.md must label Meta object recognition as product invent")
+    if "SAM alone is shark-fin" not in future:
+        _fail("HAND_FUTURE.md must refuse SAM-alone as shark-fin")
+    if "hand-as-object" not in future:
+        _fail("HAND_FUTURE.md must name hand-as-object mask")
+    if "120 Hz" not in future and "120Hz" not in future:
+        _fail("HAND_FUTURE.md must say SAM encode is not a 120 Hz gesture loop")
+    if "next-sam" not in future or "WebSAM" not in future:
+        _fail("HAND_FUTURE.md must name the Chromium ORT-web demos")
+    if "Python/native" not in future:
+        _fail("HAND_FUTURE.md must keep Detectron2 as Python/native, not the zip")
+    if "Prefer pure web" not in future and "prefer pure web" not in future:
+        _fail("HAND_FUTURE.md must prefer pure web over a local bridge")
+    if "SAM2-tiny" not in future or "MobileSAM" not in future:
+        _fail("HAND_FUTURE.md must name SAM2-tiny / MobileSAM as the invent cut")
     if "Sapiens" not in future or "YOLO" not in future:
         _fail("HAND_FUTURE.md must call out Sapiens/YOLO as not defaults")
     if "Sapiens2" not in future:

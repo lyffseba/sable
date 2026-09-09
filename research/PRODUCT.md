@@ -15,7 +15,7 @@ HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; 
 Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
 Platform: MacBook Pro + Chromium web floor.
 
-Architecture invent: `research/HAND_FUTURE.md` (Meta object-recognition invent target; MediaPipe / micro-handpose labeled **interim** until a Meta cut is browser-ready on Chromium. Detectron2 / full SAM are **not** real-time in-browser).
+Architecture invent: `research/HAND_FUTURE.md` — product invent is **SAM2-tiny / MobileSAM** worker mask (hand-as-object); MediaPipe is the **interim landmark FSM** (SAM alone is not shark-fin). Detectron2 stays Python/native, not the Chromium zip. Prefer pure web.
 
 ## Vision
 - **Feel DNA:** Counter-Strike–class competitive shooter (rounds, aim honesty, map literacy) **with new hand mechanics**

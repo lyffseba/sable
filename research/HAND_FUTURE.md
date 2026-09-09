@@ -144,6 +144,17 @@ Do not grow a second landmark schema. Do not run WebGPU compute on the Three.js 
 
 **Honesty first:** Meta SAM-class is **not game-ready** as a Chromium 60 Hz hot path. No Meta-family model publishes a 21-landmark hand FSM that runs 60–120 FPS on MacBook Chromium today. Official SAM 2 “real-time” is **A100 + torch.compile** (hiera_tiny **91.2 FPS**, Hiera-B+ **43.8 FPS** — Meta README / paper). That is not a lid-cam Worker. **Do not pretend Detectron2 or full SAM runs real-time in the browser.**
 
+Verified **2026-09-09** (keep / discard):
+
+| Finding | Held? |
+|---------|--------|
+| **Runs in Chromium today** — Meta SAM / SAM2 / MobileSAM / SlimSAM via **onnxruntime-web** (WebSAM, [next-sam](https://github.com/karlorz/next-sam), sam-web). Encode once / decode with **point-box prompts** | **yes** — photo / interactive mask UI on Chrome/Edge WebGPU |
+| Good for **object recognition / hand-as-object mask** — **NOT** a 21-landmark FSM by itself | **yes** — do **not** claim SAM alone is shark-fin |
+| Tiny / MobileSAM ~**45–150 MB**; SAM2 tiny heavier (~151 MB community; official tiny encoder larger on WebSAM) | **yes** |
+| Encode latency often **hundreds of ms** — not a free **120 Hz** gesture loop | **yes** — MobileSAM ~345 ms encode, SAM2 tiny ~700 ms (next-sam README). Not 60/120 Hz |
+| **Detectron2 does not run real-time in the browser** — stays **Python/native**; only via thin local bridge; **not** the default MacBook Chromium zip | **yes** as a ship claim. A community ONNX→ORT-web export exists and is fragile (WASM masks OK, WebGPU masks broken) — that is **not** Detectron2 real-time and **not** the zip |
+| **Meta Quest WebXR hand joints** — headset path, not lid-cam MacBook Chromium floor | **yes** |
+
 Label every line **interim** vs **product invent**.
 
 ```
@@ -167,9 +178,9 @@ Label every line **interim** vs **product invent**.
 
 | Family | In Chromium? | Lid-cam 60 Hz? | Honest use |
 |--------|--------------|----------------|------------|
-| **SAM 2 / 2.1 tiny–large** via onnxruntime-web WebGPU (WebSAM / community ORT) | **yes**, experimental. Encoders 145–878 MB. Must pre-convert `.ort` (raw ONNX optimizer can crash). Worker required | **no** — encode-once / decode-many photo UI. Community: MobileSAM ~**345 ms** encode, SAM2 tiny ~**700 ms**. Microsoft SAM demo: encoder ~**45 s WASM**; WebGPU makes encode “feasible,” decoder ~30–200 ms. Not a gun | **Product invent, sparse.** Gate / lock seed. Never 60 Hz. Never inside `fire()` |
-| **MobileSAM / SlimSAM** (SAM-family distill) | **yes** — MobileSAM ~45 MB; SlimSAM-77 ~14 MB INT8 can WASM | **no** — still hundreds of ms encode. SlimSAM is “works without WebGPU,” not 60 Hz | Lightest **in-browser Meta-family** gate. Still invent, not interim ship |
-| **Detectron2** Mask/Faster R-CNN ONNX → ORT-web | **fragile yes** — community: WASM boxes+masks OK; **WebGPU masks broken** (one mask of N). Export exists (`tools/deploy/export_model.py`) | **no** — COCO detector, not 21 hand landmarks. Too heavy for the MacBook floor as a gun | **Not the invent default.** Research/export only. Do not vendor |
+| **SAM / SAM2 / MobileSAM / SlimSAM** via onnxruntime-web (WebSAM, next-sam, sam-web) | **yes** on Chromium WebGPU (WASM fallback). Encode once / decode with point-box prompts. Worker. Pre-convert `.ort` | **no** — hundreds of ms encode. **Not** a 21-landmark FSM. **Not** a 120 Hz gesture loop | **Product invent:** hand-as-object **mask** + track. Never shark-fin by itself. Never inside `fire()` |
+| **SAM2-tiny / MobileSAM** (named invent cut) | **yes** — MobileSAM ~45 MB / ~345 ms encode; SAM2 tiny ~151 MB / ~700 ms encode (next-sam, macOS Chrome/Edge) | **no** as a free gesture loop | **Product invent target** in a Worker — object recognition stack Juan named |
+| **Detectron2** | **not** real-time in the browser. Stays **Python/native**. Not the MacBook Chromium zip | **no** | Thin local bridge **only if** the Chromium ORT SAM path fails the floor. Prefer **pure web**. Do not vendor |
 | **DINOv2** INT8 ONNX | theoretically ORT-web; ViT-L INT8 still **~1.5 GB** | **no** | Encoder features. Not a hand. Research-only |
 | **Sapiens / Sapiens2** 0.1B INT8 (community ORT-web) | **yes** on Chrome 113+ WebGPU | **no** — published **1–3 s/image WebGPU**, 20–60 s WASM. CLS embedding / whole-body, not 21 hand points | **Research-only.** Too heavy for MacBook floor |
 | **Meta WebXR hands** | Quest Browser | n/a on lid cam | Ruled out for this SKU |
@@ -178,36 +189,45 @@ Label every line **interim** vs **product invent**.
 
 Apache-2.0 where it matters: SAM 2 / SAM 2.1 code+weights, Detectron2, MediaPipe Hands. Do not add GPL.
 
-#### 2. Thin native / local bridge — does it serve web ship?
+#### 2. Thin native / local bridge — prefer pure web
 
-Meta’s **own** SAM 2 web demo is frontend + **Python backend** (locally deployable, same idea as sam2.metademolab.com). A thin localhost helper (Python / ORT / Metal on the MacBook) could run hiera_tiny closer to native rates than ORT-web.
+Detectron2 and full native SAM 2 stay **Python/native**. Meta’s official SAM 2 web demo is frontend + **Python backend**. A localhost helper could run hiera_tiny closer to A100-class rates than ORT-web.
+
+**Prefer the Chromium ORT-web SAM2-tiny / MobileSAM path.** Open a thin local bridge **only if** that web path fails the MacBook floor (encode never usable even as a sparse gate). A required helper invents a **second product** and does **not** serve the Chromium zip.
 
 | Question | Answer |
 |----------|--------|
-| Would it run? | **Yes**, as an optional process next to `tools/serve_proto.py` — same class as Gemini lock-assist |
-| Does it serve the **web ship**? | **No as a required bar.** Juan lock: MacBook Pro + **Chromium** floor. A required native bridge invents a **second product** (install a helper). Godot/native stays engineering-only if it serves the web SKU |
-| Allowed use | **Optional seed / calib / lock-assist**, fire-and-forget, never a `fire()` wait — same honesty as `/api/gemini/lock` |
-| Forbidden use | Ranking, GUN shoot, or “must install the Meta helper to play” |
+| Default zip | **Pure web** — SAM-family ORT-web in a Worker + MediaPipe landmark FSM |
+| Detectron2 in the zip | **no** — Python/native only, not default MacBook Chromium |
+| Allowed bridge | Optional seed / calib, fire-and-forget — same honesty as `/api/gemini/lock` |
+| Forbidden | Ranking, GUN shoot, “must install Detectron2 / the Meta helper to play” |
 
 #### 3. Research-only / too heavy for the MacBook floor
 
-- **Detectron2** full zoo (X-101, panoptic, DensePose): not a Chromium gun. Keypoint heads are COCO **person**, not MediaPipe 21-hand.
+- **Detectron2** (Python/native, not the Chromium zip): not a Chromium gun. Keypoint heads are COCO **person**, not MediaPipe 21-hand.
 - **SAM 2 large** (878 MB) / **DINOv2-L**: first-download and VRAM kill the zip + 1080p60 floor.
 - **Sapiens2** (seconds per frame): whole-body research.
 - **Heavy egocentric** (Ego4D / Hot3D class): datasets, not a vendored web SKU.
 - **YOLO mouse-body**: retired for aim. sable-mouse **STOP**.
 - Cloud VLM / Gemini every frame: seed only.
 
-#### Gesture system on the stack (invent around the mailbox)
+#### Invent architecture recommendation (labeled)
 
-Product verbs do **not** wait for Meta to ship 60 Hz. Invent the FSM on **MediaPipe-order 21** (interim landmarker) so a later SAM-class mask plugs in as a gate:
+1. **Product invent target:** Meta-family **SAM2-tiny / MobileSAM** in a Worker for **hand/object mask + track** (the object-recognition stack Juan named). Encode is sparse (hundreds of ms) — gate / re-encode on lock loss, not every rAF. Point-box prompts from the last landmark hull. Apache-2.0 SAM 2 weights. Do not vendor until a MacBook Chromium encode p50 is honest as a gate.
+2. **Landmark FSM (interim):** Gesture FSM (aim / shark-fin / reload) still needs landmarks or mask-derived tips. Keep **MediaPipe Hand Landmarker** (or micro-handpose after bench) as the **landmark FSM** until a Meta landmark model is browser-ready. **Do not claim SAM alone is shark-fin.**
+3. **Hybrid (ship the mailbox, invent the gate):** SAM mask gates **“hand present / which blob.”** Landmarks drive **nail UV + shark-fin / charger geometry.** `AimBus` peek unchanged. **AimSample five fields locked.**
+4. **Thin local bridge:** only if the Chromium ORT path fails the MacBook floor. **Prefer pure web.** Detectron2 is not the zip.
 
-1. **AIM** — index extended; muzzle = landmark 8 along 6→8; if SAM-class mask is fresh, extremum along that ray may win when 8 foreshortens.
-2. **SHOOT** — shark-fin thumb-up rising edge → `AimBus` peek. Not HID.
-3. **SAFE** — thumb parallel. Held shark-fin does not auto-fire.
-4. **RELOAD** — index+middle ceiling rising edge → `onReloadStub`. No mag.
-
-When a Meta cut is game-ready (Worker, GPU, ≤ aim-capture budget **or** honest sparse-not-hot-path, Apache-2.0, no mouse), it becomes the **object-recognition primary**. MediaPipe / micro-handpose become the else-path the way `fallbackSkin` is today. Until then they are **labeled interim**.
+```
+SAM2-tiny / MobileSAM (Worker, ORT-web)     PRODUCT INVENT — object / hand mask
+        │  hand present? which blob?
+        ▼
+MediaPipe 21-order (or micro-handpose)      INTERIM — nail UV + shark-fin + reload
+        │  rising edges
+        ▼
+AimSample { uv, valid, lifted, confidence, t_hw }   LOCKED
+fire() peek — never waits on encode
+```
 
 Do **not** ship a SAM / Detectron encoder on the rAF or inside `fire()`. Do **not** grow a second mailbox. Do **not** vendor Detectron2 or Sapiens2.
 
@@ -318,5 +338,6 @@ Five fields. Existing `publish` / `peek` / `fire` only. Gesture bits stay on `S`
 - GPU HandLandmarker must not share the Three.js WebGL context on main — Worker + careful delegate.
 - micro-handpose must not land in proto until a MacBook Chromium bench says MediaPipe is the wall. Not the invent default.
 - Sapiens2 / heavy egocentric / YOLO mouse-body stay not-defaults / retired for aim.
-- Detectron2 / full SAM must not be documented as real-time in Chromium. Official SAM 2 FPS is A100.
-- A required local Meta helper must not become the web ship. Optional seed only.
+- Detectron2 / full SAM must not be documented as real-time in Chromium. Official SAM 2 FPS is A100. Detectron2 stays Python/native, not the zip.
+- Do not claim SAM alone is shark-fin. Hybrid: mask gates blob; landmarks drive nail + shark-fin.
+- Prefer pure web. Thin local bridge only if Chromium ORT fails the MacBook floor.
