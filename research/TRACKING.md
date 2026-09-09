@@ -20,7 +20,7 @@ Vision-model stack: **Meta object-recognition vision models** for in-game hand t
 - Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP
 - Mouse-as-gun / mouse-cam aim — retired
 
-See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimBus (Meta SAM-class hybrid honesty). Product brief: `research/PRODUCT.md`. #86 shark-fin is first ship when Juan merges — do not block on invent docs. AimSample locked.
+See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimBus (Meta SAM-class hybrid honesty). Product brief: `research/PRODUCT.md`. #86 shark-fin and #87 charger-plug are on tip — do not block invent docs. AimSample locked.
 
 ## Juan LOCK (2026-09-09)
 **Front camera tracks HANDS, not the mouse.**

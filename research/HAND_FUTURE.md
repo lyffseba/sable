@@ -2,7 +2,7 @@
 
 Architecture invent for a **pure hand verb** on Chromium. Soft-lock this spike; do not merge from the agent. AimSample locked. AimSample stays five fields. Original IP only. Yard is the sole map. Bay stays parked.
 
-This file is the product-architecture soT for the hand-only future. Tracker archaeology stays in `research/HANDS.md`. Shipped mailbox / HID honesty bars stay in `docs/aim_pipeline.md` and `docs/PRODUCTION.md`. Product brief: `research/PRODUCT.md` (box north star — do not rewrite). Tracking lock: `research/TRACKING.md`. **#86 shark-fin is on tip.** #87 charger-plug reload may still be open — do not reimplement or block. Do not merge from the agent.
+This file is the product-architecture soT for the hand-only future. Tracker archaeology stays in `research/HANDS.md`. Shipped mailbox / HID honesty bars stay in `docs/aim_pipeline.md` and `docs/PRODUCTION.md`. Product brief: `research/PRODUCT.md` (box north star — do not rewrite). Tracking lock: `research/TRACKING.md`. **#86 shark-fin and #87 charger-plug reload are on tip.** Do not regress those verbs. Do not block invent docs. Do not merge from the agent.
 
 ---
 
@@ -90,14 +90,14 @@ Product verbs, one hand (best pointing hand of up to two):
 | **SAFE** | Thumb **parallel** to the other fingers | nothing | nothing |
 | **RELOAD** | Index **and** middle up toward ceiling (`8`+`12` up; ring/pinky folded) | reload hook stub | not a second reload |
 
-Order after lift (`updateMode`): **shark-fin** (#86 on tip) → pinch (interim only) → `updateAim`. #87 owns charger-plug reload — this spike does not reimplement it. Gesture never publishes a closed-finger UV before the peek. Reload never calls `fire()`. Reload does **not** invent mag capacity, reserve, or ammo on this spike.
+Order after lift (`updateMode`): **shark-fin** (#86 on tip) → pinch (interim) → **charger-plug reload** (#87 on tip) → `updateAim`. Gesture never publishes a closed-finger UV before the peek. Reload never calls `fire()`. Mag lives on `S` (#87) — not a sixth AimSample field.
 
 #86 shark-fin is the product shoot. Pinch stays interim until a later soft-lock removes it. Space is **not** product shoot.
 
 ### AimBus peek fire / reload hook
 
 - Shoot: rising-edge shark-fin (`maybeSharkFinFire`) calls the same `fire()` the mailbox already owns. No camera gate. No worker wait.
-- Reload: #87 charger-plug — do not reimplement a stub here. No mag on this spike. No sixth field. No hitscan.
+- Reload: #87 charger-plug (`maybeReloadGesture` / `chargerPlug`) on tip. No second stub. No sixth AimSample field. No hitscan.
 
 ---
 
@@ -255,13 +255,13 @@ Feel DNA may name CS-class honesty and Beat Saber–class shoot energy in **rese
 
 ---
 
-## Prototype path — after #86; do not fight #87
+## Prototype path — #86 and #87 are on tip
 
-**#86 shark-fin is on tip** (`maybeSharkFinFire` rising-edge `AimBus` peek). This spike does **not** reimplement charger-plug reload — that verb is #87 (may still be open). Do not block. Invent around the mailbox with docs + HID honesty.
+**#86 shark-fin** (`maybeSharkFinFire`) and **#87 charger-plug reload** (`chargerPlug` / `maybeReloadGesture`) **are on tip**. This spike does **not** rewrite those verbs. Invent around the mailbox with docs + HID honesty + Meta SAM-class hybrid.
 
-### (a) Charger-plug reload — #87 owns the verb
+### (a) Charger-plug reload — #87 on tip
 
-Index + middle up toward the ceiling is product reload. This spike keeps that lock in PRODUCT / TRACKING / HAND_FUTURE and leaves the proto implementation to #87. Do not land a second `maybeReloadGesture` / mag / `reloadPulse` here.
+Index + middle up toward the ceiling is product reload. Keep the lock in PRODUCT / TRACKING / HAND_FUTURE. Do not land a second stub (`chargerReload` / `onReloadStub` / `reloadPulse`).
 
 ### (b) Deprecate product HID-as-gun in GUN mode
 
@@ -322,7 +322,7 @@ Five fields. Existing `publish` / `peek` / `fire` only. Gesture bits stay on `S`
 
 - Soft-lock / ship only **hand-only** cuts that match this file + `research/PRODUCT.md` + `research/TRACKING.md`.
 - Soft-lock this invent/spike when MERGEABLE. **Do not merge from the agent.**
-- #86 shark-fin is on tip. Do not block on #87. Do not reimplement charger-plug.
+- #86 shark-fin and #87 charger-plug are on tip. Do not regress those verbs.
 - Yard sole map. Bay parked. Apache-2.0. Original IP. No mouse ever.
 
 ## Adversarial

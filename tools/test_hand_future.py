@@ -171,36 +171,41 @@ def test_vision_stack_honesty() -> None:
         _fail("TRACKING.md must name micro-handpose as stretch only")
 
 
-def test_shark_fin_on_tip_no_reload_reimplement() -> None:
+def test_shark_fin_and_charger_plug_on_tip() -> None:
     src = proto_js()
     if "function sharkFin" not in src or "function maybeSharkFinFire" not in src:
         _fail("shark-fin (#86 on tip) must stay — do not regress the verb")
+    if "function chargerPlug" not in src or "function maybeReloadGesture" not in src:
+        _fail("charger-plug reload (#87 on tip) must stay — do not regress the verb")
     if "function chargerReload" in src or "function onReloadStub" in src:
-        _fail("do not reimplement charger-plug reload — that verb is #87")
-    if "function maybeReloadGesture" in src:
-        _fail("do not land a second maybeReloadGesture — #87 owns charger-plug")
-    if re.search(r"S\.(mag|ammo|reserve|magazine|reloadPulse)\s*=", src):
-        _fail("this spike must not invent mag / reloadPulse (fights #87)")
+        _fail("do not land a second reload stub beside #87 charger-plug")
+    reload_fn = _js_fn(src, "maybeReloadGesture")
+    if "fire()" in reload_fn or "publishAim" in reload_fn or "updateAim" in reload_fn:
+        _fail("maybeReloadGesture must not fire or rewrite aim")
     frame = _js_fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
         _fail("shark-fin must run after updateMode")
     if frame.find("maybeSharkFinFire") > frame.find("maybePinchFire"):
         _fail("shark-fin must run before interim pinch")
-    if frame.find("maybePinchFire") > frame.find("updateAim"):
-        _fail("pinch must still peek before updateAim")
+    if frame.find("maybePinchFire") > frame.find("maybeReloadGesture"):
+        _fail("#87 charger-plug must run after pinch, before updateAim")
+    if frame.find("maybeReloadGesture") > frame.find("updateAim"):
+        _fail("reload must run before updateAim")
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
     if not desk_else:
         _fail("frame lost the !camReady DESKTOP path")
     if "maybeSharkFinFire" in desk_else.group(1) or "maybePinchFire" in desk_else.group(1):
         _fail("!camReady DESKTOP must not run product gestures")
+    if "maybeReloadGesture" in desk_else.group(1):
+        _fail("!camReady DESKTOP must not run charger-plug reload")
     fire = _js_fn(src, "fire")
-    if "maybeReloadGesture" in fire or "reloadPulse" in fire:
+    if "maybeReloadGesture" in fire:
         _fail("reload must not enter fire()")
     future = _read("research/HAND_FUTURE.md")
-    if "#86" not in future or "on tip" not in future:
-        _fail("HAND_FUTURE.md must say #86 shark-fin is on tip")
-    if "#87" not in future or "do not reimplement" not in future.lower():
-        _fail("HAND_FUTURE.md must leave charger-plug reload to #87")
+    if "#86" not in future or "#87" not in future:
+        _fail("HAND_FUTURE.md must name #86 shark-fin and #87 charger-plug")
+    if "on tip" not in future:
+        _fail("HAND_FUTURE.md must say those verbs are on tip")
 
 
 def test_product_gun_hid_deprecated() -> None:
@@ -287,7 +292,7 @@ def main() -> int:
         test_locks_verbatim()
         test_aimsample_five_fields()
         test_vision_stack_honesty()
-        test_shark_fin_on_tip_no_reload_reimplement()
+        test_shark_fin_and_charger_plug_on_tip()
         test_product_gun_hid_deprecated()
         test_liftshot_product_pivot()
         test_fallbacks_labeled_non_product()
