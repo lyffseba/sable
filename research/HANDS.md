@@ -2,7 +2,7 @@
 
 **Only question:** how does a MacBook lid camera, in the browser, put the **index fingertip** into `AimSample.uv` at 60–120 FPS without extra hardware?
 
-Fire stays HID as the pad / DESKTOP fallback. Product shoot path is shark-fin (`research/TRACKING.md`). This file is the tracker. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
+Product gun path is shark-fin shoot + index+middle-up reload (`research/TRACKING.md`). HID click must not replace the shoot gesture in gun mode; DESKTOP cam-deny / HID pad / Q4 Space `forceGun` stay shipped fallbacks. This file is the tracker. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
 
 ## Geometry (do not invert)
 
