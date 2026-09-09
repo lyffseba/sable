@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """SablePort path skeleton: docs + thin host seams, zero foreign DNA.
 
-Fail loud if the port notes drift off the locked bars (verb = AimBus/HID
-peek, 128 Hz tick, Look bible, modes), if runtime art grows Valve/Epic
-DNA, or if Offline / WARM UP trap, player-facing Bay chrome, AimSample /
-fire peek / R6 / Worker / HUD / audio soft-locks move. Port docs may
-name BAY / ENTER BAY as playlist seams — that is architecture, not a
-live gun. Gallery already scans a subset; this owns the full walk.
+Fail loud if the Chromium / MacBook Pro ship floor dies, if host id
+leaves sable, if docs/port claim a desktop-only / Godot-first product
+host, if the verb leaves aimbus-hand-gesture, if the port notes drift
+off the locked bars (hand point + shark-fin → AimBus peek, charger-plug
+reload, DESKTOP HID honesty fallback, 128 Hz tick, Look bible, modes),
+if runtime art grows Valve/Epic DNA, or if Offline / WARM UP trap,
+player-facing Bay chrome, AimSample / fire peek / R6 / Worker / HUD /
+audio soft-locks move. Port docs may name BAY / ENTER BAY as playlist
+seams — that is architecture, not a live gun. Gallery already scans a
+subset; this owns the full walk.
 """
 
 from __future__ import annotations
@@ -42,6 +46,60 @@ def _js_const(src: str, name: str) -> str:
     return m.group(1).strip()
 
 
+_ENGINEERING_OK = (
+    "engineering path",
+    "engineering-only",
+    "engineering only",
+    "non-product",
+    "not a second product",
+    "not the product",
+    "not a product",
+)
+
+
+def _godot_first_product_claim(text: str) -> bool:
+    """True when a doc claims Godot/native as the product host."""
+    low = text.lower()
+    if "godot-first" in low:
+        return True
+    if re.search(r"desktop-only product", low):
+        return True
+    if re.search(r"product host is (godot|native|desktop)\b", low):
+        return True
+    if re.search(
+        r"\b(godot|native) (is|as) the (primary |playable )?(product|ship) (host|surface|floor)",
+        low,
+    ):
+        return True
+    for sent in re.split(r"[.\n]+", text):
+        sl = sent.lower()
+        if "godot" not in sl:
+            continue
+        if any(ok in sl for ok in _ENGINEERING_OK):
+            continue
+        if re.search(
+            r"\b(product host|primary (playable|surface|host)|ship (host|surface|floor)|playable surface)\b",
+            sl,
+        ):
+            return True
+    return False
+
+
+def test_godot_first_detector() -> None:
+    if not _godot_first_product_claim("The product host is Godot."):
+        _fail("Godot-first detector died — a Godot product host must fail CI")
+    if not _godot_first_product_claim("Godot is the primary playable surface."):
+        _fail("Godot-first detector died — a Godot playable surface must fail CI")
+    if not _godot_first_product_claim("Ship a desktop-only product host."):
+        _fail("Godot-first detector died — desktop-only product host must fail CI")
+    ok = (
+        "Godot / native work is an engineering path only. "
+        "It is not a second product and not the product host."
+    )
+    if _godot_first_product_claim(ok):
+        _fail("engineering-only Godot must not trip the Godot-first detector")
+
+
 def test_port_doc_boundaries() -> None:
     if not PORT_DOC.is_file():
         _fail("docs/port.md missing — port path notes died")
@@ -49,7 +107,31 @@ def test_port_doc_boundaries() -> None:
     if "SablePort" not in text:
         _fail("docs/port.md must name SablePort ownership")
     if "AimBus" not in text or "HID" not in text:
-        _fail("docs/port.md must lock the verb as AimBus / HID peek")
+        _fail("docs/port.md must keep AimBus peek and HID as honesty fallback")
+    if "aimbus-hand-gesture" not in text:
+        _fail("docs/port.md must name the aimbus-hand-gesture verb")
+    if "shark-fin" not in text.lower() and "shark fin" not in text.lower():
+        _fail("docs/port.md must lock shark-fin as the product shoot")
+    if "charger-plug" not in text.lower() and "charger plug" not in text.lower():
+        _fail("docs/port.md must keep charger-plug reload")
+    if "hand point" not in text.lower() and "hand pointing" not in text.lower():
+        _fail("docs/port.md must lock hand point as product aim")
+    if "honesty fallback" not in text.lower():
+        _fail("docs/port.md must keep DESKTOP HID as honesty fallback, not the product verb")
+    if "chromium" not in text.lower() or "macbook pro" not in text.lower():
+        _fail("docs/port.md must lock Chromium on MacBook Pro as the ship floor")
+    if "not optional" not in text.lower():
+        _fail("docs/port.md must say the Chromium / MacBook floor is not optional")
+    if "chromium-macbook" not in text:
+        _fail("docs/port.md must name the chromium-macbook surface")
+    if "godot" not in text.lower() or "engineering path" not in text.lower():
+        _fail("docs/port.md must keep Godot/native as engineering path only")
+    if "second product" not in text.lower():
+        _fail("docs/port.md must refuse a second product")
+    if _godot_first_product_claim(text):
+        _fail("docs/port.md claimed a Godot-first / desktop-only product host")
+    if "sablehostfeel" not in text.lower():
+        _fail("docs/port.md must keep CS2/UEFN literacy behind sableHostFeel()")
     if "128 Hz" not in text:
         _fail("docs/port.md must lock the 128 Hz sim tick")
     if "Look bible" not in text and "Look bible" not in text.lower():
@@ -88,8 +170,10 @@ def test_host_seam() -> None:
     src = PORT_JS.read_text(encoding="utf-8")
     if _js_const(src, "SABLE_PORT_HOST") != '"sable"':
         _fail("runtime host id must stay sable — no foreign title")
-    if _js_const(src, "SABLE_PORT_VERB") != '"aimbus-hid-peek"':
-        _fail("verb seam must stay aimbus-hid-peek")
+    if _js_const(src, "SABLE_PORT_SURFACE") != '"chromium-macbook"':
+        _fail("ship surface must stay chromium-macbook")
+    if _js_const(src, "SABLE_PORT_VERB") != '"aimbus-hand-gesture"':
+        _fail("verb seam must stay aimbus-hand-gesture")
     if _js_const(src, "SABLE_PORT_SIM_HZ") != "128":
         _fail("tick seam must stay 128")
     if "charcoal-bone-mint-rust" not in src:
@@ -98,6 +182,13 @@ def test_host_seam() -> None:
         _fail("mode seam lost a SABLE playlist id")
     if "function sableHostId" not in src or "function sableHostFeel" not in src:
         _fail("host adapter stubs must stay real functions")
+    feel = _js_fn(src, "sableHostFeel")
+    if "surface:" not in feel and "surface :" not in feel:
+        _fail("sableHostFeel must publish surface so adapters can assert the web floor")
+    if "SABLE_PORT_SURFACE" not in feel and '"chromium-macbook"' not in feel:
+        _fail("chromium-macbook surface must be assertable from SablePort.feel()")
+    if "SablePort" in src and "surface: SABLE_PORT_SURFACE" not in src and "surface: \"chromium-macbook\"" not in src:
+        _fail("SablePort must publish the chromium-macbook surface")
     if "window.SablePort" not in src:
         _fail("SablePort must publish the host identity")
     for needle in dna_hits(src):
@@ -218,6 +309,14 @@ def test_bible_and_ci() -> None:
     bible = (ROOT / "docs" / "PRODUCTION.md").read_text(encoding="utf-8")
     if "SablePort" not in bible or "docs/port.md" not in bible:
         _fail("PRODUCTION.md must name the SablePort path")
+    if "chromium" not in bible.lower() or "macbook pro" not in bible.lower():
+        _fail("PRODUCTION.md must lock Chromium on MacBook Pro as the ship floor")
+    if "godot" not in bible.lower() or "engineering" not in bible.lower():
+        _fail("PRODUCTION.md must keep Godot/native as engineering-only")
+    if "second product" not in bible.lower():
+        _fail("PRODUCTION.md must refuse a second product")
+    if _godot_first_product_claim(bible):
+        _fail("PRODUCTION.md claimed a Godot-first / desktop-only product host")
     if "v0.20.0" not in bible:
         _fail("do not drop the SableHUD v0.20.0 stand")
     if "SableAudio" not in bible or "Mint. Lift." not in bible:
@@ -261,6 +360,7 @@ def test_bible_and_ci() -> None:
 
 def main() -> int:
     try:
+        test_godot_first_detector()
         test_port_doc_boundaries()
         test_host_seam()
         test_runtime_art_forbids_foreign_dna()

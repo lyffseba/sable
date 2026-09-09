@@ -41,7 +41,7 @@ Click is **always** HID / Raw Input against the **latest** AimSample.
 
 HID pointerdown lives on `window` (`onHidPointerDown`). `#hud { pointer-events: none }` must not mute the pad — a `canvasHUD` listener never sees a real trackpad tap. Chrome (`button` / `input`) still owns WARM UP / ENTER RANGE / LEAVE / join. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome (`muteJoinPad`) — the pad still peeks. Shark-fin (product) and pinch (interim) are the same peek. `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox — first pad after cam deny / T / `goDesktopRange` must not peek `{0.5,0.5}`. Cam / GUN / shark-fin / pinch must not publish on the click. Do not force shark-fin when `S.desktop`. `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true) even if `!camReady`.
 
-SablePort (`docs/port.md`) may later swap a host *feel*. The verb does not move: click still peeks `AimBus`. `proto/port.js` labels that seam `aimbus-hid-peek`. Do not grow a second fire path for a later migrate.
+SablePort (`docs/port.md`) may later swap a host *feel*. The verb does not move: the product shot still peeks `AimBus`. `proto/port.js` labels that seam `aimbus-hand-gesture`. Do not grow a second fire path for a later migrate.
 
 ## Pipeline (camera space, then map)
 
