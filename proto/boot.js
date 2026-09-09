@@ -20,6 +20,7 @@
    `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
    even if `!camReady`. Arm paths apply that truth immediately.
    `Space` forceGun invokes `updateMode` before `afterLiftState`.
+   `drawModeChip` does not prefer SEEKING when `S.forceGun` or `S.mode === "GUN"`.
    KeyT must not disarm DESKTOP on cam-deny waiting Yard
    (`lobby` / `wait_practice`) — re-arm via `armPracticeDesktop`.
    When `camReady`, KeyT debug toggle-off stays. */
@@ -719,7 +720,7 @@ function drawCrosshair(x, y) {
 }
 
 function drawModeChip() {
-  const label = S.seeking && S.mode !== "DESKTOP" && !S.desktop ? "SEEKING" : S.mode;
+  const label = S.seeking && !S.forceGun && S.mode !== "GUN" && S.mode !== "DESKTOP" && !S.desktop ? "SEEKING" : S.mode;
   const col = label === "GUN" ? "#00f0ff" : label === "DESKTOP" ? "#ffd56a" : label === "SEEKING" ? "#ff2bd6" : "#6a7a88";
   ctx.save();
   ctx.font = "700 11px system-ui, sans-serif";

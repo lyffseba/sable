@@ -623,6 +623,18 @@ def test_space_forcegun_invokes_updatemode() -> None:
     hid = _js_fn(src, "onHidPointerDown")
     if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
         raise AssertionError("#76: DESKTOP HID must still publish click UV before fire()")
+    chip = _js_fn(src, "drawModeChip")
+    label = re.search(r"const label = ([^;]+);", chip)
+    if not label:
+        raise AssertionError("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0:
+        raise AssertionError("drawModeChip must still paint SEEKING when not forceGun / GUN")
+    if "S.forceGun" not in cond[:seek_at]:
+        raise AssertionError("drawModeChip prefers SEEKING on Space forceGun — MODE must match seekingHudChip")
+    if 'S.mode !== "GUN"' not in cond[:seek_at] and 'S.mode != "GUN"' not in cond[:seek_at]:
+        raise AssertionError("drawModeChip prefers SEEKING when S.mode is GUN — MODE must match seekingHudChip")
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
     if not sample:
         raise AssertionError("AimSample class missing")

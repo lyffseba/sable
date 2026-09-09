@@ -585,6 +585,21 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
     if "goDesktopRange" in fire or "armPracticeDesktop" in fire:
         _fail("fire() invented desktop — Q4 never auto-desktop")
 
+    mode_chip = _js_fn(js, "drawModeChip")
+    label = re.search(r"const label = ([^;]+);", mode_chip)
+    if not label:
+        _fail("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0:
+        _fail("drawModeChip must still paint SEEKING when not forceGun / GUN")
+    if "S.forceGun" not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING on Space forceGun — MODE must match seekingHudChip")
+    if 'S.mode !== "GUN"' not in cond[:seek_at] and 'S.mode != "GUN"' not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING when S.mode is GUN — MODE must match seekingHudChip")
+    if "S.desktop = true" in mode_chip or "armPracticeDesktop" in mode_chip:
+        _fail("drawModeChip invented desktop")
+
     chip = _js_fn(js, "seekingHudChip")
     if "camReady" not in chip:
         _fail("SEEKING chip must require camReady — deny desktop is not Q4")
@@ -774,6 +789,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock Space forceGun updateMode before afterLiftState")
     if space not in pipeline:
         _fail("docs/aim_pipeline.md must lock Space forceGun updateMode before afterLiftState")
+    mode_lock = '`drawModeChip` does not prefer SEEKING when `S.forceGun` or `S.mode === "GUN"`'
+    if mode_lock not in modes:
+        _fail("docs/modes.md must lock drawModeChip forceGun / GUN over SEEKING")
+    if mode_lock not in bible:
+        _fail("PRODUCTION.md must lock drawModeChip forceGun / GUN over SEEKING")
+    if mode_lock not in pipeline:
+        _fail("docs/aim_pipeline.md must lock drawModeChip forceGun / GUN over SEEKING")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:
