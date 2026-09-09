@@ -548,10 +548,18 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         ):
             _fail(f"{name} copied Offline lock timeout onto waiting-Yard fail-to-lock")
 
-    keys = re.search(r'e\.code === "Space"[\s\S]{0,160}', js)
+    keys = re.search(r'e\.code === "Space"[\s\S]{0,220}', js)
     if not keys or "S.forceGun = true" not in keys.group(0):
         _fail("Space must stay the Q4 force-GUN escape")
     if keys and "goDesktopRange" in keys.group(0):
+        _fail("Space must force GUN — do not invent desktop on fail-to-lock")
+    if "updateMode(" not in keys.group(0):
+        _fail("Space must invoke updateMode after forceGun — MODE/mailbox must not wait a frame")
+    if keys.group(0).find("S.forceGun = true") > keys.group(0).find("updateMode("):
+        _fail("Space must set forceGun before updateMode")
+    if keys.group(0).find("updateMode(") > keys.group(0).find("afterLiftState()"):
+        _fail("Space must invoke updateMode before afterLiftState — same order as KeyT")
+    if "armPracticeDesktop" in keys.group(0) or "S.desktop" in keys.group(0):
         _fail("Space must force GUN — do not invent desktop on fail-to-lock")
     t_keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
     t_block = re.search(
@@ -758,6 +766,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock Offline DESKTOP mint-tell on enterGame")
     if offline not in pipeline:
         _fail("docs/aim_pipeline.md must lock Offline DESKTOP mint-tell on enterGame")
+    space = "`Space` forceGun invokes `updateMode` before `afterLiftState`"
+    if space not in modes:
+        _fail("docs/modes.md must lock Space forceGun updateMode before afterLiftState")
+    if space not in bible:
+        _fail("PRODUCTION.md must lock Space forceGun updateMode before afterLiftState")
+    if space not in pipeline:
+        _fail("docs/aim_pipeline.md must lock Space forceGun updateMode before afterLiftState")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:

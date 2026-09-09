@@ -19,6 +19,7 @@
    Cam / GUN / pinch must not publish on the click.
    `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
    even if `!camReady`. Arm paths apply that truth immediately.
+   `Space` forceGun invokes `updateMode` before `afterLiftState`.
    KeyT must not disarm DESKTOP on cam-deny waiting Yard
    (`lobby` / `wait_practice`) — re-arm via `armPracticeDesktop`.
    When `camReady`, KeyT debug toggle-off stays. */
@@ -1192,7 +1193,7 @@ window.addEventListener("pointermove", (e) => {
 });
 
 window.addEventListener("keydown", (e) => {
-  if (e.code === "Space") { e.preventDefault(); S.forceGun = true; afterLiftState(); } // Q4 escape: force GUN. Not auto-desktop.
+  if (e.code === "Space") { e.preventDefault(); S.forceGun = true; updateMode(performance.now()); afterLiftState(); } // Q4 escape: force GUN. Not auto-desktop.
   if (e.code === "KeyT") {
     if (phase === "lock") { goDesktopRange(); afterLiftState(); return; }
     // Cam-deny waiting Yard: KeyT must not disarm the only live gun.
