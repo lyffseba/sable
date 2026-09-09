@@ -23,8 +23,8 @@ python3 tools/serve_proto.py
 ## Play
 
 1. **OFFLINE** (60s gallery on the Yard) or **ONLINE** (HUD-on-Yard always-practice, camera armed without lock) → **WARM UP** (local 60s, skip calib/lock — the waiting Yard is already live) / **ENTER RANGE** (shared live Yard, skip calib/lock when already lifted). After JOIN, leftover CODE/JOIN is not the pad. Bay booth is parked.
-2. Raise a hand at the lid cam. Point the index. SEEKING until lock or Space (`forceGun`). Cam-deny / **T** is DESKTOP (OS cursor) — already shipped; not a mouse-body optical lock.
-3. Four corners — point the index, click each, then one center shot.
+2. Raise a hand at the lid cam. Point the index (aim). Product shoot = gun-hand thumb UP (shark fin); thumb parallel = not shooting. SEEKING until lock or Space (`forceGun`). Cam-deny / **T** is DESKTOP (OS cursor) — HID click is pad / DESKTOP fallback, not the product shoot path.
+3. Four corners — point the index; shark-fin or pad click.
 4. Gallery: 60-second scored plates/clays. Escape = miss.
 
 ## Keys

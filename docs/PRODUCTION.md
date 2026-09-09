@@ -47,7 +47,7 @@ webcam  →  fingertip lock (landmarks preferred, skin+NCC fallback)
 HID click → peek AimSample → hitscan
 ```
 
-Product lock: front cam tracks hands — mouse body is never the optical aim target (`research/TRACKING.md`).
+Product lock: front cam tracks hands — mouse body is never the optical aim target. Product shoot = shark-fin; HID click = pad / DESKTOP fallback (`research/TRACKING.md`).
 
 Desktop **T** is a debug gun, not the product. Space is the Q4 force-GUN escape on fail-to-lock. **Q4 fail-to-lock is SEEKING until lock or Space.**
 
