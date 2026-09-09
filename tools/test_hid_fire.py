@@ -152,6 +152,13 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("fire must not recompute aim — peek the last committed sample")
     if "publishAim" in fire_src:
         raise AssertionError("fire() must peek — DESKTOP publish lives on onHidPointerDown")
+    fin = _js_fn(src, "maybeSharkFinFire")
+    if "fire()" not in fin:
+        raise AssertionError("shark-fin must peek through fire()")
+    if "updateAim(" in fin or "publishAim(" in fin:
+        raise AssertionError("shark-fin must not rewrite aim")
+    if 'phase === "range"' in fin or 'phase === "bay"' in fin:
+        raise AssertionError("maybeSharkFinFire must not re-gate the verb — waiting Yard would mute")
     pinch = _js_fn(src, "maybePinchFire")
     if "fire()" not in pinch:
         raise AssertionError("pinch must peek through fire()")
@@ -160,6 +167,8 @@ def test_client_does_not_wait() -> None:
     if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
         raise AssertionError("maybePinchFire must not re-gate the verb — waiting Yard would mute")
     frame = _js_fn(src, "frame")
+    if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
+        raise AssertionError("shark-fin must peek last pointing UV before updateAim")
     if frame.find("maybePinchFire") > frame.find("updateAim"):
         raise AssertionError("pinch must peek last pointing UV before updateAim")
     if "S.aim" not in fire_src:

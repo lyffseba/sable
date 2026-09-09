@@ -174,6 +174,13 @@ def test_fire_never_waits_on_tick() -> None:
         _fail("leftover JOIN/CODE must not eat waiting-Yard HID after join")
     if "muteJoinPad()" not in _fn(js, "lobbyJoin"):
         _fail("JOIN must release leftover CODE/JOIN — the pad is the trigger")
+    fin = _fn(js, "maybeSharkFinFire")
+    if "fire()" not in fin:
+        _fail("shark-fin must peek through fire()")
+    if "updateAim(" in fin or "publishAim(" in fin:
+        _fail("shark-fin rewrites aim — trigger must peek last pointing UV")
+    if 'phase === "range"' in fin or 'phase === "bay"' in fin:
+        _fail("maybeSharkFinFire re-gates the verb — waiting Yard would mute shark-fin")
     pinch = _fn(js, "maybePinchFire")
     if "fire()" not in pinch:
         _fail("pinch must peek through fire()")
@@ -182,6 +189,10 @@ def test_fire_never_waits_on_tick() -> None:
     if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
         _fail("maybePinchFire re-gates the verb — waiting Yard would mute pinch")
     frame = _fn(js, "frame")
+    if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
+        _fail("shark-fin ran before updateMode — lift would be stale")
+    if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
+        _fail("shark-fin published gesture UV before the peek")
     if frame.find("updateMode") > frame.find("maybePinchFire"):
         _fail("pinch ran before updateMode — lift would be stale")
     if frame.find("maybePinchFire") > frame.find("updateAim"):
@@ -189,6 +200,8 @@ def test_fire_never_waits_on_tick() -> None:
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
     if not desk_else or "updateMode" not in desk_else.group(1):
         _fail("frame must run updateMode on DESKTOP even if !camReady")
+    if "maybeSharkFinFire" in desk_else.group(1):
+        _fail("!camReady DESKTOP must not shark-fin")
     if "maybePinchFire" in desk_else.group(1):
         _fail("!camReady DESKTOP must not pinch")
     if "hitscanRange" not in fire:

@@ -1,7 +1,8 @@
 /* SABLE — hands.js
    MediaPipe Hands / skin+NCC tracker. detectForVideo lives in hands_worker.js.
    One Euro on UV, then the aim mailbox. Fire never waits on camera or the worker.
-   Pinch is the trigger, not a new aim — peek last pointing UV, then fire. */
+   Shark-fin thumb-up is the product trigger; pinch is interim. Both peek
+   last pointing UV, then fire — neither rewrites the shot. */
 
 import { S, W, H, fire, clamp } from "./aim.js";
 import { cam, proc, pctx, camReady } from "./boot.js";
@@ -511,6 +512,49 @@ function pinchStrength(lm) {
   return clamp(1 - (d - 0.28) / 0.4, 0, 1);
 }
 
+function palmScale(lm) {
+  const wrist = lm[0], palm = lm[9];
+  if (!wrist || !palm) return 0.2;
+  return Math.max(0.08, Math.hypot(wrist.x - palm.x, wrist.y - palm.y));
+}
+
+function thumbExtended(lm) {
+  const w = lm[0], ip = lm[3], tip = lm[4];
+  if (!w || !ip || !tip) return false;
+  const dTip = Math.hypot(tip.x - w.x, tip.y - w.y);
+  const dIp = Math.hypot(ip.x - w.x, ip.y - w.y);
+  return dTip > dIp * 1.04;
+}
+
+function distPointToSeg(px, py, ax, ay, bx, by) {
+  const abx = bx - ax, aby = by - ay;
+  const apx = px - ax, apy = py - ay;
+  const ab2 = abx * abx + aby * aby;
+  const t = ab2 < 1e-8 ? 0 : Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2));
+  return Math.hypot(apx - abx * t, apy - aby * t);
+}
+
+function thumbParallel(lm) {
+  // Safe: thumb lies along the other fingers / barrel, not a shark fin.
+  const tip = lm[4], idxMcp = lm[5], idxTip = lm[8];
+  if (!tip || !idxMcp || !idxTip) return true;
+  const off = distPointToSeg(tip.x, tip.y, idxMcp.x, idxMcp.y, idxTip.x, idxTip.y) / palmScale(lm);
+  return off < 0.55;
+}
+
+function sharkFin(lm) {
+  // Product shoot: thumb UP like a shark fin. Parallel = safe.
+  // Landmarks already on the hand path — no mailbox sixth field.
+  if (!lm || !indexExtended(lm) || !thumbExtended(lm)) return false;
+  const tip = lm[4], mcp = lm[2];
+  if (!tip || !mcp) return false;
+  if (thumbParallel(lm)) return false;
+  // Image Y grows down. Shark-fin tip sits above the knuckle.
+  if (tip.y >= mcp.y - 0.02) return false;
+  if (pinchStrength(lm) > 0.48) return false;
+  return true;
+}
+
 function applyMpLandmarks(lms, now) {
   if (!lms || !lms.length) return false;
   const lm = bestHand(lms);
@@ -600,12 +644,32 @@ function kickAndFresh(now) {
   return !!(S.det && (now - (S.lastDetAt || 0) < 80));
 }
 
+function maybeSharkFinFire(lm) {
+  // Product shoot on the hand / GUN path. DESKTOP keeps HID peek.
+  if (S.desktop) { S.finHeld = false; return; }
+  if (!lm) { S.finHeld = false; return; }
+  const fin = sharkFin(lm);
+  if (fin && !S.finHeld) {
+    S.finHeld = true;
+    // Rising edge only. fire() peeks last committed AimBus UV and owns
+    // the phase lock (range / bay / lobby / calib). Do not publish
+    // this gesture first — updateAim stays after the peek.
+    // A second phase gate here muted wait_practice (lobby).
+    fire();
+  } else if (!fin) {
+    S.finHeld = false;
+  }
+}
+
 function maybePinchFire(lm) {
   if (!lm) { S.pinchHeld = false; return; }
+  // Shark-fin is product shoot. Skip pinch on the same pose so both
+  // live paths cannot double-fire one frame.
+  if (S.finHeld || sharkFin(lm)) { S.pinchHeld = false; return; }
   const p = pinchStrength(lm);
   if (p > 0.72 && !S.pinchHeld && indexExtended(lm)) {
     S.pinchHeld = true;
-    // Trigger only. fire() peeks last committed AimBus UV and owns
+    // Interim trigger. fire() peeks last committed AimBus UV and owns
     // the phase lock (range / bay / lobby / calib). Do not publish
     // this pinched landmark first — updateAim stays after the peek.
     // A second phase gate here muted wait_practice (lobby).
@@ -732,6 +796,7 @@ async function initHandsInner() {
 function fallbackSkin(now) {
   S.handLm = null;
   S.pinchHeld = false;
+  S.finHeld = false;
   if (S.tpl && S.tpl.fromHands) S.tpl = null;
   if (!S.skin || !S.gray) return false;
   const hand = findHand();
@@ -858,11 +923,17 @@ export {
   bestHand,
   nailMuzzle,
   pinchStrength,
+  palmScale,
+  thumbExtended,
+  distPointToSeg,
+  thumbParallel,
+  sharkFin,
   applyMpLandmarks,
   onHandsWorkerMsg,
   kickWorkerDetect,
   mpTrackMain,
   mpTrack,
+  maybeSharkFinFire,
   maybePinchFire,
   armVideoTrack,
   initHands,

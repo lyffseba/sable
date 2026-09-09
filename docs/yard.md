@@ -37,11 +37,11 @@ Use these numbers only — not another game’s device list.
 - Playlist: Gallery 60 s (`docs/modes.md`), then later 5v5 on a **SABLE** stadium.
 - One-hit plates / one-hit out in 5v5.
 - Start pad 2.0 × 1.2 m.
-- Fire is HID or pinch. Aim is the pointing hand. Pinch peeks the last pointing `AimBus` UV — the closed fingers must not rewrite the shot.
+- Fire is shark-fin on the hand path, HID on DESKTOP / pad fallback. Aim is the pointing hand. Shark-fin peeks the last pointing `AimBus` UV — the gesture must not rewrite the shot. Pinch stays interim.
 - No bloom. No aim-assist.
 
 ## Trigger iterations (MacBook)
 
-0. **Now:** point index at the glass; **tap the trackpad** (or Space). Pad HID lives on `window` — `#hud` must not mute the tap. After JOIN, leftover CODE/JOIN under the hidden cursor must not eat the pad.
-1. **Now:** pinch thumb to index = fire (peek last pointing UV, including the waiting Yard). Pad still works. A fresh ONLINE arms the camera so that pinch can live — no lock tax. WARM UP from that live Yard keeps the gun — no lock tax.
-2. Next: thumb “hammer” or two-finger recoil as optional feel, not the ranked path.
+0. **Now:** point index at the glass. **Shark-fin** (thumb UP) = fire (rising-edge peek last pointing UV, including the waiting Yard). Thumb parallel = safe. Pad HID is DESKTOP / cam-deny fallback — `#hud` must not mute the tap. After JOIN, leftover CODE/JOIN under the hidden cursor must not eat the pad. Space is Q4 forceGun escape, not product shoot.
+1. Pinch thumb to index stays interim / secondary (same peek). A fresh ONLINE arms the camera so shark-fin / pinch can live — no lock tax. WARM UP from that live Yard keeps the gun — no lock tax.
+2. Reload (index+middle up) is out of scope this cut.

@@ -133,7 +133,7 @@ const S = {
   lockAcc: null, lockAccCols: 0, lockAccRows: 0,
   lockBestScore: 0, lockBestPatch: null, lockBestTL: null, lockTplAt: 0,
   engine: { mojo: null, gemini: false, hands: false, handsWorker: false },
-  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, handLm: null, rvfc: false,
+  handsOn: false, hands: null, mpTs: 0, pinchHeld: false, finHeld: false, handLm: null, rvfc: false,
   mpBusy: false, mpDelegate: "",
   online: false,
   playlist: "gallery",
@@ -304,7 +304,7 @@ function peekMuzzleWorld() {
 function fire() {
   if (phase !== "range" && phase !== "bay" && phase !== "lobby" && !(phase === "calibrate" && S.calibIndex >= 4)) return;
   // Peek first. Never wait on a camera frame. Never recompute aim on click.
-  // Pinch is the same peek — maybePinchFire must not publish first.
+  // Shark-fin (product) and pinch (interim) are the same peek — neither publishes first.
   const shot = aimBus.fire();
   const now = performance.now();
   const since = S.lastDetAt ? now - S.lastDetAt : 1e9;
