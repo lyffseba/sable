@@ -2,7 +2,7 @@
 
 **Only question:** how does a MacBook lid camera, in the browser, put the **index fingertip** into `AimSample.uv` at 60–120 FPS without extra hardware?
 
-Fire stays HID. This file is the tracker. Ruled out only with a counterexample.
+Fire stays HID. This file is the tracker. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
 
 ## Geometry (do not invert)
 

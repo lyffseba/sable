@@ -1,6 +1,6 @@
 # SABLE proto
 
-Chrome range. Webcam tracks the physical mouse. The camera is never drawn.
+Chrome range. Webcam tracks the **hand** (index / landmark 8). The mouse is HID only. The camera is never drawn.
 
 ## Zip (other computer)
 
@@ -23,8 +23,8 @@ python3 tools/serve_proto.py
 ## Play
 
 1. **OFFLINE** (60s gallery on the Yard) or **ONLINE** (HUD-on-Yard always-practice, camera armed without lock) → **WARM UP** (local 60s, skip calib/lock — the waiting Yard is already live) / **ENTER RANGE** (shared live Yard, skip calib/lock when already lifted). After JOIN, leftover CODE/JOIN is not the pad. Bay booth is parked.
-2. Hold the mouse up to the webcam until it locks. Stay on SEEKING until a template exists — no OS-mouse fallback.
-3. Four corners — aim the mouse-gun, click each, then one center shot.
+2. Raise a hand at the lid cam. Point the index. SEEKING until lock or Space (`forceGun`). Cam-deny / **T** is DESKTOP (OS cursor) — already shipped; not a mouse-body optical lock.
+3. Four corners — point the index, click each, then one center shot.
 4. Gallery: 60-second scored plates/clays. Escape = miss.
 
 ## Keys
