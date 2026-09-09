@@ -220,6 +220,47 @@ def test_product_gun_hid_deprecated() -> None:
         _fail("TRACKING.md must name productGunHidFire")
 
 
+PIVOT_NEEDLES = (
+    "LiftShot product pivot (priority)",
+    "hand-only reinvent-the-mouse",
+    "NO mouse as product verb",
+    "Mouse mesh / sable-mouse STOPPED",
+    "Kruidenhof, not SABLE",
+    "mouse-gun product verb",
+    "mouse mesh prototype path",
+    "open to invent",
+    "non-product emergency",
+    "AimSample locked",
+)
+
+
+def test_liftshot_product_pivot() -> None:
+    for rel in (
+        "research/HAND_FUTURE.md",
+        "research/PRODUCT.md",
+        "research/TRACKING.md",
+    ):
+        text = _read(rel)
+        for needle in PIVOT_NEEDLES:
+            if needle not in text:
+                _fail(f"{rel} lost LiftShot pivot: {needle}")
+    future = _read("research/HAND_FUTURE.md")
+    if "Retire — mouse-gun product verb and mouse mesh prototype path" not in future:
+        _fail("HAND_FUTURE.md must retire mouse-gun verb and mouse mesh prototype path")
+    if "Do not generate, import, or prototype a mouse gun / mouse mesh" not in future:
+        _fail("HAND_FUTURE.md must forbid a mouse mesh prototype path")
+    if "Do not reopen a mouse mesh / sable-mouse prototype" not in future:
+        _fail("HAND_FUTURE.md must keep sable-mouse prototype STOP")
+    product = _read("research/PRODUCT.md")
+    if "lyffseba/sable-mouse" not in product or "Mouse-as-gun" not in product:
+        _fail("PRODUCT.md must STOP lyffseba/sable-mouse and mouse-as-gun")
+    tracking = _read("research/TRACKING.md")
+    if "lyffseba/sable-mouse" not in tracking or "Mouse-as-gun" not in tracking:
+        _fail("TRACKING.md must STOP lyffseba/sable-mouse and mouse-as-gun")
+    if "lyffseba/sable-mouse" not in future:
+        _fail("HAND_FUTURE.md must name lyffseba/sable-mouse STOP")
+
+
 def test_fallbacks_labeled_non_product() -> None:
     for rel in (
         "research/HAND_FUTURE.md",
@@ -231,9 +272,9 @@ def test_fallbacks_labeled_non_product() -> None:
         text = _read(rel)
         if "never the product story" not in text and "never product story" not in text:
             _fail(f"{rel} must label HID/DESKTOP/Space as never the product story")
+        if "non-product emergency" not in text:
+            _fail(f"{rel} must label DESKTOP/HID as non-product emergency")
     future = _read("research/HAND_FUTURE.md")
-    if "Non-product" not in future and "non-product" not in future:
-        _fail("HAND_FUTURE.md must label DESKTOP/cam-deny non-product")
     if "sable-mouse track STOP" not in future:
         _fail("HAND_FUTURE.md must keep sable-mouse STOP")
     if "No mouse ever" not in future:
@@ -258,6 +299,7 @@ def main() -> int:
         test_vision_stack_honesty()
         test_reload_stub()
         test_product_gun_hid_deprecated()
+        test_liftshot_product_pivot()
         test_fallbacks_labeled_non_product()
         test_no_mouse_art_invented()
     except AssertionError as exc:

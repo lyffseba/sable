@@ -2,6 +2,10 @@
 
 Architecture invent for a **pure hand verb** on Chromium. Soft-lock this spike; do not merge from the agent. AimSample stays five fields. Original IP only. Yard is the sole map. Bay stays parked.
 
+## LiftShot product pivot (priority)
+
+**SABLE = hand-only reinvent-the-mouse — NO mouse as product verb.** Cam tracks hands. Shark-fin / reload **stand**. **Mouse mesh / sable-mouse STOPPED** (Blender ask was **Kruidenhof, not SABLE**). No mouse-gun product verb. **No mouse mesh prototype path.** Vision-model stack **open to invent** (Meta SAM-class object gate + landmark FSM as already briefed). DESKTOP / HID = **non-product emergency** only if still in code. AimSample locked.
+
 This file is the product-architecture soT for the hand-only future. Tracker archaeology stays in `research/HANDS.md`. Shipped mailbox / HID honesty bars stay in `docs/aim_pipeline.md` and `docs/PRODUCTION.md`. Product brief: `research/PRODUCT.md`. Tracking lock: `research/TRACKING.md`.
 
 ---
@@ -25,11 +29,11 @@ Platform: MacBook Pro + Chromium web floor.
 
 ## Product path is hands-only
 
-The shipping **product story** is: raise a hand at a MacBook lid camera, **point to aim**, **shark-fin thumb-up to shoot**, **thumb parallel = safe**, **index+middle to the ceiling to reload**. Camera + vision own every gun verb. There is **no mouse as an input verb**. There is **no mouse-body optical aim**. There is **no mouse-lift gun**. There is **no mouse mesh** as shipping product art. The sable-mouse track is **STOP**.
+The shipping **product story** is: raise a hand at a MacBook lid camera, **point to aim**, **shark-fin thumb-up to shoot**, **thumb parallel = safe**, **index+middle to the ceiling to reload**. Camera + vision own every gun verb. **No mouse as product verb.** There is **no mouse-gun product verb**. There is **no mouse-body optical aim**. There is **no mouse-lift gun**. There is **no mouse mesh prototype path**. The sable-mouse track is **STOP** (Kruidenhof, not SABLE).
 
 `AimBus.fire()` / `AimPipeline.fire()` remain a **peek** of the last committed `AimSample`. Gesture rising edges call that peek. They do not wait on a camera frame, the Hands worker, net, or the 128 Hz sim. They do not bloom. They do not aim-assist. They do not hide noise with RNG.
 
-HID pad, DESKTOP / cam-deny, and Space `forceGun` may remain in the tree as **engineering fallbacks** — labeled **non-product**. They are honesty bars for a denied camera or a fail-to-lock escape. They are never the product story, never the trailer, never the GUN-mode trigger.
+HID pad, DESKTOP / cam-deny, and Space `forceGun` may remain in the tree only as a **non-product emergency** — labeled **non-product**. They are honesty bars for a denied camera or a fail-to-lock escape. They are never the product story, never the trailer, never the GUN-mode trigger.
 
 ---
 
@@ -233,15 +237,18 @@ Do **not** ship a SAM / Detectron encoder on the rAF or inside `fire()`. Do **no
 
 ---
 
-## Retire — mouse as verb, mouse as body, mouse as art
+## Retire — mouse-gun product verb and mouse mesh prototype path
+
+LiftShot pivot: **no mouse as product verb.** Archaeology only. Do not reopen a mouse mesh / sable-mouse prototype.
 
 | Retired | Why | Where the corpse lives |
 |---------|-----|------------------------|
-| Mouse-body optical aim (YOLO / NCC / ArUco / nose) | Cam tracks hands. Box center was the stock. Juan lock | `research/mice/REPORT.md` archaeology |
-| Mouse-lift gun | Lift is a **hand**. DESKTOP lift is a fallback lie we keep honest, not a product | `docs/aim_pipeline.md` DESKTOP bars |
-| Mouse HID as **GUN** trigger | Product shoot is shark-fin. Pad is menus only | this file; thin proto gate `productGunHidFire` |
-| Mouse mesh as shipping product art | Blender ask was Kruidenhof — **STOPPED**. sable-mouse track **STOP** | do not generate or import a mouse gun |
-| OS cursor as product aim | DESKTOP is cam-deny / KeyT **non-product** | labeled fallback |
+| Mouse-gun **product verb** | SABLE is hand-only reinvent-the-mouse. Cam tracks hands | this file; `research/PRODUCT.md` |
+| Mouse-body optical aim (YOLO / NCC / ArUco / nose) | Cam tracks hands. Box center was the stock | `research/mice/REPORT.md` archaeology |
+| Mouse-lift gun | Lift is a **hand** | `docs/aim_pipeline.md` DESKTOP bars |
+| Mouse HID as **GUN** trigger | Product shoot is shark-fin. Pad is menus only if needed | `productGunHidFire` is false |
+| **Mouse mesh prototype path** | Blender ask was **Kruidenhof, not SABLE**. Mouse Blender / `lyffseba/sable-mouse` SABLE art track — **STOP**. Do not generate, import, or prototype a mouse gun / mouse mesh | archaeology only |
+| OS cursor as product aim | DESKTOP / HID = **non-product emergency** only | labeled fallback |
 
 Feel DNA may name CS-class honesty and Beat Saber–class shoot energy in **research/** only. Runtime `proto/` + `art/` never take those names, maps, guns, or audio (`tools/foreign_dna.py`).
 

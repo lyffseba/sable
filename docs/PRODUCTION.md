@@ -12,7 +12,7 @@ The feeling is **arcade light-gun on a living-room TV**, not an aim-trainer, not
 
 - Duck Hunt class: things fly, you point at the glass, they pop or they escape.
 - Cabinet-with-friends class: same room, same screen energy; later the same house over a room code.
-- The gun is **your hand**. Product shoot is the shark-fin thumb (see `research/HAND_FUTURE.md`). HID / DESKTOP / Space are **engineering fallbacks, never the product story**. The reticle may lag; the shot never waits on a camera frame.
+- The gun is **your hand**. Product shoot is the shark-fin thumb (see `research/HAND_FUTURE.md`). HID / DESKTOP / Space are a **non-product emergency** only if still in code — never the product story. The reticle may lag; the shot never waits on a camera frame.
 
 We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, maps, or guns from those games.
 
@@ -47,7 +47,7 @@ webcam  →  fingertip lock (landmarks preferred, skin+NCC fallback)
 HID click → peek AimSample → hitscan
 ```
 
-Product lock: front cam tracks hands — mouse body is never the optical aim target. **No mouse as product verb.** Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped **engineering fallbacks, labeled non-product** (`research/TRACKING.md`, `research/HAND_FUTURE.md`). Juan / LiftShot product brief: `research/PRODUCT.md`. Vision invent: Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is interim.
+Product lock: front cam tracks hands — mouse body is never the optical aim target. **No mouse as product verb.** No mouse-gun product verb. **No mouse mesh prototype path** (sable-mouse STOP — Kruidenhof, not SABLE). Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped **non-product emergency** honesty bars only if still in code (`research/TRACKING.md`, `research/HAND_FUTURE.md`). Juan / LiftShot product brief: `research/PRODUCT.md`. Vision invent: Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is interim.
 
 Desktop **T** is a debug gun, not the product. Space is the Q4 force-GUN escape on fail-to-lock. **Q4 fail-to-lock is SEEKING until lock or Space.**
 

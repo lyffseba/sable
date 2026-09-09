@@ -2,7 +2,7 @@
 
 **Only question:** how does a MacBook lid camera, in the browser, put the **index fingertip** into `AimSample.uv` at 60–120 FPS without extra hardware?
 
-Product path is hands-only (`research/HAND_FUTURE.md`). Product gun path is shark-fin shoot + index+middle-up reload (`research/TRACKING.md`). This file is the **interim** MediaPipe Hands-class tracker audit. Meta SAM-class + landmark FSM is the invent path — not shipped. HID click must not replace the shoot gesture in gun mode; HID / DESKTOP / Space are **engineering fallbacks, never the product story**. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco is **retired for aim** (sable-mouse track STOP) — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
+Product path is hands-only (`research/HAND_FUTURE.md`). Product gun path is shark-fin shoot + index+middle-up reload (`research/TRACKING.md`). This file is the **interim** MediaPipe Hands-class tracker audit. Meta SAM-class + landmark FSM is the invent path — not shipped. HID click must not replace the shoot gesture in gun mode; HID / DESKTOP / Space are a **non-product emergency** only if still in code — never the product story. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco and the **mouse mesh prototype path** are **retired** (sable-mouse STOP — Kruidenhof, not SABLE) — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
 
 ## Geometry (do not invert)
 

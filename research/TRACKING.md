@@ -15,13 +15,17 @@ HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; 
 Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
 Platform: MacBook Pro + Chromium web floor.
 
+## LiftShot product pivot (priority)
+
+**SABLE = hand-only reinvent-the-mouse — NO mouse as product verb.** Cam tracks hands. Shark-fin / reload **stand**. **Mouse mesh / sable-mouse STOPPED** (Blender ask was **Kruidenhof, not SABLE**). No mouse-gun product verb. **No mouse mesh prototype path.** Vision-model stack **open to invent** (Meta SAM-class object gate + landmark FSM as already briefed). DESKTOP / HID = **non-product emergency** only if still in code. AimSample locked.
+
 See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimBus. Product brief: `research/PRODUCT.md`.
 
 ## Juan LOCK (2026-09-09)
 **Front camera tracks HANDS, not the mouse.**
 - **Aim** = hand pointing (literally point to aim)
 - **Shoot / reload** = hand gestures — not mouse-body tracking, not HID-as-gun
-- **No mouse as product verb.** Webcam must **not** optically lock the mouse body for aim. No mouse-lift gun. No mouse mesh as shipping product art (sable-mouse track STOP)
+- **No mouse as product verb.** Webcam must **not** optically lock the mouse body for aim. No mouse-lift gun. No mouse-gun product verb. **No mouse mesh prototype path** (sable-mouse STOP — Kruidenhof, not SABLE)
 
 ### Shoot gesture
 - Thumb **up** like a shark fin = **shoot**
@@ -34,7 +38,7 @@ See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimB
 ## Verb
 - Hands up / point at screen → GUN; cam + vision own the hand; point aims; shark-fin thumb fires; index+middle up reloads
 - Pad (on mat) → menus / movement only — **not** product shoot
-- HID / DESKTOP / Space = **engineering fallbacks, never the product story** (cam-deny honesty, KeyT debug, Q4 `forceGun` escape)
+- HID / DESKTOP / Space = **non-product emergency** only if still in code — never the product story (cam-deny honesty, KeyT debug, Q4 `forceGun` escape)
 - Camera never becomes a selfie (no face PIP)
 
 ## Contract
@@ -44,7 +48,7 @@ See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimB
 - Product path is hands-only (`research/HAND_FUTURE.md`)
 
 ## History (superseded for aim target)
-Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. sable-mouse track **STOP**. Keep docs for archaeology; invent Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is **interim** until that stack ships.
+Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Mouse-as-gun / mouse-cam aim are **retired**. Mouse-gun product verb and **mouse mesh prototype path** are **STOPPED** (Mouse Blender / `lyffseba/sable-mouse` — Kruidenhof, not SABLE). Keep docs for archaeology only; vision stack stays **open to invent** (Meta SAM-class object gate + landmark FSM). MediaPipe Hands-class is **interim** until that stack ships.
 
 ## Hardware floor
 Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Godot/native is not the tracking host.

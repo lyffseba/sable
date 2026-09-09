@@ -15,6 +15,10 @@ HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; 
 Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
 Platform: MacBook Pro + Chromium web floor.
 
+## LiftShot product pivot (priority)
+
+**SABLE = hand-only reinvent-the-mouse — NO mouse as product verb.** Cam tracks hands. Shark-fin / reload **stand**. **Mouse mesh / sable-mouse STOPPED** (Blender ask was **Kruidenhof, not SABLE**). No mouse-gun product verb. **No mouse mesh prototype path.** Vision-model stack **open to invent** (Meta SAM-class object gate + landmark FSM as already briefed). DESKTOP / HID = **non-product emergency** only if still in code. AimSample locked.
+
 Architecture invent: `research/HAND_FUTURE.md` — product invent is **SAM2-tiny / MobileSAM** worker mask (hand-as-object); MediaPipe is the **interim landmark FSM** (SAM alone is not shark-fin). Detectron2 stays Python/native, not the Chromium zip. Prefer pure web.
 
 ## Vision
@@ -32,13 +36,17 @@ Architecture invent: `research/HAND_FUTURE.md` — product invent is **SAM2-tiny
 | SAFE   | Thumb parallel to other fingers |
 | RELOAD | Index + middle up toward ceiling (charger-plug / insert-mag feel) |
 
-Camera + vision own **aim / shoot / reload / lift**. **No mouse as product verb.** Mouse-body optical lock, mouse-lift gun, and mouse mesh as shipping art are **retired** (sable-mouse track STOP). HID pad / DESKTOP / Space may remain as **engineering fallbacks — never the product story**.
+Camera + vision own **aim / shoot / reload / lift**. **No mouse as product verb.** Mouse-body optical lock, mouse-lift gun, mouse-gun product verb, and **mouse mesh prototype path** are **retired** (sable-mouse track STOP — Kruidenhof, not SABLE). DESKTOP / HID / Space are a **non-product emergency** only if still in code — never the product story.
 
 ## Soft rules
 - Soft-lock / ship only **hand-only** cuts that match this brief
 - AimSample off-limits unless Juan unlocks
-- HID / DESKTOP / Space = engineering fallbacks, never product story
+- HID / DESKTOP / Space = **non-product emergency** only if still in code — never the product story
 - Always-practice / lobby never soft-locks warm-up
 
 ## Platform note
 Primary playable surface = Chromium on MacBook Pro–class. Godot/native work stays engineering path only if it serves the web ship; do not invent a second product. SablePort lock: `docs/port.md` / `SABLE_PORT_SURFACE = chromium-macbook` / verb `aimbus-hand-gesture`. DESKTOP HID is honesty fallback, not the product verb.
+
+## STOPPED
+- Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP (Kruidenhof, not SABLE). **No mouse mesh prototype path.**
+- Mouse-as-gun / mouse-cam aim — retired. No mouse-gun product verb.
