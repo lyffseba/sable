@@ -2,7 +2,7 @@
 
 **Only question:** how does a MacBook lid camera, in the browser, put the **index fingertip** into `AimSample.uv` at 60–120 FPS without extra hardware?
 
-Product gun path is shark-fin shoot + index+middle-up reload (`research/TRACKING.md`). HID click must not replace the shoot gesture in gun mode; DESKTOP cam-deny / HID pad / Q4 Space `forceGun` stay shipped fallbacks. This file is the tracker. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
+Product path is hands-only (`research/HAND_FUTURE.md`). Product gun path is shark-fin shoot + index+middle-up reload (`research/TRACKING.md`). This file is the **interim** MediaPipe Hands-class tracker audit. Meta SAM-class + landmark FSM is the invent path — not shipped. HID click must not replace the shoot gesture in gun mode; HID / DESKTOP / Space are a **non-product emergency** only if still in code — never the product story. Ruled out only with a counterexample. Mouse-body YOLO / NCC / ArUco and the **mouse mesh prototype path** are **retired** (sable-mouse STOP — Kruidenhof, not SABLE) — archaeology in `research/mice/REPORT.md`; live lock is `research/TRACKING.md`.
 
 ## Geometry (do not invert)
 
@@ -74,9 +74,9 @@ No counterexample kills F for this SKU.
 
 | Stage | Tracker | Proof it survived |
 |-------|---------|-------------------|
-| **Do it** | MediaPipe Tasks Vision HandLandmarker, landmark 8, mirror X, One Euro | Only in-browser fingertip at camera rate |
+| **Do it** | MediaPipe Tasks Vision HandLandmarker (ship default), landmark 8, MediaPipe order, Worker GPU/WebGL then CPU, mirror X, One Euro | Only in-browser fingertip at camera rate. Do not share Three.js WebGL on main |
 | **Do it right** | `detectForVideo` runs in `proto/hands_worker.js` (GPU, then CPU). Queue depth 1; drop stale. Main applies One Euro on UV then the mailbox. If WASM/landmarks fail **this frame**, `fallbackSkin` (findHand + NCC) still writes the muzzle. HID fire never waits on cam/worker. `initHands` promise must resolve before play. Shark-fin after `updateMode`, before `updateAim`. | Worker + fallback + mailbox |
-| **Do it better** | Shark-fin (thumb UP) is product fire; pinch (8↔4) interim; 2nd hand ignore; 120 FPS | After lock is green on a lid cam |
+| **Do it better** | Meta SAM-class gate + landmark FSM (`research/HAND_FUTURE.md`); micro-handpose stretch only after MacBook Chromium bench; shark-fin product shoot (#86 on tip); charger-plug reload (#87); 120 FPS | After lock is green on a lid cam. Pinch stays interim. micro-handpose is not the invent default. |
 
 **Model (confirmed):** Tasks Vision publishes one HandLandmarker `.task` — Google **float16/1 full** (`hand_landmarker.task`, 7819105 bytes). There is no `hand_landmarker_lite.task` on the model garden (404). Legacy Hands `hand_landmark_lite.tflite` is not a Tasks bundle. Keep the vendored float16/1 file. Sapiens / YOLO / egocentric are not defaults.
 

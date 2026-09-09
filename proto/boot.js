@@ -4,7 +4,9 @@
    SableNet hangar lock: room owns hangar; poll is a view; HUD reads S.hangar.
    SablePort tick/playlist seam: 128 Hz stepSim; HID fire outside. Playlist:
    docs/modes.md. Port path: docs/port.md.
-   Trackpad / HID click fires from the AimBus mailbox — never waits on camera.
+   Product GUN is hands-only (research/HAND_FUTURE.md). Trackpad / HID
+   click peeks AimBus only on DESKTOP — never waits on camera. GUN +
+   camReady pad is menus only (productGunHidFire is false).
    Waiting Yard arms cam fire-and-forget (armPracticeCam) — no lock tax.
    Camera deny arms desktop on that lobby (armPracticeDesktop) — stay
    waiting Yard; do not dump into the 60s gallery.
@@ -985,8 +987,8 @@ function frame(t) {
   if (camReady) {
     if (grabFrame()) runTrack(t);
     else coastTrack(t);
-    // Lift first, then shark-fin (product) peeks last pointing UV,
-    // then pinch (interim), then charger-plug reload, then publish.
+    // Lift first, then shark-fin (product, #86) peeks last pointing UV,
+    // then pinch (interim), then charger-plug reload (#87), then publish.
     // Gesture must not rewrite the shot. Reload must not fire.
     updateMode(t);
     maybeSharkFinFire(S.handLm);
@@ -997,6 +999,7 @@ function frame(t) {
     // DESKTOP early-return is safe without landmarks. Cam-deny / KeyT
     // must not leave seeking+unlifted in the mailbox. Do not shark-fin
     // or pinch or reload here — HID publish+peek stays the pad fallback.
+    // Engineering fallback, never the product story.
     updateMode(t);
   }
   afterLiftState();
@@ -1159,6 +1162,12 @@ function hidChromeTarget(el) {
   return !!(el.closest("button, input, textarea, select, a, label"));
 }
 
+function productGunHidFire() {
+  // Product GUN never uses the pad as a gun. DESKTOP / cam-deny is the
+  // labeled non-product emergency honesty path. See HAND_FUTURE.md.
+  return false;
+}
+
 function onHidPointerDown(e) {
   // HID lives on window. #hud is pointer-events: none — a canvasHUD
   // listener never sees a real trackpad tap. Chrome still owns its click.
@@ -1188,7 +1197,9 @@ function onHidPointerDown(e) {
   }
   if (phase === "range" || phase === "bay" || phase === "lobby") {
     e.preventDefault();
-    fire();
+    // Product GUN: pad is menus only. HID-as-gun is DESKTOP / cam-deny
+    // emergency honesty — never the product story.
+    if (S.desktop || productGunHidFire()) fire();
   }
 }
 

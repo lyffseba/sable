@@ -1,6 +1,6 @@
 # SABLE mouse-as-light-gun: what to track (v1)
 
-**Retired for aim (Juan lock 2026-09-09).** Mouse-body YOLO / NCC / ArUco is not the live optical target. Cam tracks hands. Product gun path is shark-fin shoot + index+middle-up reload — not HID-as-gun. This file is archaeology. See `research/TRACKING.md`.
+**Retired for aim (Juan lock 2026-09-09). sable-mouse track STOP.** Mouse-body YOLO / NCC / ArUco is not the live optical target. **No mouse as product verb.** No mouse-gun product verb. **No mouse mesh prototype path** (Blender ask was **Kruidenhof, not SABLE**). Cam tracks hands. Product gun path is shark-fin shoot + index+middle-up reload — not HID-as-gun. This file is archaeology. See `research/TRACKING.md` and `research/HAND_FUTURE.md`.
 
 **Detect the whole mouse as an object; the gun point is the silhouette nose (front-taper contour extremum toward the camera / LMB–RMB split at the leading edge). Shot pixel = that nose, not the box center. Run YOLO11n (COCO, class 64 `mouse`) as a CPU proposal generator only — ONNX + OpenVINO INT8, imgsz=416, ~20–40 ms/frame on a 2021 G14 Ryzen 9 5900HS — then lock the nose with KLT (~1–2 ms) so the RTX 3060 stays on the game. Box center is the stock. Scroll wheel is heading, not the muzzle.**
 

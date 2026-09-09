@@ -378,6 +378,8 @@ def test_pointing_filter() -> None:
         raise AssertionError("!camReady DESKTOP must not shark-fin — HID is the pad fallback")
     if "maybePinchFire" in desk_else.group(1) or "updateAim" in desk_else.group(1):
         raise AssertionError("!camReady DESKTOP must not pinch or rewrite aim")
+    if "maybeReloadGesture" in desk_else.group(1):
+        raise AssertionError("!camReady DESKTOP must not run the reload stub")
     if "runTrack" in desk_else.group(1) or "grabFrame" in desk_else.group(1):
         raise AssertionError("!camReady DESKTOP must not invent a hand track")
     if frame.find("if (camReady)") > frame.find("else if (S.desktop)"):
