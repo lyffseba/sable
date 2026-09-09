@@ -243,21 +243,26 @@ def test_client_peek_and_order() -> None:
         _fail("shark-fin must no-op when DESKTOP owns the pad fallback")
     if "S.finHeld" not in trig:
         _fail("shark-fin must rising-edge, not held auto-fire")
-    pinch = _fn(src, "maybePinchFire")
-    if "sharkFin" not in pinch and "S.finHeld" not in pinch:
-        _fail("pinch must yield the frame when shark-fin is product fire")
+    if "function maybePinchFire" in src or "maybePinchFire(" in src:
+        _fail("pinch must not peek -- maybePinchFire is retired")
+    if "pinchHeld" in src:
+        _fail("S.pinchHeld died with the pinch verb")
     frame = _fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
-        _fail("shark-fin ran before updateMode — lift would be stale")
-    if frame.find("maybeSharkFinFire") > frame.find("maybePinchFire"):
-        _fail("shark-fin must run before pinch — product shoot first")
+        _fail("shark-fin ran before updateMode -- lift would be stale")
+    if "maybePinchFire" in frame:
+        _fail("frame must not run pinch -- pinch is not a trigger")
+    if frame.find("maybeSharkFinFire") > frame.find("maybeReloadGesture"):
+        _fail("shark-fin must run before reload -- product shoot first")
+    if frame.find("maybeReloadGesture") > frame.find("updateAim"):
+        _fail("reload published gesture UV before the peek")
     if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
         _fail("shark-fin published gesture UV before the peek")
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
     if not desk_else or "updateMode" not in desk_else.group(1):
         _fail("frame must run updateMode on DESKTOP even if !camReady")
     if "maybeSharkFinFire" in desk_else.group(1) or "maybePinchFire" in desk_else.group(1):
-        _fail("!camReady DESKTOP must not shark-fin — HID is the pad fallback")
+        _fail("!camReady DESKTOP must not shark-fin -- HID is the pad fallback")
     sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
     if not sample:
         _fail("AimSample class missing")

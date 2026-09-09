@@ -18,7 +18,7 @@ A later host adapter plugs in behind these bars. It does not move them.
 
 Product verb: **hand point** (aim) + **shark-fin** (shoot) → `AimBus` peek. Reload is **charger-plug** (index+middle ceiling). The shot still peeks `AimBus` only — `AimSample` stays `{ uv, valid, lifted, confidence, t_hw }`. The shot must not wait on a camera frame, the Hands worker, the 128 Hz step, rAF, or net.
 
-DESKTOP HID pad (trackpad / mouse click) stays an **honesty fallback**, not the product verb. HID pointerdown lives on `window` — `#hud` is `pointer-events: none` and must not mute the pad. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome. Pinch is interim, not a new aim — peek last pointing UV after lift, before `updateAim`. Waiting-yard `lobby` uses the same `fire()`. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
+DESKTOP HID pad (trackpad / mouse click) stays an **honesty fallback**, not the product verb. HID pointerdown lives on `window` — `#hud` is `pointer-events: none` and must not mute the pad. After JOIN, leftover CODE/JOIN under the hidden cursor is not chrome. Pinch is not a trigger. Shark-fin peeks last pointing UV after lift, before `updateAim`. Waiting-yard `lobby` uses the same `fire()`. No bloom. No aim-assist. No RNG on the lifted shot. Contract: `docs/aim_pipeline.md`.
 
 ### Sim tick = 128 Hz, HID outside
 

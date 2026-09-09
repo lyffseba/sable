@@ -194,10 +194,12 @@ def test_shark_fin_and_charger_plug_on_tip() -> None:
     frame = _js_fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
         _fail("shark-fin must run after updateMode")
-    if frame.find("maybeSharkFinFire") > frame.find("maybePinchFire"):
-        _fail("shark-fin must run before interim pinch")
-    if frame.find("maybePinchFire") > frame.find("maybeReloadGesture"):
-        _fail("#87 charger-plug must run after pinch, before updateAim")
+    if "maybePinchFire" in frame or "function maybePinchFire" in src:
+        _fail("pinch must not peek — maybePinchFire is retired")
+    if "pinchHeld" in src:
+        _fail("S.pinchHeld died with the pinch verb")
+    if frame.find("maybeSharkFinFire") > frame.find("maybeReloadGesture"):
+        _fail("shark-fin must run before reload — product shoot first")
     if frame.find("maybeReloadGesture") > frame.find("updateAim"):
         _fail("reload must run before updateAim")
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)

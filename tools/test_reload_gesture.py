@@ -4,7 +4,7 @@
 Fail loud if the rising edge no longer refills, if shark-fin false-reloads,
 if reload false-fires shark-fin, if empty mag silent-fires, if AimSample
 grows a sixth field, if DESKTOP is forced onto reload, if the gesture
-rewrites shot UV / re-gates the waiting Yard, or if pinch stays product.
+rewrites shot UV / re-gates the waiting Yard, or if pinch still peeks fire().
 """
 
 from __future__ import annotations
@@ -219,9 +219,9 @@ def maybe_reload_edge(held: bool, pose: bool, mag: int) -> tuple[bool, int, bool
     return held, mag, reloaded
 
 
-def spend_gesture_round(mag: int, fin_held: bool, pinch_held: bool) -> tuple[int, bool]:
-    """Hand-path mag only. HID / DESKTOP do not invent a mag story."""
-    if not (fin_held or pinch_held):
+def spend_gesture_round(mag: int, fin_held: bool) -> tuple[int, bool]:
+    """Hand-path mag only. HID / DESKTOP / pinch do not invent a mag story."""
+    if not fin_held:
         return mag, True
     if mag <= 0:
         return mag, False
@@ -267,26 +267,23 @@ def test_rising_edge_refills() -> None:
 
 
 def test_empty_mag_cannot_silent_fire() -> None:
-    mag, shot = spend_gesture_round(0, True, False)
+    mag, shot = spend_gesture_round(0, True)
     if shot or mag != 0:
         _fail("empty mag cannot silent-fire on shark-fin")
-    mag, shot = spend_gesture_round(0, False, True)
-    if shot:
-        _fail("empty mag cannot silent-fire on pinch")
-    mag, shot = spend_gesture_round(0, False, False)
+    mag, shot = spend_gesture_round(0, False)
     if not shot:
-        _fail("DESKTOP / HID fallback must not invent a mag brick")
+        _fail("pinch / HID / DESKTOP must not invent a mag brick")
     held, mag, reloaded = maybe_reload_edge(False, True, 0)
     if not reloaded or mag != MAG_CAP:
         _fail("rising-edge reload must refill an empty mag")
-    mag, shot = spend_gesture_round(mag, True, False)
+    mag, shot = spend_gesture_round(mag, True)
     if not shot or mag != MAG_CAP - 1:
         _fail("after reload, shark-fin must spend a round")
     for _ in range(MAG_CAP - 1):
-        mag, shot = spend_gesture_round(mag, True, False)
+        mag, shot = spend_gesture_round(mag, True)
         if not shot:
             _fail("loaded mag must still fire")
-    mag, shot = spend_gesture_round(mag, True, False)
+    mag, shot = spend_gesture_round(mag, True)
     if shot or mag != 0:
         _fail("sixth spent round must dry-click — not a seventh silent hit")
 
@@ -322,16 +319,17 @@ def test_client_peek_and_order() -> None:
         _fail("reload must no-op when DESKTOP owns the pad fallback")
     if "S.reloadHeld" not in trig:
         _fail("reload must rising-edge, not held auto-refill")
-    pinch = _fn(src, "maybePinchFire")
-    if "reloadGesture" not in pinch and "S.reloadHeld" not in pinch:
-        _fail("pinch must yield the frame when charger-plug is reload")
+    if "function maybePinchFire" in src or "maybePinchFire(" in src:
+        _fail("pinch must not peek -- maybePinchFire is retired")
+    if "pinchHeld" in src:
+        _fail("S.pinchHeld died with the pinch verb")
     frame = _fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
-        _fail("shark-fin ran before updateMode — lift would be stale")
-    if frame.find("maybeSharkFinFire") > frame.find("maybePinchFire"):
-        _fail("shark-fin must run before pinch — product shoot first")
-    if frame.find("maybePinchFire") > frame.find("maybeReloadGesture"):
-        _fail("reload must run after pinch — shoot then charger-plug")
+        _fail("shark-fin ran before updateMode -- lift would be stale")
+    if "maybePinchFire" in frame:
+        _fail("frame must not run pinch -- pinch is not a trigger")
+    if frame.find("maybeSharkFinFire") > frame.find("maybeReloadGesture"):
+        _fail("shark-fin must run before reload -- product shoot first")
     if frame.find("maybeReloadGesture") > frame.find("updateAim"):
         _fail("reload published gesture UV before the peek")
     if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
@@ -358,8 +356,10 @@ def test_client_peek_and_order() -> None:
     if "missTick" not in fire:
         _fail("empty mag must reuse dry-tick miss audio")
     spend = _fn(src, "spendGestureRound")
-    if "S.finHeld" not in spend or "S.pinchHeld" not in spend:
-        _fail("mag spend is the gesture path — not HID / DESKTOP")
+    if "S.finHeld" not in spend:
+        _fail("mag spend is the shark-fin path -- not HID / DESKTOP")
+    if "S.pinchHeld" in spend or "pinchHeld" in spend:
+        _fail("pinch must not spend mag -- pinch is not a trigger")
     if "S.desktop" in spend:
         _fail("spendGestureRound must not invent a DESKTOP mag story")
 
