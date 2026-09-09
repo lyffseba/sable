@@ -347,15 +347,12 @@ def test_pointing_filter() -> None:
         raise AssertionError("maybeSharkFinFire must not re-gate the verb — fire() owns the phase lock")
     if "S.desktop" not in fin:
         raise AssertionError("shark-fin must no-op when DESKTOP owns the pad fallback")
-    if "function maybePinchFire" not in src:
-        raise AssertionError("pinch thumb-index must be able to fire")
-    pinch = _js_fn(src, "maybePinchFire")
-    if "fire()" not in pinch:
-        raise AssertionError("pinch must peek through fire()")
-    if "updateAim(" in pinch or "publishAim(" in pinch:
-        raise AssertionError("pinch must not rewrite aim — peek last pointing UV")
-    if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
-        raise AssertionError("maybePinchFire must not re-gate the verb — fire() owns the phase lock")
+    if "function maybePinchFire" in src or "maybePinchFire(" in src:
+        raise AssertionError("pinch must not peek -- maybePinchFire is retired")
+    if "pinchHeld" in src:
+        raise AssertionError("S.pinchHeld died with the pinch verb")
+    if "function pinchStrength" not in src:
+        raise AssertionError("pinchStrength stays as the shark-fin safe gate")
     if "function fallbackSkin" not in src:
         raise AssertionError("if Hands dies, skin/NCC fallback must run")
     if "handsPromise" not in src:
@@ -379,14 +376,14 @@ def test_pointing_filter() -> None:
     frame = _js_fn(src, "frame")
     if frame.find("updateMode") > frame.find("maybeSharkFinFire"):
         raise AssertionError("shark-fin must run after updateMode so lifted is current")
-    if frame.find("maybeSharkFinFire") > frame.find("maybePinchFire"):
-        raise AssertionError("shark-fin must run before pinch — product shoot first")
+    if "maybePinchFire" in frame:
+        raise AssertionError("frame must not run pinch — pinch is not a trigger")
+    if frame.find("maybeSharkFinFire") > frame.find("maybeReloadGesture"):
+        raise AssertionError("shark-fin must run before reload — product shoot first")
+    if frame.find("maybeReloadGesture") > frame.find("updateAim"):
+        raise AssertionError("reload must run before updateAim")
     if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
         raise AssertionError("shark-fin must peek last pointing UV — updateAim after the trigger must not rewrite the shot")
-    if frame.find("updateMode") > frame.find("maybePinchFire"):
-        raise AssertionError("pinch must run after updateMode so lifted is current")
-    if frame.find("maybePinchFire") > frame.find("updateAim"):
-        raise AssertionError("pinch must peek last pointing UV — updateAim after the trigger must not rewrite the shot")
     desk_else = re.search(r"else if \(S\.desktop\) \{([\s\S]*?)\n  \}", frame)
     if not desk_else or "updateMode" not in desk_else.group(1):
         raise AssertionError("frame must run updateMode on DESKTOP even if !camReady")
@@ -399,7 +396,7 @@ def test_pointing_filter() -> None:
     if "runTrack" in desk_else.group(1) or "grabFrame" in desk_else.group(1):
         raise AssertionError("!camReady DESKTOP must not invent a hand track")
     if frame.find("if (camReady)") > frame.find("else if (S.desktop)"):
-        raise AssertionError("camReady track/pinch path must stay first — do not reorder GUN")
+        raise AssertionError("camReady track/gesture path must stay first — do not reorder GUN")
     lost = _js_fn(src, "nccTrack")
     if "age > COAST_MS && S.euroX" in lost:
         raise AssertionError("do not kill euro/velocity at coast — only after QUALITY_LOST_MS")

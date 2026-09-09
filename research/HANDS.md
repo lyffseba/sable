@@ -63,7 +63,7 @@ Counterexample: no consented in-house corpus; months.
 → Not v1.
 
 **F — MediaPipe Hands**  
-Apache-2.0. 21 landmarks. GPU delegate on M-series. Landmark **8** = index tip, **4** = thumb (pinch later), **0** = wrist.  
+Apache-2.0. 21 landmarks. GPU delegate on M-series. Landmark **8** = index tip, **4** = thumb (shark-fin / safe-gate), **0** = wrist.  
 Remaining objections (not fatal):  
 - ~8–17 MB first download → cache.  
 - Pointing *into* the camera foreshortens fingers → still returns 8; One Euro.  
@@ -76,7 +76,7 @@ No counterexample kills F for this SKU.
 |-------|---------|-------------------|
 | **Do it** | MediaPipe Tasks Vision HandLandmarker (ship default), landmark 8, MediaPipe order, Worker GPU/WebGL then CPU, mirror X, One Euro | Only in-browser fingertip at camera rate. Do not share Three.js WebGL on main |
 | **Do it right** | `detectForVideo` runs in `proto/hands_worker.js` (GPU, then CPU). Queue depth 1; drop stale. Main applies One Euro on UV then the mailbox. If WASM/landmarks fail **this frame**, `fallbackSkin` (findHand + NCC) still writes the muzzle. HID fire never waits on cam/worker. `initHands` promise must resolve before play. Shark-fin after `updateMode`, before `updateAim`. | Worker + fallback + mailbox |
-| **Do it better** | Meta SAM-class gate + landmark FSM (`research/HAND_FUTURE.md`); micro-handpose stretch only after MacBook Chromium bench; shark-fin product shoot (#86 on tip); charger-plug reload (#87); 120 FPS | After lock is green on a lid cam. Pinch stays interim. micro-handpose is not the invent default. |
+| **Do it better** | Meta SAM-class gate + landmark FSM (`research/HAND_FUTURE.md`); micro-handpose stretch only after MacBook Chromium bench; shark-fin product shoot (#86 on tip); charger-plug reload (#87); 120 FPS | After lock is green on a lid cam. Pinch is not a trigger. micro-handpose is not the invent default. |
 
 **Model (confirmed):** Tasks Vision publishes one HandLandmarker `.task` — Google **float16/1 full** (`hand_landmarker.task`, 7819105 bytes). There is no `hand_landmarker_lite.task` on the model garden (404). Legacy Hands `hand_landmark_lite.tflite` is not a Tasks bundle. Keep the vendored float16/1 file. Sapiens / YOLO / egocentric are not defaults.
 
@@ -86,4 +86,4 @@ Do not converge on blobs because they were easy. Blob lost the audit.
 
 `0` wrist · `4` thumb tip · `8` index tip · `12` middle · `16` ring · `20` pinky.
 
-Muzzle = **8**. Shark-fin = thumb (`4`) up vs parallel to the fingers. Pinch (interim) = distance(`4`,`8`).
+Muzzle = **8**. Shark-fin = thumb (`4`) up vs parallel to the fingers. `pinchStrength` (distance `4`↔`8`) is the shark-fin safe gate only — pinch does not fire.

@@ -139,8 +139,10 @@ def test_no_main_thread_detect() -> None:
         _fail("rAF frame lost runTrack — tracker no longer publishes the mailbox")
     if "maybeSharkFinFire" not in frame:
         _fail("rAF frame must run shark-fin after updateMode")
-    if "fire(" in frame and "maybeSharkFinFire" not in frame and "maybePinchFire" not in frame:
-        _fail("rAF frame must not fire() except via shark-fin / pinch after updateMode")
+    if "maybePinchFire" in frame:
+        _fail("rAF frame must not run pinch -- pinch is not a trigger")
+    if "fire(" in frame and "maybeSharkFinFire" not in frame:
+        _fail("rAF frame must not fire() except via shark-fin after updateMode")
     step = _fn(js, "stepSim")
     if "fire(" in step:
         _fail("stepSim must not fire — HID stays off the 128 Hz clock")

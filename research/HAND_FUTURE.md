@@ -63,7 +63,7 @@ AimSample mailbox { uv, valid, lifted, confidence, t_hw }
 hitscan peeks last UV  —  reticle may lag 50–80 ms; the shot must not
 ```
 
-Invent around the mailbox. Do **not** add a sixth field for gesture, reload, mag, shark-fin, or SAM confidence. Gesture state lives on `S` (`handLm`, `finHeld` after #86, `reloadHeld`, `pinchHeld` interim). `publishAim` / `peek` / `fire` stay the only AimSample verbs.
+Invent around the mailbox. Do **not** add a sixth field for gesture, reload, mag, shark-fin, or SAM confidence. Gesture state lives on `S` (`handLm`, `finHeld` after #86, `reloadHeld`). Pinch is not a trigger. `publishAim` / `peek` / `fire` stay the only AimSample verbs.
 
 ### Capture
 
@@ -90,9 +90,9 @@ Product verbs, one hand (best pointing hand of up to two):
 | **SAFE** | Thumb **parallel** to the other fingers | nothing | nothing |
 | **RELOAD** | Index **and** middle up toward ceiling (`8`+`12` up; ring/pinky folded) | reload hook stub | not a second reload |
 
-Order after lift (`updateMode`): **shark-fin** (#86 on tip) → pinch (interim) → **charger-plug reload** (#87 on tip) → `updateAim`. Gesture never publishes a closed-finger UV before the peek. Reload never calls `fire()`. Mag lives on `S` (#87) — not a sixth AimSample field.
+Order after lift (`updateMode`): **shark-fin** (#86 on tip) → **charger-plug reload** (#87 on tip) → `updateAim`. Gesture never publishes a closed-finger UV before the peek. Reload never calls `fire()`. Mag lives on `S` (#87) — not a sixth AimSample field.
 
-#86 shark-fin is the product shoot. Pinch stays interim until a later soft-lock removes it. Space is **not** product shoot.
+#86 shark-fin is the only product shoot. Pinch is removed — `pinchStrength` is the shark-fin safe gate only. Space is **not** product shoot.
 
 ### AimBus peek fire / reload hook
 
@@ -270,7 +270,7 @@ Index + middle up toward the ceiling is product reload. Keep the lock in PRODUCT
 - Product GUN + live camera: pad is **menus only** (chrome still owns WARM UP / ENTER RANGE / LEAVE).
 - DESKTOP / cam-deny: HID publish+peek **stays** — labeled **non-product** emergency honesty.
 - Calibrate / lock HID for corners is not GUN shoot.
-- Pinch remains interim peek until a later soft-lock removes it.
+- Pinch is removed. It must not peek `fire()`. `pinchStrength` stays the shark-fin safe gate (>0.48).
 - Space `forceGun` stays the Q4 fail-to-lock escape — **not** product shoot.
 
 ### (c) Chromium / MacBook Pro perf floor
@@ -300,7 +300,7 @@ Keep the honesty bars. Label them. Do not sell them.
 | **DESKTOP** / cam-deny (`armPracticeDesktop`, KeyT, Offline lock timeout `goDesktopRange`) | Camera denied or debug | **Non-product.** OS cursor + HID peek. Confidence 1. No mint reticle stacked |
 | **Space** `forceGun` | Q4 fail-to-lock (`camReady`, no hand) | **Non-product.** SEEKING until lock or Space. Never auto-desktop. Not a shot |
 | **HID pad** in GUN + `camReady` | MacBook reach | **Deprecated as gun.** Menus only. `productGunHidFire` is false |
-| **Pinch** | Interim until shark-fin is the only shoot | Interim. Yields the frame when shark-fin is live (#86) |
+| **Pinch** | Retired as a fire() caller | Removed. Safe-gate only (`pinchStrength` > 0.48 refuses shark-fin) |
 | **`fallbackSkin`** (findHand + NCC) | WASM/landmarks fail this frame | Tracker else-path. Not a mouse. Not product shoot |
 | **skin/NCC as primary** | — | Ruled out (`research/HANDS.md`) |
 
@@ -327,7 +327,7 @@ Five fields. Existing `publish` / `peek` / `fire` only. Gesture bits stay on `S`
 
 ## Adversarial
 
-- Shark-fin / reload / pinch must not publish `updateAim` / `publishAim` before a peek.
+- Shark-fin / reload must not publish `updateAim` / `publishAim` before a peek. Pinch must not peek `fire()`.
 - Parallel thumb cannot fire. Held shark-fin cannot auto-fire. Held charger cannot auto-reload.
 - Reload cannot invent mag. Reload cannot `fire()`.
 - Product GUN + `camReady` cannot HID-fire (`productGunHidFire === false`).

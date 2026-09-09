@@ -202,11 +202,10 @@ def test_waiting_arena_always_practice() -> None:
         _fail("shark-fin must peek through fire() on the waiting Yard")
     if 'phase === "range"' in fin or 'phase === "bay"' in fin:
         _fail("maybeSharkFinFire re-gates the verb — waiting Yard muted shark-fin")
-    pinch = _js_fn(js, "maybePinchFire")
-    if "fire()" not in pinch:
-        _fail("pinch must peek through fire() on the waiting Yard")
-    if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
-        _fail("maybePinchFire re-gates the verb — waiting Yard muted pinch")
+    if "function maybePinchFire" in js or "maybePinchFire(" in js:
+        _fail("pinch must not peek -- maybePinchFire is retired")
+    if "pinchHeld" in js:
+        _fail("S.pinchHeld died with the pinch verb")
     if re.search(r"await\s+", fire):
         _fail("fire() awaits — HUD-on-Yard trapped HID")
     if "enableCamera" in fire or "armPracticeCam" in fire or "armPracticeDesktop" in fire or "getUserMedia" in fire:

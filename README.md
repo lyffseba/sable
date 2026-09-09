@@ -25,13 +25,13 @@ Open **http://127.0.0.1:8080** in your browser.
 
 - **OFFLINE**: Straight into the 60s Salt House gallery on the Yard — one click. Score the clock. End state is GALLERY CLEAR.
 - **ONLINE**: Waiting arena is HUD-on-Yard always-practice (thin chips, live plates, camera armed without lock). **WARM UP** is one-click local 60s without leaving the room (RETURN TO LOBBY is one click) — skip calib/lock; the waiting Yard is already a live gun. After JOIN, leftover CODE/JOIN under the hidden cursor does not eat the pad. Host **ENTER RANGE** shares the live Yard without a calib/lock trap. Bay booth is parked — not a player mode.
-- **HANDS**: MediaPipe fingertip lock (interim). PLAY ANYWAY if the camera misses. Product shoot is shark-fin (thumb UP); pinch is interim; trackpad HID is DESKTOP-only (non-product).
+- **HANDS**: MediaPipe fingertip lock (interim). PLAY ANYWAY if the camera misses. Product shoot is shark-fin (thumb UP); pinch is not a trigger; trackpad HID is DESKTOP-only (non-product).
 
 ### Keys
 
 | Key | Action |
 |-----|--------|
-| Shark-fin / pinch (interim) | Fire at the **latest** `AimSample.uv` (never waits on camera) |
+| Shark-fin | Fire at the **latest** `AimSample.uv` (never waits on camera) |
 | Trackpad | Menus; DESKTOP fallback only (non-product) |
 | **WASD** | Move on the pad (parked Bay booth only, locked during lift) |
 | **L** | Cycle CANCHO outfit style (`default`, `ranked`, `night`) |

@@ -159,18 +159,19 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("shark-fin must not rewrite aim")
     if 'phase === "range"' in fin or 'phase === "bay"' in fin:
         raise AssertionError("maybeSharkFinFire must not re-gate the verb — waiting Yard would mute")
-    pinch = _js_fn(src, "maybePinchFire")
-    if "fire()" not in pinch:
-        raise AssertionError("pinch must peek through fire()")
-    if "updateAim(" in pinch or "publishAim(" in pinch:
-        raise AssertionError("pinch must not rewrite aim")
-    if 'phase === "range"' in pinch or 'phase === "bay"' in pinch:
-        raise AssertionError("maybePinchFire must not re-gate the verb — waiting Yard would mute")
+    if "function maybePinchFire" in src or "maybePinchFire(" in src:
+        raise AssertionError("pinch must not peek -- maybePinchFire is retired")
+    if "pinchHeld" in src:
+        raise AssertionError("S.pinchHeld died with the pinch verb")
     frame = _js_fn(src, "frame")
+    if "maybePinchFire" in frame:
+        raise AssertionError("frame must not run pinch -- pinch is not a trigger")
+    if frame.find("maybeSharkFinFire") > frame.find("maybeReloadGesture"):
+        raise AssertionError("shark-fin must run before reload -- product shoot first")
+    if frame.find("maybeReloadGesture") > frame.find("updateAim"):
+        raise AssertionError("reload must run before updateAim")
     if frame.find("maybeSharkFinFire") > frame.find("updateAim"):
         raise AssertionError("shark-fin must peek last pointing UV before updateAim")
-    if frame.find("maybePinchFire") > frame.find("updateAim"):
-        raise AssertionError("pinch must peek last pointing UV before updateAim")
     if "S.aim" not in fire_src:
         raise AssertionError("hitscan must use last committed S.aim")
     if "shot.uv" not in fire_src:

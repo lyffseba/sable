@@ -1,8 +1,9 @@
 /* SABLE — hands.js
    MediaPipe Hands-class interim / skin+NCC tracker. detectForVideo lives in
    hands_worker.js. One Euro on UV, then the aim mailbox. Fire never waits
-   on camera or the worker. Shark-fin thumb-up is product shoot (#86);
-   index+middle ceiling is charger-plug reload (#87); pinch is interim.
+   on camera or the worker. Shark-fin thumb-up is the only product shoot
+   (#86); index+middle ceiling is charger-plug reload (#87). pinchStrength
+   is the shark-fin safe gate only — pinch does not peek fire().
    Shoot peeks last pointing UV — neither trigger nor reload rewrites
    the shot. Product path is hands-only — research/HAND_FUTURE.md. */
 
@@ -711,24 +712,6 @@ function maybeReloadGesture(lm) {
   }
 }
 
-function maybePinchFire(lm) {
-  if (!lm) { S.pinchHeld = false; return; }
-  // Shark-fin is product shoot; charger-plug is reload. Skip pinch on
-  // those poses so one frame cannot double-fire or reload+shoot.
-  if (S.finHeld || sharkFin(lm) || S.reloadHeld || reloadGesture(lm)) { S.pinchHeld = false; return; }
-  const p = pinchStrength(lm);
-  if (p > 0.72 && !S.pinchHeld && indexExtended(lm)) {
-    S.pinchHeld = true;
-    // Interim trigger. fire() peeks last committed AimBus UV and owns
-    // the phase lock (range / bay / lobby / calib). Do not publish
-    // this pinched landmark first — updateAim stays after the peek.
-    // A second phase gate here muted wait_practice (lobby).
-    fire();
-  } else if (p < 0.35) {
-    S.pinchHeld = false;
-  }
-}
-
 function armVideoTrack() {
   if (!S.handsOn || S.rvfc || !cam.requestVideoFrameCallback) return;
   S.rvfc = true;
@@ -845,7 +828,6 @@ async function initHandsInner() {
 
 function fallbackSkin(now) {
   S.handLm = null;
-  S.pinchHeld = false;
   S.finHeld = false;
   S.reloadHeld = false;
   if (S.tpl && S.tpl.fromHands) S.tpl = null;
@@ -990,7 +972,6 @@ export {
   mpTrack,
   maybeSharkFinFire,
   maybeReloadGesture,
-  maybePinchFire,
   armVideoTrack,
   initHands,
   fallbackSkin,
