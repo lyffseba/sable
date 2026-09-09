@@ -287,6 +287,22 @@ def test_proto_mailbox() -> None:
         raise AssertionError("DESKTOP publishAim must land before fire()")
     if "updateAim" in hid or "coastTrack" in hid:
         raise AssertionError("window HID must not recompute aim — fire() peeks")
+    gate = _js_fn(src, "productGunHidFire")
+    if "return false" not in gate or "return true" in gate:
+        raise AssertionError("productGunHidFire must stay false — HID is not product GUN shoot")
+    live = re.search(
+        r'if \(phase === "range" \|\| phase === "bay" \|\| phase === "lobby"\) \{([\s\S]*?)\n  \}',
+        hid,
+    )
+    if not live:
+        raise AssertionError("onHidPointerDown must still see range/bay/lobby")
+    live_body = live.group(1)
+    if re.search(r"^\s*fire\(\);\s*$", live_body, re.M):
+        raise AssertionError(
+            "range/lobby HID must not fire() when !S.desktop — product GUN is shark-fin"
+        )
+    if "S.desktop" not in live_body or "productGunHidFire()" not in live_body:
+        raise AssertionError("range/lobby HID fire must be S.desktop || productGunHidFire()")
     for m in re.finditer(r"publishAim\s*\(", hid):
         window = hid[max(0, m.start() - 80) : m.start()]
         if "S.desktop" not in window:
@@ -746,6 +762,42 @@ def test_entergame_invokes_afterliftstate() -> None:
         raise AssertionError("#81: publishAim must still write confidence 1 when S.desktop")
 
 
+def test_product_gun_mutes_hid_fire() -> None:
+    """Product GUN pad must not peek/fire. DESKTOP / cam-deny still does."""
+    src = proto_js()
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+    gate = _js_fn(src, "productGunHidFire")
+    if "return true" in gate:
+        raise AssertionError("productGunHidFire must stay false — HID is not product GUN shoot")
+    if "return false" not in gate:
+        raise AssertionError("productGunHidFire must return false")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("DESKTOP HID must still publish click UV before fire()")
+    live = re.search(
+        r'if \(phase === "range" \|\| phase === "bay" \|\| phase === "lobby"\) \{([\s\S]*?)\n  \}',
+        hid,
+    )
+    if not live:
+        raise AssertionError("onHidPointerDown must still see range/bay/lobby")
+    body = live.group(1)
+    if re.search(r"^\s*fire\(\);\s*$", body, re.M):
+        raise AssertionError(
+            "range/lobby HID must not fire() when !S.desktop — product GUN is shark-fin"
+        )
+    if "S.desktop" not in body or "productGunHidFire()" not in body or "fire()" not in body:
+        raise AssertionError("DESKTOP pad must still peek; product GUN must gate on productGunHidFire")
+    if not re.search(r"if \(S\.desktop \|\| productGunHidFire\(\)\)", body) and not re.search(
+        r"if \(productGunHidFire\(\) \|\| S\.desktop\)", body
+    ):
+        raise AssertionError("range/lobby HID must gate fire() on S.desktop || productGunHidFire()")
+
+
 def test_range_gate() -> None:
     src = proto_js()
     fire_body = _js_fn(src, "fire")
@@ -844,6 +896,7 @@ def main() -> int:
         test_desktop_arm_invokes_afterliftstate()
         test_entergame_invokes_afterliftstate()
         test_space_forcegun_invokes_updatemode()
+        test_product_gun_mutes_hid_fire()
         test_range_gate()
         test_gallery_escape()
         test_native_sticky_constants()

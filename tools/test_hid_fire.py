@@ -207,6 +207,53 @@ def test_client_does_not_wait() -> None:
         raise AssertionError("Bay peekMuzzleWorld landed inside the HID→hitscan probe")
 
 
+def test_product_gun_mutes_hid_fire() -> None:
+    """Product GUN pad must not peek/fire. DESKTOP / cam-deny still does."""
+    src = proto_js()
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+    gate = _js_fn(src, "productGunHidFire")
+    if "return true" in gate:
+        raise AssertionError("productGunHidFire must stay false — HID is not product GUN shoot")
+    if "return false" not in gate:
+        raise AssertionError("productGunHidFire must return false")
+    if "fire(" in gate:
+        raise AssertionError("productGunHidFire must not peek — it only answers the gate")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+        raise AssertionError("DESKTOP HID must still publish click UV before fire()")
+    if "hidChromeTarget" not in hid:
+        raise AssertionError("window HID must still spare chrome (button/input)")
+    if 'window.addEventListener("pointerdown", onHidPointerDown)' not in src:
+        raise AssertionError("HID click must still live on window — Fire is HID")
+    live = re.search(
+        r'if \(phase === "range" \|\| phase === "bay" \|\| phase === "lobby"\) \{([\s\S]*?)\n  \}',
+        hid,
+    )
+    if not live:
+        raise AssertionError("onHidPointerDown must still see range/bay/lobby")
+    body = live.group(1)
+    if re.search(r"^\s*fire\(\);\s*$", body, re.M):
+        raise AssertionError(
+            "range/lobby HID must not fire() when !S.desktop — product GUN is shark-fin"
+        )
+    if "S.desktop" not in body or "productGunHidFire()" not in body:
+        raise AssertionError("range/lobby HID fire must be S.desktop || productGunHidFire()")
+    if "fire()" not in body:
+        raise AssertionError("DESKTOP pad must still peek through fire()")
+    if not re.search(r"if \(S\.desktop \|\| productGunHidFire\(\)\)", body) and not re.search(
+        r"if \(productGunHidFire\(\) \|\| S\.desktop\)", body
+    ):
+        raise AssertionError("range/lobby HID must gate fire() on S.desktop || productGunHidFire()")
+    chrome = _js_fn(src, "hidChromeTarget")
+    if "join-mute" not in chrome or "lobby-join" not in chrome:
+        raise AssertionError("chrome spare must still release leftover JOIN/CODE after join")
+
+
 def test_hid_lives_on_window() -> None:
     """#hud is pointer-events: none. A canvasHUD listener never sees a real tap."""
     src = proto_js()
@@ -306,6 +353,7 @@ def main() -> int:
         test_desktop_mailbox_truth()
         test_desktop_confidence()
         test_client_does_not_wait()
+        test_product_gun_mutes_hid_fire()
         test_hid_lives_on_window()
         test_sableperf_budget()
     except AssertionError as exc:
