@@ -138,6 +138,10 @@ def test_waiting_arena_always_practice() -> None:
         _fail("armPracticeDesktop must not steal a live camera")
     if "updateMode(" not in desk:
         _fail("armPracticeDesktop must write updateMode DESKTOP truth immediately")
+    if "afterLiftState()" not in desk:
+        _fail("armPracticeDesktop must invoke afterLiftState after writing DESKTOP truth")
+    if desk.find("updateMode(") > desk.find("afterLiftState()"):
+        _fail("afterLiftState must run after updateMode writes DESKTOP truth")
     if "if (camReady) return" in desk and desk.find("if (camReady) return") > desk.find("updateMode("):
         _fail("armPracticeDesktop must refuse camReady before writing DESKTOP truth")
     if "goDesktopRange(" in desk or "enterGame(" in desk or 'setPhase("range")' in desk:
@@ -496,6 +500,10 @@ def test_q4_fail_to_lock_seeking_until_space() -> None:
         _fail("camera deny must still set desktop on !camReady")
     if "updateMode(" not in desk:
         _fail("camera deny must write updateMode DESKTOP truth immediately")
+    if "afterLiftState()" not in desk:
+        _fail("camera deny must invoke afterLiftState after writing DESKTOP truth")
+    if desk.find("updateMode(") > desk.find("afterLiftState()"):
+        _fail("afterLiftState must run after updateMode writes DESKTOP truth")
     if "goDesktopRange(" in desk:
         _fail("armPracticeDesktop must stay lobby — do not dump into the 60s gallery")
 
@@ -729,6 +737,13 @@ def test_aimsample_and_docs() -> None:
         _fail("PRODUCTION.md must lock DESKTOP publishAim confidence 1")
     if conf not in pipeline:
         _fail("docs/aim_pipeline.md must lock DESKTOP publishAim confidence 1")
+    tell = "`armPracticeDesktop` invokes `afterLiftState` after writing DESKTOP truth"
+    if tell not in modes:
+        _fail("docs/modes.md must lock cam-deny mint-tell after DESKTOP truth")
+    if tell not in bible:
+        _fail("PRODUCTION.md must lock cam-deny mint-tell after DESKTOP truth")
+    if tell not in pipeline:
+        _fail("docs/aim_pipeline.md must lock cam-deny mint-tell after DESKTOP truth")
     if "muteJoinPad" not in modes or "JOIN/CODE" not in modes:
         _fail("docs/modes.md must refuse leftover JOIN/CODE eating the pad")
     if "muteJoinPad" not in bible:
