@@ -1,10 +1,27 @@
 # SABLE tracking — product lock
 
+## LOCKS (verbatim — LiftShot PRODUCT+TRACKING ready on box)
+
+NORTH STAR (LOCKED):
+Gesture-only control. Mouse-shooter precision. No mouse control.
+Hands + Meta vision models must feel as precise as a mouse shooter — CS honesty, Beat Saber energy, zero mouse as input verb.
+
+CORE INVENT:
+Hand-only. No mouse as product verb. Mouse-shooter precision.
+Reinvent the mouse as a hand system: camera + best vision models own aim/shoot/reload/lift. No mouse-body optical lock. No mouse-lift gun. No mouse mesh as shipping product art (Blender ask was Kruidenhof — STOPPED for SABLE / sable-mouse track STOP).
+Vision stack: Meta object-recognition invent path (SAM-class gate + landmark FSM hybrid as already briefed). MediaPipe Hands-class may stay interim until Meta stack ships. No mouse ever.
+
+HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; index+middle ceiling=reload.
+Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
+Platform: MacBook Pro + Chromium web floor.
+
+See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimBus. Product brief: `research/PRODUCT.md`.
+
 ## Juan LOCK (2026-09-09)
 **Front camera tracks HANDS, not the mouse.**
 - **Aim** = hand pointing (literally point to aim)
 - **Shoot / reload** = hand gestures — not mouse-body tracking, not HID-as-gun
-- Mouse may remain a pad HID for menus/movement when on the mat; webcam must **not** optically lock the mouse body for aim
+- **No mouse as product verb.** Webcam must **not** optically lock the mouse body for aim. No mouse-lift gun. No mouse mesh as shipping product art (sable-mouse track STOP)
 
 ### Shoot gesture
 - Thumb **up** like a shark fin = **shoot**
@@ -15,17 +32,19 @@
 - Analogy: the usual “plug in charger / insert mag” gesture (fingers up into the port/magwell)
 
 ## Verb
-- Pad (on mat) → DESKTOP / OS cursor / menus / movement (HID ok)
-- Hands up / point at screen → GUN; cam tracks hands; point aims; shark-fin thumb fires; index+middle up reloads
+- Hands up / point at screen → GUN; cam + vision own the hand; point aims; shark-fin thumb fires; index+middle up reloads
+- Pad (on mat) → menus / movement only — **not** product shoot
+- HID / DESKTOP / Space = **engineering fallbacks, never the product story** (cam-deny honesty, KeyT debug, Q4 `forceGun` escape)
 - Camera never becomes a selfie (no face PIP)
 
 ## Contract
 - AimSample stays off-limits unless Juan unlocks
-- Soft-lock / ship only cuts that match hand tracking
+- Soft-lock / ship only hand-only cuts
 - HID click must not be the lie that replaces the shoot gesture in gun mode
+- Product path is hands-only (`research/HAND_FUTURE.md`)
 
 ## History (superseded for aim target)
-Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Keep docs for archaeology; ship hand tracking (MediaPipe Hands-class or better) with gesture shoot/reload.
+Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. sable-mouse track **STOP**. Keep docs for archaeology; invent Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is **interim** until that stack ships.
 
 ## Hardware floor
 Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Godot/native is not the tracking host.
@@ -34,7 +53,7 @@ Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Godo
 
 Lid camera. Player **points the index at the glass**. Shot pixel = **index nail**, not palm, not wrist, not box center.
 
-See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else). Product brief: `research/PRODUCT.md`. Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`.
+See `research/HANDS.md` for the MediaPipe interim audit (Tasks Vision HandLandmarker **full** float16/1 — no lite `.task` — GPU Worker; skin/NCC else). Mouse-body YOLO / NCC / ArUco is **retired for aim** — archaeology in `research/mice/REPORT.md`.
 
 ## Muzzle
 
@@ -45,11 +64,12 @@ See `research/HANDS.md` for the audit (MediaPipe primary, skin/NCC else). Produc
 
 ## Pipeline
 
-Product gun path (lock above): **shark-fin shoot** (`maybeSharkFinFire` rising-edge peek) and **index+middle-up reload** (`maybeReloadGesture` rising-edge charger-plug) **are this cut**. DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain shipped honesty fallbacks — do not drop those bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). HID click must not replace the shoot gesture in gun mode. Do not invent reload on those fallbacks.
+Product gun path (locks above): point aims; **shark-fin shoot** (`maybeSharkFinFire`) and **index+middle-up reload** (`maybeReloadGesture` charger-plug) **are on tip** (#86 / #87). Product GUN HID-as-gun is deprecated (`productGunHidFire` is false — pad menus only). DESKTOP cam-deny, HID pad, and Q4 Space `forceGun` remain **shipped engineering fallbacks, labeled non-product** — do not drop those honesty bars (`docs/PRODUCTION.md`, `docs/aim_pipeline.md`). They are never the product story. HID click must not replace the shoot gesture in gun mode. Do not invent reload on those fallbacks.
 
-1. **MediaPipe Hands** (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two.
-2. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
-3. **HID fire** peeks `AimBus`. **Shark-fin** (thumb UP from MediaPipe landmarks, rising edge after lift, before `updateAim`) is product shoot on the hand / GUN path. Thumb parallel to the other fingers is safe. **Reload** is index+middle pointing up at the ceiling (`chargerPlug` / `maybeReloadGesture` after pinch, before `updateAim`) — rising-edge refill, mutually exclusive with shark-fin. Pinch (thumb↔index) stays interim / secondary. Trackpad is DESKTOP / cam-deny pad fallback — do not force shark-fin or reload when `S.desktop`. Shot never waits on a camera frame. Neither gesture must publish UV first, and neither must re-gate off the waiting Yard. Space `forceGun` is the Q4 fail-to-lock escape, not product shoot.
-4. Gemini may **seed** a lock. Not the hot path.
+1. **Interim:** MediaPipe Hands-class (GPU WASM, `requestVideoFrameCallback`) — best pointing hand of up to two. Published full float16/1 `.task` only.
+2. **Invent:** Meta object-recognition (SAM-class gate + landmark FSM hybrid) when it is game-ready on Chromium. Not the v1 hot path. Never inside `fire()`.
+3. **Else the same frame:** `fallbackSkin` (`findHand` + NCC). If Hands never loads, this is the path.
+4. **Product shoot** peeks `AimBus` on shark-fin rising edge (`maybeSharkFinFire`, #86). **Reload** is index+middle ceiling (`chargerPlug` / `maybeReloadGesture` after pinch, before `updateAim`, #87) — rising-edge refill, mutually exclusive with shark-fin. Pinch is **interim**. Shot never waits on a camera frame. Neither gesture must publish UV first or re-gate off the waiting Yard. Do not force shark-fin or reload when `S.desktop`. Space `forceGun` is the Q4 fail-to-lock escape, not product shoot.
+5. Gemini may **seed** a lock. Not the hot path.
 
 `AimSample { uv, valid, lifted, confidence, t_hw }`

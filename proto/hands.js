@@ -1,9 +1,10 @@
 /* SABLE — hands.js
-   MediaPipe Hands / skin+NCC tracker. detectForVideo lives in hands_worker.js.
-   One Euro on UV, then the aim mailbox. Fire never waits on camera or the worker.
-   Shark-fin thumb-up is product shoot; index+middle ceiling is reload;
-   pinch is interim shoot. Shoot peeks last pointing UV — neither
-   trigger nor reload rewrites the shot. */
+   MediaPipe Hands-class interim / skin+NCC tracker. detectForVideo lives in
+   hands_worker.js. One Euro on UV, then the aim mailbox. Fire never waits
+   on camera or the worker. Shark-fin thumb-up is product shoot (#86);
+   index+middle ceiling is charger-plug reload (#87); pinch is interim.
+   Shoot peeks last pointing UV — neither trigger nor reload rewrites
+   the shot. Product path is hands-only — research/HAND_FUTURE.md. */
 
 import { S, W, H, fire, clamp, refillMag } from "./aim.js";
 import { cam, proc, pctx, camReady } from "./boot.js";
@@ -468,12 +469,16 @@ function nccTrack(now) {
 
 function detGood() { return S.det && S.det.conf >= NCC_GOOD; }
 
-function indexExtended(lm) {
-  const w = lm[0], pip = lm[6], tip = lm[8];
+function fingerExtended(lm, tipIdx, pipIdx) {
+  const w = lm[0], pip = lm[pipIdx], tip = lm[tipIdx];
   if (!w || !pip || !tip) return false;
   const dTip = Math.hypot(tip.x - w.x, tip.y - w.y);
   const dPip = Math.hypot(pip.x - w.x, pip.y - w.y);
   return dTip > dPip * 1.06;
+}
+
+function indexExtended(lm) {
+  return fingerExtended(lm, 8, 6);
 }
 
 function handPointScore(lm) {
@@ -964,6 +969,7 @@ export {
   applyEuroPoint,
   nccTrack,
   detGood,
+  fingerExtended,
   indexExtended,
   handPointScore,
   bestHand,

@@ -28,6 +28,7 @@ python3 tools/test_hid_fire.py
 python3 tools/test_shark_fin.py
 python3 tools/test_reload_gesture.py
 python3 tools/test_aim_verb.py
+python3 tools/test_hand_future.py
 python3 tools/test_lobby.py
 python3 tools/test_hangar_wire.py
 python3 tools/test_warmup_flow.py

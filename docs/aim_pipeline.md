@@ -1,13 +1,13 @@
 # Aim pipeline — the engine's heart
 
-SABLE is a physical-aim FPS. The unique verb is **raise your hand, point the fingertip at the monitor, click**. A MacBook webcam is enough. Everything else in this repo exists to serve that pose.
+SABLE is a physical-aim FPS. The unique verb is **raise your hand, point the fingertip at the monitor, shark-fin to shoot**. A MacBook webcam is enough. Everything else in this repo exists to serve that pose.
 
-This document is the contract. The live tracker is `proto/hands.js`: MediaPipe Tasks Vision HandLandmarker (`mpTrack` kicks `proto/hands_worker.js`, landmark 8) then `fallbackSkin` (`findHand` + NCC) + One Euro on UV before the mailbox. `native/cv_input` holds the filter / AimSample tests. Fire is HID and must not wait on the worker. See `research/HANDS.md`. Product lock: webcam must not optically lock the mouse body. Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped fallbacks (`research/TRACKING.md`).
+This document is the contract. The live tracker is `proto/hands.js`: MediaPipe Tasks Vision HandLandmarker (`mpTrack` kicks `proto/hands_worker.js`, landmark 8) then `fallbackSkin` (`findHand` + NCC) + One Euro on UV before the mailbox. `native/cv_input` holds the filter / AimSample tests. Fire peeks `AimBus` and must not wait on the worker. See `research/HANDS.md`. Product invent: `research/HAND_FUTURE.md` — hands-only; Meta SAM-class + landmark FSM invent path; MediaPipe Hands-class interim. Product lock: webcam must not optically lock the mouse body. **No mouse as product verb.** Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped **engineering fallbacks, never the product story** (`research/TRACKING.md`).
 
 ## Hardware
 
 - Built-in laptop webcam (lid camera). No mouse in the air. No sleeve. No marker.
-- Point the index finger at the screen. **Shark-fin** (thumb UP) is product fire on the hand path. Thumb parallel to the other fingers is safe. **Reload** is index+middle up at the ceiling (charger-plug). Trackpad click is DESKTOP / pad fallback. Pinch (thumb↔index) stays interim.
+- Point the index finger at the screen. **Shark-fin** (thumb UP) is product fire on the hand path. Thumb parallel to the other fingers is safe. **Reload** is index+middle up at the ceiling (charger-plug). Pinch (thumb↔index) stays interim. Trackpad HID fires only on DESKTOP (non-product fallback).
 - Target camera: cheap laptop modules. **720p30, MJPEG, auto-exposure, noisy, rolling shutter.** Immaculate aim must still work here.
 
 Turn **auto-exposure and auto-white-balance off** when the driver allows it (V4L2: `V4L2_CID_EXPOSURE_AUTO` manual, `V4L2_CID_AUTO_WHITE_BALANCE` = 0). If the platform ignores the lock, the pipeline **adapts thresholds every N frames** instead of fighting AE.
