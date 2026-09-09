@@ -1,6 +1,6 @@
 # SABLE hand future — invent spike (2026-09-09)
 
-Architecture invent for a **pure hand verb** on Chromium. Soft-lock this spike; do not merge from the agent. AimSample locked. AimSample stays five fields. Original IP only. Yard is the sole map. Bay stays parked.
+Architecture invent for a **pure hand verb** on Chromium. Soft-lock this spike; do not merge from the agent. AimSample locked. AimSample stays five fields. Original IP only. Yard is the sole map. Bay stays parked. Ship floor is **Chromium on MacBook Pro–class** (`docs/port.md`): surface `chromium-macbook`, verb `aimbus-hand-gesture`.
 
 This file is the product-architecture soT for the hand-only future. Tracker archaeology stays in `research/HANDS.md`. Shipped mailbox / HID honesty bars stay in `docs/aim_pipeline.md` and `docs/PRODUCTION.md`. Product brief: `research/PRODUCT.md` (box north star — do not rewrite). Tracking lock: `research/TRACKING.md`. **#86 shark-fin and #87 charger-plug reload are on tip.** Do not regress those verbs. Do not block invent docs. Do not merge from the agent.
 

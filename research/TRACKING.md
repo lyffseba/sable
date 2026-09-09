@@ -52,7 +52,7 @@ See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimB
 Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Mouse-as-gun / mouse-cam aim are **retired**. No mouse mesh as a shipping product art step (Kruidenhof flat — out of SABLE scope). Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP. Keep docs for archaeology only; invent/spike path open (Meta SAM-class object gate + landmark FSM). MediaPipe Hands-class is **interim** until that stack ships.
 
 ## Hardware floor
-Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Godot/native is not the tracking host.
+Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Surface `chromium-macbook`. Verb `aimbus-hand-gesture`. Godot/native is not the tracking host.
 
 2021 G14 — clip cam top-center if needed, AE off, 720p+. Camera tilted down at hands.
 

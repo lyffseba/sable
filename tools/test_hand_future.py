@@ -82,6 +82,15 @@ def test_locks_verbatim() -> None:
         _fail("PRODUCT.md must not block on #86 shark-fin")
     if "Do not merge" not in product:
         _fail("PRODUCT.md must keep do not merge")
+    for rel in ("research/PRODUCT.md", "research/TRACKING.md", "research/HAND_FUTURE.md"):
+        text = _read(rel)
+        if "chromium-macbook" not in text:
+            _fail(f"{rel} must keep #89 surface chromium-macbook")
+        if "aimbus-hand-gesture" not in text:
+            _fail(f"{rel} must keep #89 verb aimbus-hand-gesture")
+    port = _read("docs/port.md")
+    if "chromium-macbook" not in port or "aimbus-hand-gesture" not in port:
+        _fail("docs/port.md must keep #89 chromium-macbook / aimbus-hand-gesture")
 
 
 def test_aimsample_five_fields() -> None:
