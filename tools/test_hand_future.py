@@ -33,20 +33,22 @@ def _read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
 
+# Box PRODUCT.md north star — fold verbatim into PRODUCT + TRACKING + HAND_FUTURE.
 LOCK_NEEDLES = (
-    "NORTH STAR (LOCKED):",
-    "Gesture-only control. Mouse-shooter precision. No mouse control.",
-    "Hands + Meta vision models must feel as precise as a mouse shooter",
-    "CS honesty, Beat Saber energy, zero mouse as input verb.",
-    "Hand-only. No mouse as product verb. Mouse-shooter precision.",
-    "Reinvent the mouse as a hand system",
-    "No mouse-body optical lock. No mouse-lift gun. No mouse mesh as shipping product art",
-    "Blender ask was Kruidenhof — STOPPED for SABLE / sable-mouse track STOP",
-    "Vision stack: Meta object-recognition invent path (SAM-class gate + landmark FSM hybrid",
+    "## North star (LOCKED)",
+    "**Gesture-only control. Mouse-shooter precision. No mouse control.**",
+    "Hands + Meta vision models must feel as precise as a mouse shooter — CS honesty, Beat Saber energy, zero mouse as input verb.",
+    "## Core invent (LOCKED)",
+    "**Hand-only. No mouse as product verb. Mouse-shooter precision.**",
+    "Reinvent the mouse as a **hand system**: the camera + best vision models own aim, shoot, reload, and lift/pose.",
+    "No mouse mesh as a shipping product art step (that Blender ask was Kruidenhof flat — out of SABLE scope).",
+    "Vision-model stack: **Meta object-recognition vision models** for in-game hand tracking (Juan lock).",
+    "Invent/spike path open — win latency + honesty on MacBook lid-cam Chromium.",
     "MediaPipe Hands-class may stay interim until Meta stack ships. No mouse ever.",
-    "aim=point; shark-fin thumb up=shoot; thumb parallel=safe; index+middle ceiling=reload.",
-    "soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.",
-    "Platform: MacBook Pro + Chromium web floor.",
+    "HID / trackpad / Space forceGun may remain **engineering fallbacks**, never the product story",
+    "AimSample off-limits unless Juan unlocks",
+    "Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP",
+    "Mouse-as-gun / mouse-cam aim — retired",
 )
 
 
@@ -54,17 +56,32 @@ def test_locks_verbatim() -> None:
     future = _read("research/HAND_FUTURE.md")
     product = _read("research/PRODUCT.md")
     tracking = _read("research/TRACKING.md")
-    if "LOCKS (verbatim" not in future:
-        _fail("HAND_FUTURE.md must fold LiftShot LOCKS verbatim")
     for needle in LOCK_NEEDLES:
         if needle not in future:
-            _fail(f"HAND_FUTURE.md lost verbatim lock: {needle}")
+            _fail(f"HAND_FUTURE.md lost box lock: {needle}")
         if needle not in product:
-            _fail(f"PRODUCT.md lost verbatim lock: {needle}")
+            _fail(f"PRODUCT.md lost box lock: {needle}")
         if needle not in tracking:
-            _fail(f"TRACKING.md lost verbatim lock: {needle}")
+            _fail(f"TRACKING.md lost box lock: {needle}")
     if "research/HAND_FUTURE.md" not in product or "research/HAND_FUTURE.md" not in tracking:
         _fail("PRODUCT/TRACKING must point at HAND_FUTURE.md")
+    for box_only in (
+        "## Vision",
+        "**Feel DNA:** Counter-Strike–class competitive shooter",
+        "**Shoot energy:** Beat Saber",
+        "**Look:** Fortnite-class bold readability",
+        "**Ship target:** **web** — MacBook Pro + Chromium floor",
+        "## Hand verb (see TRACKING.md)",
+        "Primary playable surface = Chromium on MacBook Pro–class.",
+    ):
+        if box_only not in product:
+            _fail(f"PRODUCT.md must keep box section: {box_only}")
+    if "do not rewrite" not in product.lower() and "Invent spike" not in product:
+        _fail("PRODUCT.md must keep an invent-spike appendix without rewriting box locks")
+    if "#86" not in product or "do not block" not in product.lower():
+        _fail("PRODUCT.md must not block on #86 shark-fin")
+    if "Do not merge" not in product:
+        _fail("PRODUCT.md must keep do not merge")
 
 
 def test_aimsample_five_fields() -> None:
@@ -220,30 +237,7 @@ def test_product_gun_hid_deprecated() -> None:
         _fail("TRACKING.md must name productGunHidFire")
 
 
-PIVOT_NEEDLES = (
-    "LiftShot product pivot (priority)",
-    "hand-only reinvent-the-mouse",
-    "NO mouse as product verb",
-    "Mouse mesh / sable-mouse STOPPED",
-    "Kruidenhof, not SABLE",
-    "mouse-gun product verb",
-    "mouse mesh prototype path",
-    "open to invent",
-    "non-product emergency",
-    "AimSample locked",
-)
-
-
 def test_liftshot_product_pivot() -> None:
-    for rel in (
-        "research/HAND_FUTURE.md",
-        "research/PRODUCT.md",
-        "research/TRACKING.md",
-    ):
-        text = _read(rel)
-        for needle in PIVOT_NEEDLES:
-            if needle not in text:
-                _fail(f"{rel} lost LiftShot pivot: {needle}")
     future = _read("research/HAND_FUTURE.md")
     if "Retire — mouse-gun product verb and mouse mesh prototype path" not in future:
         _fail("HAND_FUTURE.md must retire mouse-gun verb and mouse mesh prototype path")
@@ -251,14 +245,20 @@ def test_liftshot_product_pivot() -> None:
         _fail("HAND_FUTURE.md must forbid a mouse mesh prototype path")
     if "Do not reopen a mouse mesh / sable-mouse prototype" not in future:
         _fail("HAND_FUTURE.md must keep sable-mouse prototype STOP")
+    if "SAM-class" not in future or "hybrid" not in future.lower():
+        _fail("HAND_FUTURE.md must keep Meta SAM-class hybrid honesty")
+    if "do not block" not in future.lower() or "#86" not in future:
+        _fail("HAND_FUTURE.md must not block on #86")
+    if "AimSample locked" not in future:
+        _fail("HAND_FUTURE.md must keep AimSample locked")
     product = _read("research/PRODUCT.md")
-    if "lyffseba/sable-mouse" not in product or "Mouse-as-gun" not in product:
-        _fail("PRODUCT.md must STOP lyffseba/sable-mouse and mouse-as-gun")
+    if "AimSample locked" not in product:
+        _fail("PRODUCT.md invent appendix must keep AimSample locked")
     tracking = _read("research/TRACKING.md")
-    if "lyffseba/sable-mouse" not in tracking or "Mouse-as-gun" not in tracking:
-        _fail("TRACKING.md must STOP lyffseba/sable-mouse and mouse-as-gun")
-    if "lyffseba/sable-mouse" not in future:
-        _fail("HAND_FUTURE.md must name lyffseba/sable-mouse STOP")
+    if "AimSample locked" not in tracking:
+        _fail("TRACKING.md must keep AimSample locked")
+    if "SAM-class" not in tracking:
+        _fail("TRACKING.md must keep SAM-class hybrid pointer")
 
 
 def test_fallbacks_labeled_non_product() -> None:
@@ -272,10 +272,10 @@ def test_fallbacks_labeled_non_product() -> None:
         text = _read(rel)
         if "never the product story" not in text and "never product story" not in text:
             _fail(f"{rel} must label HID/DESKTOP/Space as never the product story")
-        if "non-product emergency" not in text:
-            _fail(f"{rel} must label DESKTOP/HID as non-product emergency")
+        if "non-product emergency" not in text and "engineering fallbacks" not in text:
+            _fail(f"{rel} must label DESKTOP/HID as engineering fallbacks / non-product")
     future = _read("research/HAND_FUTURE.md")
-    if "sable-mouse track STOP" not in future:
+    if "sable-mouse" not in future or "STOP" not in future:
         _fail("HAND_FUTURE.md must keep sable-mouse STOP")
     if "No mouse ever" not in future:
         _fail("HAND_FUTURE.md must keep no mouse ever")

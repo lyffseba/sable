@@ -1,25 +1,26 @@
 # SABLE tracking — product lock
 
-## LOCKS (verbatim — LiftShot PRODUCT+TRACKING ready on box)
-
-NORTH STAR (LOCKED):
-Gesture-only control. Mouse-shooter precision. No mouse control.
+## North star (LOCKED)
+**Gesture-only control. Mouse-shooter precision. No mouse control.**
 Hands + Meta vision models must feel as precise as a mouse shooter — CS honesty, Beat Saber energy, zero mouse as input verb.
 
-CORE INVENT:
-Hand-only. No mouse as product verb. Mouse-shooter precision.
-Reinvent the mouse as a hand system: camera + best vision models own aim/shoot/reload/lift. No mouse-body optical lock. No mouse-lift gun. No mouse mesh as shipping product art (Blender ask was Kruidenhof — STOPPED for SABLE / sable-mouse track STOP).
-Vision stack: Meta object-recognition invent path (SAM-class gate + landmark FSM hybrid as already briefed). MediaPipe Hands-class may stay interim until Meta stack ships. No mouse ever.
+## Core invent (LOCKED)
+**Hand-only. No mouse as product verb. Mouse-shooter precision.**
+Reinvent the mouse as a **hand system**: the camera + best vision models own aim, shoot, reload, and lift/pose. No mouse-body optical lock. No mouse-lift gun. No mouse mesh as a shipping product art step (that Blender ask was Kruidenhof flat — out of SABLE scope).
 
-HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; index+middle ceiling=reload.
-Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
-Platform: MacBook Pro + Chromium web floor.
+Vision-model stack: **Meta object-recognition vision models** for in-game hand tracking (Juan lock). Invent/spike path open — win latency + honesty on MacBook lid-cam Chromium. MediaPipe Hands-class may stay interim until Meta stack ships. No mouse ever.
 
-## LiftShot product pivot (priority)
+## Soft rules (from PRODUCT.md)
+- Soft-lock / ship only cuts that match **hand-only** + this brief
+- AimSample off-limits unless Juan unlocks
+- Always-practice / lobby never soft-locks warm-up
+- HID / trackpad / Space forceGun may remain **engineering fallbacks**, never the product story
 
-**SABLE = hand-only reinvent-the-mouse — NO mouse as product verb.** Cam tracks hands. Shark-fin / reload **stand**. **Mouse mesh / sable-mouse STOPPED** (Blender ask was **Kruidenhof, not SABLE**). No mouse-gun product verb. **No mouse mesh prototype path.** Vision-model stack **open to invent** (Meta SAM-class object gate + landmark FSM as already briefed). DESKTOP / HID = **non-product emergency** only if still in code. AimSample locked.
+## STOPPED
+- Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP
+- Mouse-as-gun / mouse-cam aim — retired
 
-See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimBus. Product brief: `research/PRODUCT.md`.
+See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimBus (Meta SAM-class hybrid honesty). Product brief: `research/PRODUCT.md`. #86 shark-fin is first ship when Juan merges — do not block on invent docs. AimSample locked.
 
 ## Juan LOCK (2026-09-09)
 **Front camera tracks HANDS, not the mouse.**
@@ -48,7 +49,7 @@ See `research/HAND_FUTURE.md` for capture → landmarks → gesture FSM → AimB
 - Product path is hands-only (`research/HAND_FUTURE.md`)
 
 ## History (superseded for aim target)
-Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Mouse-as-gun / mouse-cam aim are **retired**. Mouse-gun product verb and **mouse mesh prototype path** are **STOPPED** (Mouse Blender / `lyffseba/sable-mouse` — Kruidenhof, not SABLE). Keep docs for archaeology only; vision stack stays **open to invent** (Meta SAM-class object gate + landmark FSM). MediaPipe Hands-class is **interim** until that stack ships.
+Earlier research (mice YOLO / NCC optical-patch / ArUco sleeve / bare-mouse nose) targeted the mouse body. That path is **retired for aim**. Mouse-as-gun / mouse-cam aim are **retired**. No mouse mesh as a shipping product art step (Kruidenhof flat — out of SABLE scope). Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP. Keep docs for archaeology only; invent/spike path open (Meta SAM-class object gate + landmark FSM). MediaPipe Hands-class is **interim** until that stack ships.
 
 ## Hardware floor
 Ship floor is **Chromium on MacBook Pro–class** lid-cam (`docs/port.md`). Godot/native is not the tracking host.

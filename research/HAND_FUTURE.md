@@ -1,29 +1,30 @@
 # SABLE hand future — invent spike (2026-09-09)
 
-Architecture invent for a **pure hand verb** on Chromium. Soft-lock this spike; do not merge from the agent. AimSample stays five fields. Original IP only. Yard is the sole map. Bay stays parked.
+Architecture invent for a **pure hand verb** on Chromium. Soft-lock this spike; do not merge from the agent. AimSample locked. AimSample stays five fields. Original IP only. Yard is the sole map. Bay stays parked.
 
-## LiftShot product pivot (priority)
-
-**SABLE = hand-only reinvent-the-mouse — NO mouse as product verb.** Cam tracks hands. Shark-fin / reload **stand**. **Mouse mesh / sable-mouse STOPPED** (Blender ask was **Kruidenhof, not SABLE**). No mouse-gun product verb. **No mouse mesh prototype path.** Vision-model stack **open to invent** (Meta SAM-class object gate + landmark FSM as already briefed). DESKTOP / HID = **non-product emergency** only if still in code. AimSample locked.
-
-This file is the product-architecture soT for the hand-only future. Tracker archaeology stays in `research/HANDS.md`. Shipped mailbox / HID honesty bars stay in `docs/aim_pipeline.md` and `docs/PRODUCTION.md`. Product brief: `research/PRODUCT.md`. Tracking lock: `research/TRACKING.md`.
+This file is the product-architecture soT for the hand-only future. Tracker archaeology stays in `research/HANDS.md`. Shipped mailbox / HID honesty bars stay in `docs/aim_pipeline.md` and `docs/PRODUCTION.md`. Product brief: `research/PRODUCT.md` (box north star — do not rewrite). Tracking lock: `research/TRACKING.md`. #86 shark-fin remains first ship when Juan merges — do not block on invent docs.
 
 ---
 
-## LOCKS (verbatim — LiftShot PRODUCT+TRACKING ready on box 2026-09-09)
-
-NORTH STAR (LOCKED):
-Gesture-only control. Mouse-shooter precision. No mouse control.
+## North star (LOCKED)
+**Gesture-only control. Mouse-shooter precision. No mouse control.**
 Hands + Meta vision models must feel as precise as a mouse shooter — CS honesty, Beat Saber energy, zero mouse as input verb.
 
-CORE INVENT:
-Hand-only. No mouse as product verb. Mouse-shooter precision.
-Reinvent the mouse as a hand system: camera + best vision models own aim/shoot/reload/lift. No mouse-body optical lock. No mouse-lift gun. No mouse mesh as shipping product art (Blender ask was Kruidenhof — STOPPED for SABLE / sable-mouse track STOP).
-Vision stack: Meta object-recognition invent path (SAM-class gate + landmark FSM hybrid as already briefed). MediaPipe Hands-class may stay interim until Meta stack ships. No mouse ever.
+## Core invent (LOCKED)
+**Hand-only. No mouse as product verb. Mouse-shooter precision.**
+Reinvent the mouse as a **hand system**: the camera + best vision models own aim, shoot, reload, and lift/pose. No mouse-body optical lock. No mouse-lift gun. No mouse mesh as a shipping product art step (that Blender ask was Kruidenhof flat — out of SABLE scope).
 
-HAND VERBS unchanged: aim=point; shark-fin thumb up=shoot; thumb parallel=safe; index+middle ceiling=reload.
-Soft rules: soft-lock/ship only hand-only cuts; AimSample locked; HID/DESKTOP/Space = engineering fallbacks never product story.
-Platform: MacBook Pro + Chromium web floor.
+Vision-model stack: **Meta object-recognition vision models** for in-game hand tracking (Juan lock). Invent/spike path open — win latency + honesty on MacBook lid-cam Chromium. MediaPipe Hands-class may stay interim until Meta stack ships. No mouse ever.
+
+## Soft rules (from PRODUCT.md)
+- Soft-lock / ship only cuts that match **hand-only** + this brief
+- AimSample off-limits unless Juan unlocks
+- Always-practice / lobby never soft-locks warm-up
+- HID / trackpad / Space forceGun may remain **engineering fallbacks**, never the product story
+
+## STOPPED
+- Mouse Blender / `lyffseba/sable-mouse` SABLE art track — STOP
+- Mouse-as-gun / mouse-cam aim — retired
 
 ---
 
