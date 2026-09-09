@@ -12,6 +12,7 @@
 
 ### Reload gesture
 - Index + middle fingers pointing **up toward the ceiling** = **reload**
+- Analogy: the usual “plug in charger / insert mag” gesture (fingers up into the port/magwell)
 
 ## Verb
 - Pad (on mat) → DESKTOP / OS cursor / menus / movement (HID ok)
