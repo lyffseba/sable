@@ -47,7 +47,7 @@ webcam  →  fingertip lock (landmarks preferred, skin+NCC fallback)
 HID click → peek AimSample → hitscan
 ```
 
-Product lock: front cam tracks hands — mouse body is never the optical aim target. **No mouse as product verb.** No mouse-gun product verb. **No mouse mesh prototype path** (sable-mouse STOP — Kruidenhof, not SABLE). Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped **non-product emergency** honesty bars only if still in code (`research/TRACKING.md`, `research/HAND_FUTURE.md`). Juan / LiftShot product brief: `research/PRODUCT.md`. Vision invent: Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is interim.
+Product lock: front cam tracks hands — mouse body is never the optical aim target. **No mouse as product verb.** No mouse-gun product verb. **No mouse mesh prototype path** (sable-mouse STOP — Kruidenhof, not SABLE). Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. `productGunHidFire()` is false — pad tap on the product GUN path must not peek `fire()`; DESKTOP / cam-deny still does. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped **non-product emergency** honesty bars only if still in code (`research/TRACKING.md`, `research/HAND_FUTURE.md`). Juan / LiftShot product brief: `research/PRODUCT.md`. Vision invent: Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is interim.
 
 Desktop **T** is a debug gun, not the product. Space is the Q4 force-GUN escape on fail-to-lock. **Q4 fail-to-lock is SEEKING until lock or Space.**
 

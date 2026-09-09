@@ -18,6 +18,9 @@
    After JOIN, leftover CODE/JOIN under the hidden cursor is not the pad.
    `onHidPointerDown` publishes click UV when DESKTOP owns the mailbox —
    first pad after cam deny / T / goDesktopRange must not peek {0.5,0.5}.
+   `productGunHidFire()` is false — range/bay/lobby pad peeks/fires only
+   when `S.desktop || productGunHidFire()`. Product GUN is shark-fin
+   (pinch interim); HID must not replace that trigger or bypass the mag.
    Cam / GUN / shark-fin / pinch / reload must not publish on the click.
    `updateMode` writes DESKTOP truth (`seeking` false, `lifted` true)
    even if `!camReady`. Arm paths apply that truth immediately.
