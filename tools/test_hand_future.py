@@ -6,9 +6,10 @@ fields. Product GUN is hands-only. Meta SAM-class is invent, not the
 hot path. Reload stub must not invent mag. HID/DESKTOP/Space stay
 labeled non-product fallbacks. PRODUCTION / aim_pipeline must not teach
 Click-is-HID as the product shot — shark-fin peeks AimBus.
-Chrome (proto/index.html boot/lock) must teach point + shark-fin,
-not pad/pinch as product shoot. Calib chrome must teach shark-fin
-(thumb UP) to capture — not Click-is-HID.
+Chrome (proto/index.html boot/lock) must teach point + shark-fin
++ thumb-parallel SAFE + index+middle charger-plug reload / MAG refill,
+not pad/pinch/Click-is-HID as shoot or reload. Calib chrome must teach
+shark-fin (thumb UP) to capture — not Click-is-HID, not reload.
 """
 
 from __future__ import annotations
@@ -279,11 +280,17 @@ _CLICK_IS_HID_FANTASY = (
     "fire-is-hid mailbox",
 )
 
-# Chrome lies — boot/lock must not sell pad/pinch as product shoot.
+# Chrome lies — boot/lock must not sell pad/pinch/Click-is-HID as shoot or reload.
 _CHROME_FIRE_LIES = (
     "tap the pad to fire",
+    "tap the pad to reload",
     "trackpad is the trigger",
     "pinch comes next",
+    "pinch to fire",
+    "pinch to reload",
+    "click to reload",
+    "click-is-hid",
+    "click is hid",
 )
 
 # Calib chrome lies — corners are shark-fin, not Click-is-HID.
@@ -403,8 +410,10 @@ def test_chrome_product_shoot_is_shark_fin() -> None:
                 f"proto/index.html must not teach chrome-lie {banned!r} — "
                 "shark-fin owns product shoot; pad/HID is non-product"
             )
-    if re.search(r"pinch[\s\S]{0,40}to fire", html, re.I):
-        _fail("proto/index.html must not teach pinch to fire")
+    if re.search(r"pinch[\s\S]{0,40}to (fire|reload)", html, re.I):
+        _fail("proto/index.html must not teach pinch to fire or reload")
+    if re.search(r"click[\s\S]{0,40}to (fire|reload)", html, re.I):
+        _fail("proto/index.html must not teach Click-is-HID as fire or reload")
     copy = _boot_lock_copy(html)
     copy_low = copy.lower()
     if "shark-fin" not in copy_low:
@@ -422,7 +431,7 @@ def test_chrome_product_shoot_is_shark_fin() -> None:
         if "non-product" not in copy_low and "emergency" not in copy_low:
             _fail(
                 "boot/lock pad/HID must be omitted or labeled "
-                "non-product emergency — never product shoot"
+                "non-product emergency — never product shoot or reload"
             )
     boot = re.search(r'id="screen-boot"[\s\S]*?id="screen-lock"', html)
     lock = re.search(r'id="screen-lock"[\s\S]*?id="screen-calib"', html)
@@ -433,7 +442,50 @@ def test_chrome_product_shoot_is_shark_fin() -> None:
             _fail(f"{name} copy must name shark-fin")
         if "thumb" not in block.lower():
             _fail(f"{name} copy must teach the thumb (UP / parallel)")
+    test_chrome_reload_is_charger_plug()
     test_chrome_calib_capture_is_shark_fin()
+
+
+def _chrome_teaches_reload(text: str) -> bool:
+    """True when copy names the #87 charger-plug / index+middle MAG refill."""
+    low = text.lower()
+    has_fingers = "index+middle" in low or "index + middle" in low
+    has_reload = "reload" in low or "mag refill" in low or "reloads mag" in low
+    return has_fingers and has_reload
+
+
+def test_chrome_reload_is_charger_plug() -> None:
+    """proto/index.html boot+lock must name the same reload verb the code peeks."""
+    html = _read("proto/index.html")
+    copy = _boot_lock_copy(html)
+    copy_low = copy.lower()
+    if "charger-plug" not in copy_low and "charger plug" not in copy_low:
+        _fail("boot/lock copy must name charger-plug as product reload")
+    if "index+middle" not in copy_low and "index + middle" not in copy_low:
+        _fail("boot/lock copy must teach index+middle ceiling reload")
+    if "ceiling" not in copy_low:
+        _fail("boot/lock copy must teach index+middle pointing up toward the ceiling")
+    if "reload" not in copy_low:
+        _fail("boot/lock copy must name reload")
+    if "mag" not in copy_low:
+        _fail("boot/lock copy must name MAG refill")
+    if re.search(r"\b(pad|trackpad|hid|pinch|click)\b[\s\S]{0,40}reload", copy_low):
+        _fail(
+            "boot/lock must not sell pad/pinch/Click-is-HID as reload — "
+            "charger-plug owns MAG refill"
+        )
+    boot = re.search(r'id="screen-boot"[\s\S]*?id="screen-lock"', html)
+    lock = re.search(r'id="screen-lock"[\s\S]*?id="screen-calib"', html)
+    if not boot or not lock:
+        _fail("proto/index.html lost screen-boot or screen-lock")
+    for block, name in ((boot.group(0), "boot"), (lock.group(0), "lock")):
+        if not _chrome_teaches_reload(block):
+            _fail(
+                f"{name} chrome must teach index+middle reload / MAG refill — "
+                "same verb maybeReloadGesture peeks"
+            )
+        if "charger-plug" not in block.lower() and "charger plug" not in block.lower():
+            _fail(f"{name} chrome must name charger-plug")
 
 
 def _calib_copy(html: str) -> str:
@@ -471,6 +523,10 @@ def test_chrome_calib_capture_is_shark_fin() -> None:
         _fail("#calib-msg must teach shark-fin (thumb UP) to capture")
     if "aim" not in copy_low and "glow" not in copy_low:
         _fail("#calib-msg must teach aim at the glow")
+    if "reload" in copy_low or "charger-plug" in copy_low or "index+middle" in copy_low:
+        _fail(
+            "calib chrome must not teach reload — corners stay shark-fin capture"
+        )
     if re.search(r"\bclick\b", copy_low):
         if "non-product" not in copy_low and "emergency" not in copy_low:
             _fail(
@@ -551,6 +607,7 @@ def main() -> int:
         test_fallbacks_labeled_non_product()
         test_bible_product_shoot_is_shark_fin()
         test_chrome_product_shoot_is_shark_fin()
+        test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
         test_no_mouse_art_invented()
     except AssertionError as exc:
