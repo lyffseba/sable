@@ -7,7 +7,8 @@ hot path. Reload stub must not invent mag. HID/DESKTOP/Space stay
 labeled non-product fallbacks. PRODUCTION / aim_pipeline must not teach
 Click-is-HID as the product shot — shark-fin peeks AimBus.
 Chrome (proto/index.html boot/lock) must teach point + shark-fin,
-not pad/pinch as product shoot.
+not pad/pinch as product shoot. Calib chrome must teach shark-fin
+(thumb UP) to capture — not Click-is-HID.
 """
 
 from __future__ import annotations
@@ -285,6 +286,13 @@ _CHROME_FIRE_LIES = (
     "pinch comes next",
 )
 
+# Calib chrome lies — corners are shark-fin, not Click-is-HID.
+_CHROME_CALIB_LIES = (
+    "click to capture",
+    "click to capture.",
+    "click  to capture",
+)
+
 
 def test_fallbacks_labeled_non_product() -> None:
     for rel in (
@@ -425,6 +433,100 @@ def test_chrome_product_shoot_is_shark_fin() -> None:
             _fail(f"{name} copy must name shark-fin")
         if "thumb" not in block.lower():
             _fail(f"{name} copy must teach the thumb (UP / parallel)")
+    test_chrome_calib_capture_is_shark_fin()
+
+
+def _calib_copy(html: str) -> str:
+    """Player-facing calib instruction only (#calib-msg)."""
+    calib = re.search(r'id="screen-calib"[\s\S]*?id="screen-lobby"', html)
+    if not calib:
+        _fail("proto/index.html lost screen-calib")
+    block = calib.group(0)
+    msg = re.search(r'id="calib-msg"[^>]*>([\s\S]*?)</p>', block)
+    if not msg:
+        _fail("calib screen lost #calib-msg")
+    return msg.group(1)
+
+
+def test_chrome_calib_capture_is_shark_fin() -> None:
+    """Calib chrome + shark-fin path: captureCorner on the hand, not Click-is-HID."""
+    html = _read("proto/index.html")
+    src = proto_js()
+    for banned in _CHROME_CALIB_LIES:
+        if banned in html.lower():
+            _fail(
+                f"proto/index.html must not teach calib-lie {banned!r} — "
+                "shark-fin (thumb UP) captures the glow; click is not product"
+            )
+    if "CLICK TO CAPTURE" in src or "Click to capture" in src:
+        _fail(
+            "updateCalibMsg / calib chrome must not paint CLICK TO CAPTURE "
+            "as product capture — shark-fin owns the four corners"
+        )
+    copy = _calib_copy(html)
+    copy_low = copy.lower()
+    if "shark-fin" not in copy_low:
+        _fail("#calib-msg must teach shark-fin to capture")
+    if "thumb up" not in copy_low:
+        _fail("#calib-msg must teach shark-fin (thumb UP) to capture")
+    if "aim" not in copy_low and "glow" not in copy_low:
+        _fail("#calib-msg must teach aim at the glow")
+    if re.search(r"\bclick\b", copy_low):
+        if "non-product" not in copy_low and "emergency" not in copy_low:
+            _fail(
+                "calib chrome must omit click or label it non-product "
+                "emergency — never product capture"
+            )
+    msg = _js_fn(src, "updateCalibMsg")
+    if "CLICK TO CAPTURE" in msg or "Click to capture" in msg:
+        _fail("updateCalibMsg must not paint CLICK TO CAPTURE")
+    if "SHARK-FIN" not in msg and "shark-fin" not in msg.lower():
+        _fail("updateCalibMsg must teach shark-fin capture while corners remain")
+    if "THUMB UP" not in msg and "thumb up" not in msg.lower():
+        _fail("updateCalibMsg must teach thumb UP capture")
+    if "TEST AIM" not in msg or "CENTER TARGET" not in msg:
+        _fail("updateCalibMsg must keep the post-four-corners test-aim line")
+    fin = _js_fn(src, "maybeSharkFinFire")
+    if "S.finHeld" not in fin:
+        _fail("calib shark-fin must keep rising-edge hygiene (finHeld)")
+    if "captureCorner()" not in fin:
+        _fail(
+            "maybeSharkFinFire must invoke captureCorner on early calib — "
+            "HID click is not the only corner path"
+        )
+    if 'phase === "calibrate"' not in fin or "S.calibIndex < 4" not in fin:
+        _fail("early-calib shark-fin must gate captureCorner on calibrate + corners remain")
+    if "captureCorner();return;" not in re.sub(r"\s+", "", fin):
+        _fail(
+            "early-calib shark-fin must captureCorner and return — "
+            "do not spend mag / do not fire() the corner"
+        )
+    if "fire()" not in fin:
+        _fail("shark-fin must still peek fire() after four corners / range")
+    cap_line = None
+    for line in fin.splitlines():
+        if "captureCorner()" in line and "calibrate" in line:
+            cap_line = line
+            break
+    if cap_line is None:
+        for line in fin.splitlines():
+            if "captureCorner()" in line:
+                cap_line = line
+                break
+    if cap_line is None:
+        _fail("maybeSharkFinFire lost the captureCorner line")
+    if "fire()" in cap_line:
+        _fail("captureCorner must not share a fire() call — corners are not shots")
+    hid = _js_fn(src, "onHidPointerDown")
+    if "captureCorner()" not in hid:
+        _fail("HID click capture must stay as a non-product emergency fallback")
+    if 'phase === "calibrate"' not in hid:
+        _fail("HID emergency capture must still see phase calibrate")
+    if "productGunHidFire" not in src:
+        _fail("productGunHidFire bar must stay")
+    gate = _js_fn(src, "productGunHidFire")
+    if "return false" not in gate:
+        _fail("productGunHidFire must stay false")
 
 
 def test_no_mouse_art_invented() -> None:
@@ -449,6 +551,7 @@ def main() -> int:
         test_fallbacks_labeled_non_product()
         test_bible_product_shoot_is_shark_fin()
         test_chrome_product_shoot_is_shark_fin()
+        test_chrome_calib_capture_is_shark_fin()
         test_no_mouse_art_invented()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
