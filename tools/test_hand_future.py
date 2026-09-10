@@ -10,6 +10,8 @@ Chrome (proto/index.html boot/lock) must teach point + shark-fin
 + thumb-parallel SAFE + index+middle charger-plug reload / MAG refill,
 not pad/pinch/Click-is-HID as shoot or reload. Calib chrome must teach
 shark-fin (thumb UP) to capture — not Click-is-HID, not reload.
+Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
+Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 """
 
 from __future__ import annotations
@@ -585,6 +587,89 @@ def test_chrome_calib_capture_is_shark_fin() -> None:
         _fail("productGunHidFire must stay false")
 
 
+# Lock chrome lies — do not sell a missing Gemini API as product vision.
+_CHROME_GEMINI_LOCK_LIES = (
+    "ai hand lock",
+    "btn-gemini-lock",
+    "gemini 3.8",
+    "gemini analyzing",
+    "analyzing...",
+)
+
+
+def test_lock_chrome_does_not_sell_gemini() -> None:
+    """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
+    html = _read("proto/index.html")
+    lock = re.search(r'id="screen-lock"[\s\S]*?id="screen-calib"', html)
+    if not lock:
+        _fail("proto/index.html lost screen-lock")
+    lock_html = lock.group(0)
+    lock_low = lock_html.lower()
+    for banned in _CHROME_GEMINI_LOCK_LIES:
+        if banned in lock_low:
+            _fail(
+                f"lock chrome must not sell Gemini product-lock {banned!r} — "
+                "Hands-class is the interim stack; PLAY ANYWAY / Space stay Q4"
+            )
+    if "gemini" in lock_low:
+        _fail(
+            "lock chrome must not name Gemini as product lock — "
+            "MediaPipe Hands-class is the interim ship stack"
+        )
+    if "ai hand" in lock_low:
+        _fail("lock chrome must not sell AI HAND LOCK as product vision")
+    if 'id="btn-gemini-lock"' in html or "btn-gemini-lock" in html:
+        _fail("lock chrome must not paint btn-gemini-lock")
+    if "AI HAND LOCK" in html:
+        _fail("lock chrome must not paint AI HAND LOCK")
+    if "PLAY ANYWAY" not in lock_html or 'id="btn-skip-lock"' not in lock_html:
+        _fail("Q4 PLAY ANYWAY / btn-skip-lock must stay on the lock screen")
+    if "SEEKING" not in lock_html:
+        _fail("lock chrome must still open on SEEKING")
+
+    boot = _read("proto/boot.js")
+    src = proto_js()
+    if "GEMINI 3.8 ANALYZING" in boot or "GEMINI 3.8 ANALYZING" in src:
+        _fail("lock status must not paint GEMINI 3.8 ANALYZING as product lock")
+    if re.search(r'fetch\s*\(\s*["\']/api/gemini/lock', boot):
+        _fail("lock path must not fetch /api/gemini/lock — Hands-class owns lock")
+    if re.search(r'fetch\s*\(\s*["\']/api/gemini/lock', src):
+        _fail("proto must not fetch /api/gemini/lock from the lock UI path")
+    if "function requestGeminiLock" in boot or "function requestGeminiLock" in src:
+        req = _js_fn(src, "requestGeminiLock")
+        if "/api/gemini/lock" in req or "fetch(" in req:
+            _fail(
+                "requestGeminiLock must stay dead-path — "
+                "do not fetch /api/gemini/lock as product lock"
+            )
+    tick = _js_fn(src, "tickLock")
+    if "requestGeminiLock" in tick:
+        _fail("tickLock must not auto-call requestGeminiLock after lock start")
+    if "geminiAutoTried" in tick or "geminiLockPending" in tick:
+        _fail("tickLock must not auto-try a Gemini lock fetch")
+    if "/api/gemini/lock" in tick:
+        _fail("tickLock must not hit /api/gemini/lock")
+    if 'st.textContent = "SEEKING"' not in tick and 'textContent = "SEEKING"' not in tick:
+        _fail("tickLock must still paint SEEKING until Hands lock")
+    if "LOCKING" not in tick:
+        _fail("tickLock must still paint LOCKING during the Hands sample window")
+    if "HAND LOCKED" not in tick:
+        _fail("tickLock must still confirm Hands lock — do not invent a new vision stack")
+    if "goCalib" not in tick:
+        _fail("Hands lock must still advance to calib")
+    skip = re.search(
+        r'btn-skip-lock[\s\S]{0,400}addEventListener\("click", \(\) => \{[\s\S]*?\n\}\);',
+        boot,
+    )
+    if not skip:
+        _fail("PLAY ANYWAY (btn-skip-lock) click path missing")
+    skip_body = skip.group(0)
+    if "goCalib" not in skip_body or "goDesktopRange" not in skip_body:
+        _fail("PLAY ANYWAY must stay Q4 — goCalib or goDesktopRange")
+    if "requestGeminiLock" in skip_body:
+        _fail("PLAY ANYWAY must not call Gemini lock")
+
+
 def test_no_mouse_art_invented() -> None:
     src = proto_js()
     if re.search(r"mouseMesh|sable[-_]?mouse|kruidenhof", src, re.I):
@@ -609,6 +694,7 @@ def main() -> int:
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
+        test_lock_chrome_does_not_sell_gemini()
         test_no_mouse_art_invented()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

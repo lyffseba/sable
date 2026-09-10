@@ -147,47 +147,6 @@ const SIM_HZ = 128;
 const SIM_DT = 1 / SIM_HZ;
 let simAcc = 0;
 let targetGameMode = "range";
-let geminiLockPending = false;
-let geminiAutoTried = false;
-
-// --- Gemini 3.8 Flash Spatial Vision Lock ---
-async function requestGeminiLock() {
-  if (geminiLockPending || phase !== "lock" || !camReady || !S.gray) return false;
-  const st = $("lock-status");
-  geminiLockPending = true;
-  if (st) st.textContent = "GEMINI 3.8 ANALYZING...";
-
-  try {
-    const snap = proc.toDataURL("image/jpeg", 0.85);
-    const resp = await fetch("/api/gemini/lock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: snap })
-    });
-    if (!resp.ok) throw new Error("API " + resp.status);
-    const data = await resp.json();
-    const tip = data.fingertip || data.muzzle_point;
-    if (data.detected && tip && phase === "lock") {
-      const mx = clamp((tip[1] / 1000) * PROC_W, 0, PROC_W - 1);
-      const my = clamp((tip[0] / 1000) * PROC_H, 0, PROC_H - 1);
-      const now = performance.now();
-      commitTpl(S.gray, PROC_W, PROC_H, Math.round(mx - TPL * 0.5), Math.round(my - TPL * 0.5), now);
-      S.quality = clamp((data.confidence || 0.95) * 100, 0, 100);
-      S.locked = true;
-      if (st) st.textContent = "HAND LOCKED";
-      hitBlip(2);
-      speak(data.gesture ? "Mano: " + data.gesture : "Mano fijada.");
-      setTimeout(() => { if (phase === "lock") goCalib(); }, 500);
-      geminiLockPending = false;
-      return true;
-    }
-  } catch (err) {
-    console.warn("Gemini hand lock fallback:", err);
-  }
-  geminiLockPending = false;
-  if (st && phase === "lock" && !S.locked) st.textContent = "SEEKING";
-  return false;
-}
 function enterGame() {
   setPhase(targetGameMode === "bay" ? "bay" : "range");
   // Mint-tell must land when Offline DESKTOP arms — do not wait on the next frame / KeyT.
@@ -203,8 +162,6 @@ function goCalib() {
 }
 
 function resetLockState() {
-  geminiLockPending = false;
-  geminiAutoTried = false;
   S.tpl = null; S.ncc = 0; S.det = null; S.lockHand = null;
   S.lockAcc = null; S.lockBestScore = 0; S.lockBestPatch = null; S.lockBestTL = null;
   S.lockTplAt = 0; S.lockSince = 0; S.locked = false; S.lockAdvance = false;
@@ -661,11 +618,8 @@ function tickLock(t) {
   if (!S.tpl) {
     S.lockSince = 0;
     S.locked = false;
-    if (t - S.lockStart > 1800 && !geminiAutoTried && !geminiLockPending) {
-      geminiAutoTried = true;
-      requestGeminiLock();
-    }
-    if (st && !geminiLockPending) st.textContent = (t - S.lockStart < LOCK_SAMPLE_MS) ? "LOCKING" : "SEEKING";
+    // Product lock is Hands-class (mpTrack / Worker). Do not auto-fetch Gemini.
+    if (st) st.textContent = (t - S.lockStart < LOCK_SAMPLE_MS) ? "LOCKING" : "SEEKING";
     return;
   }
   const coasting = !!S.smooth && (t - S.lastDetAt) <= COAST_MS;
@@ -1326,8 +1280,6 @@ if (btnLobbyJoin) {
 const btnLobbyBack = $("btn-lobby-back");
 if (btnLobbyBack) btnLobbyBack.addEventListener("click", () => lobbyLeave());
 
-const btnGemini = $("btn-gemini-lock");
-if (btnGemini) btnGemini.addEventListener("click", () => { requestGeminiLock(); });
 const btnSkipLock = $("btn-skip-lock");
 if (btnSkipLock) btnSkipLock.addEventListener("click", () => {
   if (S.smooth || S.tpl) goCalib();
@@ -1395,7 +1347,6 @@ export {
   play,
   lobbyStartBay,
   leaveBay,
-  requestGeminiLock,
   captureCorner,
   SIM_HZ,
   SIM_DT,
