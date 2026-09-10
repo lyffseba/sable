@@ -574,13 +574,18 @@ def test_desktop_publishes_confidence_one() -> None:
         raise AssertionError("publishAim must still publish one five-field AimSample")
     if "S.desktop = true" in pub or "armPracticeDesktop" in pub or "goDesktopRange" in pub:
         raise AssertionError("publishAim must not arm DESKTOP — Q4 never auto-desktop")
-    chip = src[src.find("function drawModeChip") : src.find("function drawModeChip") + 1400]
+    chip = src[src.find("function drawModeChip") : src.find("function drawModeChip") + 2200]
     if "S.desktop ? 100" not in chip:
         raise AssertionError("drawModeChip must paint CONF 100 when S.desktop")
     if "S.quality" not in chip:
         raise AssertionError("non-DESKTOP cuff must still paint S.quality")
     if "S.desktop = true" in chip or "armPracticeDesktop" in chip:
         raise AssertionError("drawModeChip must not arm DESKTOP — Q4 never auto-desktop")
+    if "MAG " not in chip or '"DRY"' not in chip:
+        raise AssertionError("MAG chip missing on hand/GUN path")
+    mag_gate = re.search(r"if\s*\(\s*!S\.desktop\s*\)\s*\{([\s\S]+)", chip)
+    if not mag_gate or "MAG " not in mag_gate.group(1) or '"DRY"' not in mag_gate.group(1):
+        raise AssertionError("MAG chip shows under DESKTOP — HID does not own mag")
     d2 = _js_fn(src, "draw2D")
     for m in re.finditer(r"drawCrosshair\s*\(", d2):
         window = d2[max(0, m.start() - 80) : m.start()]
@@ -884,6 +889,18 @@ def test_forcegun_rearms_pad() -> None:
     seek_at = cond.find('"SEEKING"')
     if seek_at < 0 or "S.forceGun" not in cond[:seek_at]:
         raise AssertionError("chip must stay GUN on forceGun — do not leave SEEKING")
+    if "MAG " not in chip or '"DRY"' not in chip:
+        raise AssertionError("MAG chip missing on hand/GUN path")
+    mag_gate = re.search(r"if\s*\(\s*!S\.desktop\s*\)\s*\{([\s\S]+)", chip)
+    if not mag_gate or "MAG " not in mag_gate.group(1) or '"DRY"' not in mag_gate.group(1):
+        raise AssertionError("MAG chip shows under DESKTOP — HID does not own mag")
+    if "S.mag" not in chip:
+        raise AssertionError("MAG chip must track S.mag — not a pad mag story")
+    fire = _js_fn(src, "fire")
+    if "spendGestureRound" not in fire or "missTick" not in fire:
+        raise AssertionError("empty shark-fin must still dry-click")
+    if "if (!spendGestureRound()) { missTick(); return; }" not in fire:
+        raise AssertionError("empty shark-fin stopped dry-clicking / started firing")
     for rel in (
         "docs/PRODUCTION.md",
         "docs/aim_pipeline.md",

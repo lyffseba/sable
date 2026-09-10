@@ -30,6 +30,10 @@
    even if `!camReady`. Arm paths apply that truth immediately.
    `Space` forceGun invokes `updateMode` before `afterLiftState`.
    `drawModeChip` does not prefer SEEKING when `S.forceGun` or `S.mode === "GUN"`.
+   Thin MAG chip after CONF on the hand/GUN path (`!S.desktop`): `MAG n`
+   bone/mint; rust `DRY` at 0. Mag tell = reload honesty. DESKTOP / forceGun
+   do not invent a pad mag story. Empty shark-fin stays missTick. Same 22px
+   row — do not thicken hangar/lobby or paint over the mint cuff.
    KeyT must not disarm DESKTOP on cam-deny waiting Yard
    (`lobby` / `wait_practice`) — re-arm via `armPracticeDesktop`.
    When `camReady`, KeyT debug toggle-off stays. */
@@ -760,6 +764,24 @@ function drawModeChip() {
   ctx.strokeRect(qx, 16, qw, 22);
   ctx.fillStyle = qCol;
   ctx.fillText(qLabel, qx + 11, 26);
+
+  // Thin MAG tell after CONF. Hand/GUN only — HID does not own mag.
+  // Same 22px row. Empty is rust DRY. Do not invent MAG under DESKTOP.
+  if (!S.desktop) {
+    const magN = S.mag == null ? MAG_CAP : S.mag;
+    const dry = magN === 0;
+    const magLabel = dry ? "DRY" : "MAG " + magN;
+    const magInk = dry ? Locker.colors.rust : Locker.colors.bone;
+    const magEdge = dry ? Locker.colors.rust : Locker.colors.mint;
+    const mw = ctx.measureText(magLabel).width + 22;
+    const mx = qx + qw + 8;
+    ctx.fillStyle = "rgba(5,8,14,0.78)";
+    ctx.strokeStyle = magEdge;
+    ctx.fillRect(mx, 16, mw, 22);
+    ctx.strokeRect(mx, 16, mw, 22);
+    ctx.fillStyle = magInk;
+    ctx.fillText(magLabel, mx + 11, 26);
+  }
 
   function chip(text, on, x) {
     const w = ctx.measureText(text).width + 18;
