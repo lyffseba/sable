@@ -626,7 +626,7 @@ function firstMissingCorner() {
 
 function updateCalibMsg() {
   const el = $("calib-msg");
-  if (S.calibIndex < 4) el.textContent = "AIM AT " + CORNER_NAMES[S.calibIndex] + "  ·  CLICK TO CAPTURE";
+  if (S.calibIndex < 4) el.textContent = "AIM AT " + CORNER_NAMES[S.calibIndex] + "  ·  SHARK-FIN (THUMB UP) TO CAPTURE";
   else el.textContent = "TEST AIM  ·  PUT ONE SHOT ON THE CENTER TARGET";
   $("btn-redo").hidden = !S.camPts.some(Boolean);
 }
@@ -1234,6 +1234,9 @@ function onHidPointerDown(e) {
   }
   if (phase === "calibrate") {
     e.preventDefault();
+    // HID click capture is a non-product emergency fallback
+    // (cam-deny / DESKTOP / engineering). Product corners are
+    // hand shark-fin → captureCorner — do not spend mag here.
     const corners = screenCorners();
     let recap = -1;
     for (let i = 0; i < 4; i++) {
@@ -1402,6 +1405,7 @@ export {
   lobbyStartBay,
   leaveBay,
   requestGeminiLock,
+  captureCorner,
   SIM_HZ,
   SIM_DT,
   simMs,

@@ -7,8 +7,8 @@
    Shoot peeks last pointing UV — neither trigger nor reload rewrites
    the shot. Product path is hands-only — research/HAND_FUTURE.md. */
 
-import { S, W, H, fire, clamp, refillMag } from "./aim.js";
-import { cam, proc, pctx, camReady } from "./boot.js";
+import { S, W, H, fire, clamp, refillMag, phase } from "./aim.js";
+import { cam, proc, pctx, camReady, captureCorner } from "./boot.js";
 
 const PROC_W = 480;
 const CROP_TOP = 0.30;
@@ -708,10 +708,13 @@ function maybeSharkFinFire(lm) {
   const fin = sharkFin(lm);
   if (fin && !S.finHeld) {
     S.finHeld = true;
-    // Rising edge only. fire() peeks last committed AimBus UV and owns
-    // the phase lock (range / bay / lobby / calib). Do not publish
-    // this gesture first — updateAim stays after the peek.
-    // A second phase gate here muted wait_practice (lobby).
+    // Rising edge only. Early calib samples the glow — not a shot.
+    // Do not spend mag. fire() peeks last committed AimBus UV and
+    // owns range / bay / lobby / post-calib (calibIndex >= 4).
+    // Do not re-gate those. Do not publish this gesture first —
+    // updateAim stays after the peek. A second phase gate here
+    // muted wait_practice (lobby).
+    if (phase === "calibrate" && S.calibIndex < 4) { captureCorner(); return; }
     fire();
   } else if (!fin) {
     S.finHeld = false;
