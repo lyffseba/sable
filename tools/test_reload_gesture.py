@@ -459,6 +459,21 @@ def test_client_peek_and_order() -> None:
     hangar = _fn(src, "hangarHudChip")
     if "MAG " in hangar or '"DRY"' in hangar:
         _fail("hangar bar invented MAG — do not thicken lobby")
+    if '"SAFE"' not in chip:
+        _fail("SAFE chip missing on hand/GUN path")
+    if not mag_gate or '"SAFE"' not in mag_gate.group(1):
+        _fail("SAFE chip shows under DESKTOP — HID does not own SAFE")
+    if "thumbParallel" not in chip or "indexExtended" not in chip or "S.handLm" not in chip:
+        _fail("SAFE show predicate must use thumbParallel + pointing (indexExtended / S.handLm)")
+    if "fillRect(sx, 16," not in chip and "fillRect(sx,16," not in chip:
+        _fail("SAFE chip left the 22px MODE row")
+    if '"SAFE"' in hangar or "SAFE" in hangar:
+        _fail("hangar bar invented SAFE — do not thicken lobby")
+    label = re.search(r"const label = ([^;]+);", chip)
+    if label and '"SAFE"' in label.group(1):
+        _fail("do not rename S.mode → SAFE — additive tell only")
+    if 'S.mode = "SAFE"' in chip:
+        _fail("do not rename S.mode → SAFE — additive tell only")
 
 
 def test_hid_desktop_fallback_stays() -> None:
@@ -519,6 +534,12 @@ def test_docs_lock() -> None:
         _fail("TRACKING.md must refuse a DESKTOP / forceGun pad mag story")
     if "empty shark-fin stays missTick" not in track.lower() and "Empty shark-fin stays missTick" not in track:
         _fail("TRACKING.md must keep empty shark-fin on missTick")
+    if "SAFE tell = thumb-parallel honesty" not in prod:
+        _fail("PRODUCTION.md must lock SAFE tell = thumb-parallel honesty")
+    if "SAFE tell = thumb-parallel honesty" not in pipe:
+        _fail("aim_pipeline.md must lock SAFE tell = thumb-parallel honesty")
+    if "SAFE tell = thumb-parallel honesty" not in track:
+        _fail("TRACKING.md must lock SAFE tell = thumb-parallel honesty")
     product = (ROOT / "research/PRODUCT.md").read_text(encoding="utf-8")
     if "Index + middle up toward ceiling" not in product:
         _fail("PRODUCT.md must keep the Juan RELOAD lock")

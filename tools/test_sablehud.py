@@ -432,6 +432,97 @@ def test_mag_chip_hand_path() -> None:
         _fail("AimSample fields changed — keep the locked struct")
 
 
+def test_safe_chip_hand_path() -> None:
+    """Thin SAFE after CONF (with MAG). Pointing + thumb-parallel honesty."""
+    js = proto_js()
+    chip = _js_fn(js, "drawModeChip")
+    if '"SAFE"' not in chip:
+        _fail("SAFE chip missing on hand/GUN path — drawModeChip must paint SAFE")
+    if "thumbParallel" not in chip or "indexExtended" not in chip:
+        _fail("SAFE show predicate must use thumbParallel + pointing (indexExtended)")
+    if "S.handLm" not in chip:
+        _fail("SAFE show predicate must read S.handLm")
+    desk_gate = re.search(r"if\s*\(\s*!S\.desktop\s*\)\s*\{([\s\S]+)", chip)
+    if not desk_gate:
+        _fail("SAFE chip must gate on if (!S.desktop) — HID does not own SAFE")
+    gated = desk_gate.group(1)
+    if '"SAFE"' not in gated:
+        _fail("SAFE chip shows under DESKTOP — paint only inside if (!S.desktop)")
+    if "thumbParallel" not in gated or "indexExtended" not in gated or "S.handLm" not in gated:
+        _fail("SAFE show predicate must live on the hand path — thumbParallel + indexExtended(S.handLm)")
+    if "fillRect(sx, 16," not in chip and "fillRect(sx,16," not in chip:
+        _fail("SAFE chip left the 22px MODE row")
+    if ", 22)" not in chip and ",22)" not in chip:
+        _fail("SAFE chip must stay 22px — do not thicken the bar")
+    if "Locker.colors.mint" not in chip or "Locker.colors.bone" not in chip:
+        _fail("SAFE must stay bone/mint charcoal plate")
+    if "shadowBlur" in chip or "glow" in chip.lower():
+        _fail("SAFE chip bloomed")
+    if "H * 0.78" in chip or "Impact" in chip or "RAISE YOUR HAND" in chip:
+        _fail("SAFE chip hides the cuff or grew a tutorial wall")
+    if "aimBus" in chip or "fire(" in chip or "AimSample" in chip:
+        _fail("SAFE chip gated fire / touched AimSample")
+    if "S.desktop = true" in chip or "armPracticeDesktop" in chip:
+        _fail("drawModeChip must not arm DESKTOP")
+    if 'S.mode = "SAFE"' in chip or 'label = "SAFE"' in chip:
+        _fail("do not rename S.mode → SAFE — additive tell only")
+    label = re.search(r"const label = ([^;]+);", chip)
+    if not label:
+        _fail("drawModeChip lost the MODE label")
+    cond = label.group(1)
+    if '"SAFE"' in cond:
+        _fail("drawModeChip renamed MODE to SAFE — fights GUN lift / SEEKING / forceGun")
+    seek_at = cond.find('"SEEKING"')
+    if seek_at < 0:
+        _fail("drawModeChip must still paint SEEKING when not forceGun / GUN")
+    if "S.forceGun" not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING on Space forceGun — MODE must match seekingHudChip")
+    if 'S.mode !== "GUN"' not in cond[:seek_at] and 'S.mode != "GUN"' not in cond[:seek_at]:
+        _fail("drawModeChip prefers SEEKING when S.mode is GUN — MODE must match seekingHudChip")
+    hangar = _js_fn(js, "hangarHudChip")
+    room = _js_fn(js, "roomHudChip")
+    seek = _js_fn(js, "seekingHudChip")
+    hud = _js_fn(js, "drawHUD")
+    for name, body in (("hangarHudChip", hangar), ("roomHudChip", room), ("seekingHudChip", seek)):
+        if '"SAFE"' in body or "SAFE" in body:
+            _fail(f"{name} invented a SAFE chip — do not thicken hangar/lobby")
+    if '"SAFE"' in hud:
+        _fail("drawHUD grew a SAFE chip — keep SAFE on the MODE row, not the hangar bar")
+    if _js_const(js, "SABLE_HUD_H") != 22:
+        _fail("SableHUD bar must stay thin (22px)")
+    if 'phase === "range"' not in hud or '"SCORE "' not in hud:
+        _fail("gallery SCORE must stay range-gated — SAFE must not thicken lobby")
+    if "H * 0.78" in hud or "Impact" in hud:
+        _fail("SAFE chip hides the gun")
+    css = (ROOT / "proto/style.css").read_text(encoding="utf-8")
+    lobby = re.search(r"\.lobby-inner \{([^}]+)\}", css)
+    if not lobby or "padding: 24px 16px 40px" not in lobby.group(1):
+        _fail("lobby was thickened — SAFE must stay on the 22px MODE row")
+    if "gap: 12px" not in lobby.group(1):
+        _fail("lobby was thickened — action gap grew")
+    fire = _js_fn(js, "fire")
+    if "aimBus.fire" not in fire:
+        _fail("fire() no longer peeks AimBus")
+    if "spendGestureRound" not in fire or "missTick" not in fire:
+        _fail("empty shark-fin must still dry-click — SAFE chip is a tell, not a new verb")
+    spend = _js_fn(js, "spendGestureRound")
+    if "S.finHeld" not in spend:
+        _fail("mag spend is the shark-fin path — empty shark-fin stays missTick")
+    if "S.desktop" in spend:
+        _fail("spendGestureRound must not invent a DESKTOP mag story")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+    gate = _js_fn(js, "productGunHidFire")
+    if "return false" not in gate:
+        _fail("productGunHidFire must stay false")
+    if "fire(" in gate:
+        _fail("productGunHidFire must not peek — it only answers the gate")
+
+
 def test_docs_lock() -> None:
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
@@ -476,6 +567,10 @@ def test_docs_lock() -> None:
         _fail("PRODUCTION.md must refuse a DESKTOP / forceGun pad mag story")
     if "empty shark-fin stays" not in bible.lower():
         _fail("PRODUCTION.md must keep empty shark-fin on missTick")
+    if "SAFE tell = thumb-parallel honesty" not in bible:
+        _fail("PRODUCTION.md must lock SAFE tell = thumb-parallel honesty")
+    if "SAFE tell = thumb-parallel honesty" not in modes:
+        _fail("docs/modes.md must lock SAFE tell = thumb-parallel honesty")
 
 
 def test_room_chip_on_wait_practice() -> None:
@@ -629,6 +724,7 @@ def main() -> int:
         test_lobby_stays_thin()
         test_q4_seeking_chip_thin()
         test_mag_chip_hand_path()
+        test_safe_chip_hand_path()
         test_docs_lock()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

@@ -438,6 +438,26 @@ def test_client_peek_and_order() -> None:
         _fail("productGunHidFire must stay false")
     if "fire(" in gate:
         _fail("productGunHidFire must not peek — it only answers the gate")
+    chip = _fn(src, "drawModeChip")
+    if '"SAFE"' not in chip:
+        _fail("SAFE chip missing on hand/GUN path")
+    if "thumbParallel" not in chip or "indexExtended" not in chip or "S.handLm" not in chip:
+        _fail("SAFE show predicate must use thumbParallel + pointing (indexExtended / S.handLm)")
+    desk_gate = re.search(r"if\s*\(\s*!S\.desktop\s*\)\s*\{([\s\S]+)", chip)
+    if not desk_gate or '"SAFE"' not in desk_gate.group(1):
+        _fail("SAFE chip shows under DESKTOP — HID does not own SAFE")
+    if "fillRect(sx, 16," not in chip and "fillRect(sx,16," not in chip:
+        _fail("SAFE chip left the 22px MODE row")
+    hangar = _fn(src, "hangarHudChip")
+    if '"SAFE"' in hangar or "SAFE" in hangar:
+        _fail("hangar bar invented SAFE — do not thicken lobby")
+    label = re.search(r"const label = ([^;]+);", chip)
+    if not label:
+        _fail("drawModeChip lost the MODE label")
+    if '"SAFE"' in label.group(1):
+        _fail("do not rename S.mode → SAFE — additive tell only")
+    if 'S.mode = "SAFE"' in chip:
+        _fail("do not rename S.mode → SAFE — additive tell only")
 
 
 def test_space_forcegun_is_not_shoot() -> None:
@@ -491,6 +511,12 @@ def test_docs_lock() -> None:
         _fail("TRACKING.md must not still claim shark-fin is unimplemented")
     if "maybeSharkFinFire" not in track:
         _fail("TRACKING.md must name maybeSharkFinFire as this cut")
+    if "SAFE tell = thumb-parallel honesty" not in prod:
+        _fail("PRODUCTION.md must lock SAFE tell = thumb-parallel honesty")
+    if "SAFE tell = thumb-parallel honesty" not in pipe:
+        _fail("aim_pipeline.md must lock SAFE tell = thumb-parallel honesty")
+    if "SAFE tell = thumb-parallel honesty" not in track:
+        _fail("TRACKING.md must lock SAFE tell = thumb-parallel honesty")
     if "AimSample" not in track or "t_hw" not in track:
         _fail("TRACKING.md must keep the five-field AimSample pointer")
     product = (ROOT / "research/PRODUCT.md").read_text(encoding="utf-8")

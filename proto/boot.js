@@ -31,9 +31,12 @@
    `Space` forceGun invokes `updateMode` before `afterLiftState`.
    `drawModeChip` does not prefer SEEKING when `S.forceGun` or `S.mode === "GUN"`.
    Thin MAG chip after CONF on the hand/GUN path (`!S.desktop`): `MAG n`
-   bone/mint; rust `DRY` at 0. Mag tell = reload honesty. DESKTOP / forceGun
-   do not invent a pad mag story. Empty shark-fin stays missTick. Same 22px
-   row — do not thicken hangar/lobby or paint over the mint cuff.
+   bone/mint; rust `DRY` at 0. Mag tell = reload honesty. Thin SAFE chip
+   after CONF (with MAG) when pointing + thumb-parallel. SAFE tell =
+   thumb-parallel honesty. Additive — do not rename S.mode. DESKTOP /
+   forceGun do not invent a pad mag / SAFE story. Empty shark-fin stays
+   missTick. Same 22px row — do not thicken hangar/lobby or paint over
+   the mint cuff.
    KeyT must not disarm DESKTOP on cam-deny waiting Yard
    (`lobby` / `wait_practice`) — re-arm via `armPracticeDesktop`.
    When `camReady`, KeyT debug toggle-off stays. */
@@ -63,6 +66,8 @@ import {
   coastTrack,
   maybeSharkFinFire,
   maybeReloadGesture,
+  thumbParallel,
+  indexExtended,
   initHands,
   armVideoTrack,
   resetTrackFilters,
@@ -781,6 +786,21 @@ function drawModeChip() {
     ctx.strokeRect(mx, 16, mw, 22);
     ctx.fillStyle = magInk;
     ctx.fillText(magLabel, mx + 11, 26);
+
+    // Thin SAFE tell after MAG. Pointing + thumb-parallel honesty.
+    // Additive chip — do not rename S.mode (GUN lift / SEEKING / forceGun).
+    // Hide under DESKTOP / forceGun pad story. Same 22px bone/mint plate.
+    if (S.handLm && indexExtended(S.handLm) && thumbParallel(S.handLm)) {
+      const safeLabel = "SAFE";
+      const sw = ctx.measureText(safeLabel).width + 22;
+      const sx = mx + mw + 8;
+      ctx.fillStyle = "rgba(5,8,14,0.78)";
+      ctx.strokeStyle = Locker.colors.mint;
+      ctx.fillRect(sx, 16, sw, 22);
+      ctx.strokeRect(sx, 16, sw, 22);
+      ctx.fillStyle = Locker.colors.bone;
+      ctx.fillText(safeLabel, sx + 11, 26);
+    }
   }
 
   function chip(text, on, x) {
