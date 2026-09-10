@@ -6,6 +6,8 @@ fields. Product GUN is hands-only. Meta SAM-class is invent, not the
 hot path. Reload stub must not invent mag. HID/DESKTOP/Space stay
 labeled non-product fallbacks. PRODUCTION / aim_pipeline must not teach
 Click-is-HID as the product shot — shark-fin peeks AimBus.
+Chrome (proto/index.html boot/lock) must teach point + shark-fin,
+not pad/pinch as product shoot.
 """
 
 from __future__ import annotations
@@ -276,6 +278,13 @@ _CLICK_IS_HID_FANTASY = (
     "fire-is-hid mailbox",
 )
 
+# Chrome lies — boot/lock must not sell pad/pinch as product shoot.
+_CHROME_FIRE_LIES = (
+    "tap the pad to fire",
+    "trackpad is the trigger",
+    "pinch comes next",
+)
+
 
 def test_fallbacks_labeled_non_product() -> None:
     for rel in (
@@ -349,6 +358,73 @@ def test_bible_product_shoot_is_shark_fin() -> None:
         _fail("aim_pipeline.md must keep sticky lift")
     if "waiting" not in pipe.lower() or "yard" not in pipe.lower():
         _fail("aim_pipeline.md must keep waiting-Yard")
+    test_chrome_product_shoot_is_shark_fin()
+
+
+def _boot_lock_copy(html: str) -> str:
+    """Player-facing boot + lock copy only (tag / lock-copy / safety)."""
+    chunks: list[str] = []
+    boot = re.search(r'id="screen-boot"[\s\S]*?id="screen-lock"', html)
+    lock = re.search(r'id="screen-lock"[\s\S]*?id="screen-calib"', html)
+    if not boot:
+        _fail("proto/index.html lost screen-boot")
+    if not lock:
+        _fail("proto/index.html lost screen-lock")
+    for block, name in ((boot.group(0), "boot"), (lock.group(0), "lock")):
+        for cls in ("tag", "lock-copy", "safety"):
+            for m in re.finditer(
+                rf'<p class="{cls}">([\s\S]*?)</p>', block
+            ):
+                chunks.append(m.group(1))
+        if name == "lock" and 'class="lock-copy"' not in block:
+            _fail("lock screen lost .lock-copy")
+        if name == "boot" and 'class="tag"' not in block:
+            _fail("boot screen lost .tag")
+        if block.count('class="safety"') < 1:
+            _fail(f"{name} screen lost .safety")
+    return "\n".join(chunks)
+
+
+def test_chrome_product_shoot_is_shark_fin() -> None:
+    """proto/index.html boot+lock: shark-fin owns product shoot; pad/pinch are not the story."""
+    html = _read("proto/index.html")
+    low = html.lower()
+    for banned in _CHROME_FIRE_LIES:
+        if banned in low:
+            _fail(
+                f"proto/index.html must not teach chrome-lie {banned!r} — "
+                "shark-fin owns product shoot; pad/HID is non-product"
+            )
+    if re.search(r"pinch[\s\S]{0,40}to fire", html, re.I):
+        _fail("proto/index.html must not teach pinch to fire")
+    copy = _boot_lock_copy(html)
+    copy_low = copy.lower()
+    if "shark-fin" not in copy_low:
+        _fail("boot/lock copy must name shark-fin as product shoot")
+    if "thumb up" not in copy_low:
+        _fail("boot/lock copy must teach shark-fin (thumb UP)")
+    if "thumb parallel" not in copy_low:
+        _fail("boot/lock copy must teach thumb parallel = SAFE")
+    if "safe" not in copy_low:
+        _fail("boot/lock copy must name thumb parallel as SAFE")
+    if "point" not in copy_low:
+        _fail("boot/lock copy must teach point")
+    # Pad / HID may be omitted; if named, they must be non-product emergency.
+    if re.search(r"\b(pad|trackpad|hid)\b", copy_low):
+        if "non-product" not in copy_low and "emergency" not in copy_low:
+            _fail(
+                "boot/lock pad/HID must be omitted or labeled "
+                "non-product emergency — never product shoot"
+            )
+    boot = re.search(r'id="screen-boot"[\s\S]*?id="screen-lock"', html)
+    lock = re.search(r'id="screen-lock"[\s\S]*?id="screen-calib"', html)
+    if not boot or not lock:
+        _fail("proto/index.html lost screen-boot or screen-lock")
+    for block, name in ((boot.group(0), "boot"), (lock.group(0), "lock")):
+        if "shark-fin" not in block.lower():
+            _fail(f"{name} copy must name shark-fin")
+        if "thumb" not in block.lower():
+            _fail(f"{name} copy must teach the thumb (UP / parallel)")
 
 
 def test_no_mouse_art_invented() -> None:
@@ -372,6 +448,7 @@ def main() -> int:
         test_liftshot_product_pivot()
         test_fallbacks_labeled_non_product()
         test_bible_product_shoot_is_shark_fin()
+        test_chrome_product_shoot_is_shark_fin()
         test_no_mouse_art_invented()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
