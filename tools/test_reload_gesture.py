@@ -223,7 +223,7 @@ def apply_mp_landmarks(
     lms: list[dict[int, tuple[float, float]]] | None,
     state: dict,
 ) -> bool:
-    """Mirror proto/hands.js applyMpLandmarks empty / unusable hygiene."""
+    """Mirror proto/hands.js applyMpLandmarks empty / unusable / fist hygiene."""
     if not lms:
         state["handLm"] = None
         state["finHeld"] = False
@@ -236,6 +236,10 @@ def apply_mp_landmarks(
         state["reloadHeld"] = False
         return False
     state["handLm"] = lm
+    if not index_extended(lm):
+        state["finHeld"] = False
+        state["reloadHeld"] = False
+        return True
     return True
 
 

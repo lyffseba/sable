@@ -246,6 +246,8 @@ def test_proto_mailbox() -> None:
         raise AssertionError("HID click must hold lift, not demote it")
     if owns < 0 or hid < 0 or owns > hid:
         raise AssertionError("chip: hand / recent sample must beat trackpad HID")
+    if "indexExtended" not in mode_body or "S.handLm" not in mode_body:
+        raise AssertionError("updateMode must not handOwns a live fist")
     if "S.lifted" not in mode_body:
         raise AssertionError("updateMode must write lifted")
     if "want = S.forceGun || (!S.hidMoving" in mode_body:

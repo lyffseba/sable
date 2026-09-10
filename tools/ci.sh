@@ -26,6 +26,7 @@ python3 tools/check_protocol.py
 python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
 python3 tools/test_shark_fin.py
+python3 tools/test_fist_presence.py
 python3 tools/test_reload_gesture.py
 python3 tools/test_aim_verb.py
 python3 tools/test_hand_future.py
