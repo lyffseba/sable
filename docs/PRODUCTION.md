@@ -4,7 +4,7 @@ Codename only. Apache-2.0. Original IP. This is the document a producer, enginee
 
 ## One sentence
 
-You raise a hand at a laptop or TV, the house throws plates, the click is the shot — and friends can stand in the same house.
+You raise a hand at a laptop or TV, the house throws plates, shark-fin peeks AimBus — and friends can stand in the same house.
 
 ## Player fantasy (locked)
 
@@ -19,7 +19,7 @@ We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, map
 ## Pillars (do not violate)
 
 1. **Pointing is the gun.** Index tip / AimSample.uv is the muzzle. Not box-center, not palm, not OS cursor (except DESKTOP debug).
-2. **Click is HID.** `AimBus.fire()` peeks. No camera gate, no bloom, no aim-assist, no RNG on the lifted shot.
+2. **Shark-fin peeks AimBus.** Product shoot is shark-fin → `AimBus.fire()`. No camera gate, no bloom, no aim-assist, no RNG on the lifted shot. HID / DESKTOP / Space are a **non-product emergency** — never the product story.
 3. **Broadcast the lift.** Cuff rises, mint rail, PAD/GUN chip. First kill under 60 s. No tutorial wall.
 4. **One house.** Offline and online share the Salt House. Online is a lobby layer, not a second map.
 5. **Original silhouette.** Charcoal / bone / mint / rust. CANCHO cuff, not a rifle. Bone plates, not orbs from a trainer.
@@ -36,7 +36,7 @@ v1 is **not** an on-rails walk through a mall. If we ever add a “house walk,�
 
 ## Loop (30 seconds of fun)
 
-Raise cuff → plate appears (PULL) → point at glass → click → shatter or escape → drop-strafe / rest hand → next plate.
+Raise cuff → plate appears (PULL) → point at glass → shark-fin → shatter or escape → drop-strafe / rest hand → next plate.
 
 ## Input contract
 
@@ -44,7 +44,9 @@ Raise cuff → plate appears (PULL) → point at glass → click → shatter or 
 webcam  →  fingertip lock (landmarks preferred, skin+NCC fallback)
          →  One Euro in camera space
          →  homography → AimSample.uv
-HID click → peek AimSample → hitscan
+shark-fin → AimBus.fire() peek → hitscan
+
+HID / DESKTOP / Space → non-product emergency only (never the product story)
 ```
 
 Product lock: front cam tracks hands — mouse body is never the optical aim target. **No mouse as product verb.** No mouse-gun product verb. **No mouse mesh prototype path** (sable-mouse STOP — Kruidenhof, not SABLE). Product gun path = shark-fin shoot + index+middle-up reload; HID click must not replace the shoot gesture in gun mode. `productGunHidFire()` is false — pad tap on the product GUN path must not peek `fire()`; DESKTOP / cam-deny still does. `forceGun` re-arms pad as Q4 emergency only; Space is not a shot; `productGunHidFire` stays false. DESKTOP cam-deny / HID pad / Q4 Space `forceGun` remain shipped **non-product emergency** honesty bars only if still in code (`research/TRACKING.md`, `research/HAND_FUTURE.md`). Juan / LiftShot product brief: `research/PRODUCT.md`. Vision invent: Meta SAM-class gate + landmark FSM; MediaPipe Hands-class is interim.
@@ -65,7 +67,7 @@ CANCHO tell: mint rail on the index, rust cuff, bone palm. No face.
 
 - WebGL client, zero install, 1080p60 floor / 1080p120 stretch.
 - Ship floor: **Chromium on MacBook Pro–class** lid-cam (`SABLE_PORT_SURFACE` = `chromium-macbook`). Godot/native is an engineering path only — no second product. Invent / SAM stays in-browser or a thin local bridge.
-- Fire-is-HID mailbox.
+- Product peek mailbox: shark-fin → `AimBus.fire()`. HID / DESKTOP / Space stay non-product emergency.
 - One Euro pointing constants.
 - Apache-2.0, license scan, DCO.
 - In-memory lobby rooms.

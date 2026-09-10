@@ -4,7 +4,8 @@
 research/HAND_FUTURE.md is the architecture soT. AimSample stays five
 fields. Product GUN is hands-only. Meta SAM-class is invent, not the
 hot path. Reload stub must not invent mag. HID/DESKTOP/Space stay
-labeled non-product fallbacks.
+labeled non-product fallbacks. PRODUCTION / aim_pipeline must not teach
+Click-is-HID as the product shot — shark-fin peeks AimBus.
 """
 
 from __future__ import annotations
@@ -267,6 +268,15 @@ def test_liftshot_product_pivot() -> None:
         _fail("TRACKING.md must keep SAM-class hybrid pointer")
 
 
+# Product-fantasy phrases the bible must not teach as the shoot verb.
+_CLICK_IS_HID_FANTASY = (
+    "click is hid",
+    "the click is the shot",
+    "click is always hid",
+    "fire-is-hid mailbox",
+)
+
+
 def test_fallbacks_labeled_non_product() -> None:
     for rel in (
         "research/HAND_FUTURE.md",
@@ -285,6 +295,60 @@ def test_fallbacks_labeled_non_product() -> None:
         _fail("HAND_FUTURE.md must keep sable-mouse STOP")
     if "No mouse ever" not in future:
         _fail("HAND_FUTURE.md must keep no mouse ever")
+    test_bible_product_shoot_is_shark_fin()
+
+
+def test_bible_product_shoot_is_shark_fin() -> None:
+    """PRODUCTION + aim_pipeline: shark-fin owns product shoot; click-is-HID is not the fantasy."""
+    for rel in ("docs/PRODUCTION.md", "docs/aim_pipeline.md"):
+        text = _read(rel)
+        low = text.lower()
+        for banned in _CLICK_IS_HID_FANTASY:
+            if banned in low:
+                _fail(
+                    f"{rel} must not teach product-fantasy {banned!r} — "
+                    "shark-fin owns product shoot; HID is non-product"
+                )
+        if re.search(r"^## Fire is HID\b", text, re.M):
+            _fail(f"{rel} must not lead fire with 'Fire is HID' as the product story")
+        if "shark-fin" not in low and "maybesharkfinfire" not in low:
+            _fail(f"{rel} must name shark-fin / maybeSharkFinFire as product shoot")
+        if "maybeSharkFinFire" not in text and "shark-fin" not in low:
+            _fail(f"{rel} must name shark-fin or maybeSharkFinFire")
+        if "product shoot" not in low and "product fire" not in low and "product peek" not in low:
+            _fail(f"{rel} must name shark-fin as product shoot / product peek")
+        if "aimbus" not in low:
+            _fail(f"{rel} must name AimBus peek")
+        if "peek" not in low:
+            _fail(f"{rel} must keep AimBus peek")
+        if (
+            "no camera gate" not in low
+            and "never wait for the next camera" not in low
+            and "never waits on a camera" not in low
+        ):
+            _fail(f"{rel} must keep no camera gate / never wait on a camera frame")
+        if "HID" not in text or "DESKTOP" not in text or "Space" not in text:
+            _fail(f"{rel} must name HID / DESKTOP / Space as the non-product emergency")
+        if "never the product story" not in text and "never product story" not in text:
+            _fail(f"{rel} must label HID/DESKTOP/Space as never the product story")
+        if "non-product emergency" not in text and "engineering fallbacks" not in text:
+            _fail(f"{rel} must label HID/DESKTOP/Space non-product emergency")
+        if "productGunHidFire" not in text:
+            _fail(f"{rel} must keep the productGunHidFire bar")
+    prod = _read("docs/PRODUCTION.md")
+    if "HID click → peek" in prod or "→ click →" in prod:
+        _fail("PRODUCTION.md must not sell HID click / click as the product shot")
+    if "AimBus.fire()" not in prod:
+        _fail("PRODUCTION.md must name AimBus.fire() as the product peek")
+    pipe = _read("docs/aim_pipeline.md")
+    if "HID click → hitscan" in pipe:
+        _fail("aim_pipeline.md must not sell HID click as the <8ms product bar")
+    if "< 8 ms" not in pipe and "<8 ms" not in pipe:
+        _fail("aim_pipeline.md must keep the <8ms peek bar")
+    if "sticky" not in pipe.lower():
+        _fail("aim_pipeline.md must keep sticky lift")
+    if "waiting" not in pipe.lower() or "yard" not in pipe.lower():
+        _fail("aim_pipeline.md must keep waiting-Yard")
 
 
 def test_no_mouse_art_invented() -> None:
@@ -307,6 +371,7 @@ def main() -> int:
         test_product_gun_hid_deprecated()
         test_liftshot_product_pivot()
         test_fallbacks_labeled_non_product()
+        test_bible_product_shoot_is_shark_fin()
         test_no_mouse_art_invented()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
