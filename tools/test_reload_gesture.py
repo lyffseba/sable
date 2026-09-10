@@ -362,6 +362,17 @@ def test_client_peek_and_order() -> None:
         _fail("pinch must not spend mag -- pinch is not a trigger")
     if "S.desktop" in spend:
         _fail("spendGestureRound must not invent a DESKTOP mag story")
+    chip = _fn(src, "drawModeChip")
+    if "MAG " not in chip or '"DRY"' not in chip:
+        _fail("MAG chip missing on hand/GUN path")
+    mag_gate = re.search(r"if\s*\(\s*!S\.desktop\s*\)\s*\{([\s\S]+)", chip)
+    if not mag_gate or "MAG " not in mag_gate.group(1) or '"DRY"' not in mag_gate.group(1):
+        _fail("MAG chip shows under DESKTOP — HID does not own mag")
+    if "fillRect(mx, 16," not in chip and "fillRect(mx,16," not in chip:
+        _fail("MAG chip left the 22px MODE row")
+    hangar = _fn(src, "hangarHudChip")
+    if "MAG " in hangar or '"DRY"' in hangar:
+        _fail("hangar bar invented MAG — do not thicken lobby")
 
 
 def test_hid_desktop_fallback_stays() -> None:
@@ -404,6 +415,24 @@ def test_docs_lock() -> None:
         _fail("TRACKING.md must keep the #85 Juan lock and PRODUCT.md pointer")
     if "AimSample" not in track or "t_hw" not in track:
         _fail("TRACKING.md must keep the five-field AimSample pointer")
+    if "mag tell = reload honesty" not in prod.lower() and "Mag tell = reload honesty" not in prod:
+        _fail("PRODUCTION.md must lock mag tell = reload honesty")
+    if "do not invent a pad mag story" not in prod.lower():
+        _fail("PRODUCTION.md must refuse a DESKTOP / forceGun pad mag story")
+    if "empty shark-fin stays" not in prod.lower():
+        _fail("PRODUCTION.md must keep empty shark-fin on missTick")
+    if "mag tell = reload honesty" not in pipe.lower() and "Mag tell = reload honesty" not in pipe:
+        _fail("aim_pipeline.md must lock mag tell = reload honesty")
+    if "do not invent a pad mag story" not in pipe.lower():
+        _fail("aim_pipeline.md must refuse a DESKTOP / forceGun pad mag story")
+    if "empty shark-fin stays missTick" not in pipe.lower() and "Empty shark-fin stays missTick" not in pipe:
+        _fail("aim_pipeline.md must keep empty shark-fin on missTick")
+    if "mag tell = reload honesty" not in track.lower() and "Mag tell = reload honesty" not in track:
+        _fail("TRACKING.md must lock mag tell = reload honesty")
+    if "do not invent a pad mag story" not in track.lower():
+        _fail("TRACKING.md must refuse a DESKTOP / forceGun pad mag story")
+    if "empty shark-fin stays missTick" not in track.lower() and "Empty shark-fin stays missTick" not in track:
+        _fail("TRACKING.md must keep empty shark-fin on missTick")
     product = (ROOT / "research/PRODUCT.md").read_text(encoding="utf-8")
     if "Index + middle up toward ceiling" not in product:
         _fail("PRODUCT.md must keep the Juan RELOAD lock")
