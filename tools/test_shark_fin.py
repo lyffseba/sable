@@ -291,7 +291,7 @@ def test_space_forcegun_is_not_shoot() -> None:
 def test_hid_desktop_fallback_stays() -> None:
     src = proto_js()
     hid = _fn(src, "onHidPointerDown")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
+    if "if (S.desktop || S.forceGun) publishAim(e.clientX, e.clientY)" not in hid:
         _fail("DESKTOP HID must still publish click UV before fire() peek")
     if "fire()" not in hid:
         _fail("DESKTOP / pad fallback must still peek through fire()")

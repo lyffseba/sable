@@ -226,14 +226,14 @@ def test_waiting_arena_always_practice() -> None:
         _fail("window HID must peek fire() and spare WARM UP / ENTER RANGE")
     if 'phase === "lobby"' not in hid:
         _fail("window HID must peek on the waiting Yard")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
-        _fail("waiting-Yard DESKTOP first pad must publish click UV before fire()")
+    if "if (S.desktop || S.forceGun) publishAim(e.clientX, e.clientY)" not in hid:
+        _fail("waiting-Yard DESKTOP / forceGun first pad must publish click UV before fire()")
     if hid.find("publishAim") > hid.find("fire()"):
-        _fail("waiting-Yard DESKTOP publishAim must land before fire()")
+        _fail("waiting-Yard DESKTOP / forceGun publishAim must land before fire()")
     for m in re.finditer(r"publishAim\s*\(", hid):
         window = hid[max(0, m.start() - 80) : m.start()]
-        if "S.desktop" not in window:
-            _fail("waiting-Yard HID must not publishAim unless DESKTOP owns the mailbox")
+        if "S.desktop" not in window and "S.forceGun" not in window:
+            _fail("waiting-Yard HID must not publishAim unless DESKTOP or forceGun owns the mailbox")
     chrome = _js_fn(js, "hidChromeTarget")
     if "join-mute" not in chrome or "lobby-join" not in chrome:
         _fail("leftover JOIN/CODE must not eat waiting-Yard HID after join")

@@ -229,12 +229,12 @@ def test_product_gun_hid_deprecated() -> None:
     if "fire()" in gate or "publishAim" in gate:
         _fail("productGunHidFire must not peek")
     hid = _js_fn(src, "onHidPointerDown")
-    if "if (S.desktop || productGunHidFire()) fire()" not in hid:
-        _fail("range/lobby HID must gate fire on DESKTOP / productGunHidFire")
-    if "if (S.desktop) publishAim(e.clientX, e.clientY)" not in hid:
-        _fail("DESKTOP HID must still publish click UV before fire()")
-    if hid.find("if (S.desktop) publishAim") > hid.find("fire()"):
-        _fail("DESKTOP publishAim must land before any fire() peek")
+    if "if (S.desktop || S.forceGun || productGunHidFire()) fire()" not in hid:
+        _fail("range/lobby HID must gate fire on DESKTOP / forceGun / productGunHidFire")
+    if "if (S.desktop || S.forceGun) publishAim(e.clientX, e.clientY)" not in hid:
+        _fail("DESKTOP / forceGun HID must still publish click UV before fire()")
+    if hid.find("publishAim") > hid.find("fire()"):
+        _fail("DESKTOP / forceGun publishAim must land before any fire() peek")
     future = _read("research/HAND_FUTURE.md")
     if "productGunHidFire" not in future:
         _fail("HAND_FUTURE.md must name the HID-as-gun deprecation gate")
