@@ -591,6 +591,12 @@ function reloadGesture(lm) {
   return true;
 }
 
+function handsPresent(now, windowMs) {
+  // Presence clock. Fist still saw a hand — keep Worker / mpFresh.
+  // Pointing lock (lastDetAt) is a different clock.
+  return !!S.lastHandAt && (now - S.lastHandAt < windowMs);
+}
+
 function applyMpLandmarks(lms, now) {
   // Empty / unusable Hands must drop gesture state. Stale handLm would
   // keep feeding maybeSharkFinFire / maybeReloadGesture through the
@@ -599,14 +605,22 @@ function applyMpLandmarks(lms, now) {
   if (!lms || !lms.length) { S.handLm = null; S.finHeld = false; S.reloadHeld = false; return false; }
   const lm = bestHand(lms);
   if (!lm || !lm[8] || !lm[6]) { S.handLm = null; S.finHeld = false; S.reloadHeld = false; return false; }
+  // Hands saw a hand. Presence keeps the Worker path — do not invent skin GUN.
+  S.lastHandAt = now;
+  S.handLm = lm;
+  if (!indexExtended(lm)) {
+    // Fist is not GUN. Do not refresh pointing lastDetAt or chase the nail.
+    S.finHeld = false;
+    S.reloadHeld = false;
+    return true;
+  }
   const muz = nailMuzzle(lm);
-  S.det = { x: muz.x, y: muz.y, conf: indexExtended(lm) ? 0.92 : 0.4 };
+  S.det = { x: muz.x, y: muz.y, conf: 0.92 };
   S.lastDetAt = now;
   applyEuroPoint(now, muz.x, muz.y);
   S.tpl = { w: TPL, h: TPL, fromHands: true };
   S.lockTplAt = now;
   S.ncc = S.det.conf;
-  S.handLm = lm;
   return true;
 }
 
@@ -684,7 +698,7 @@ function mpTrack(now) {
 
 function kickAndFresh(now) {
   kickWorkerDetect(now);
-  return !!(S.det && (now - (S.lastDetAt || 0) < 80));
+  return handsPresent(now, 80);
 }
 
 function maybeSharkFinFire(lm) {
@@ -860,7 +874,7 @@ function fallbackSkin(now) {
 function runTrack(now) {
   if (!S.euroX) resetTrackFilters();
   const stamp = cam.currentTime;
-  const mpFresh = S.handsOn && S.det && (now - (S.lastDetAt || 0) < 80);
+  const mpFresh = S.handsOn && handsPresent(now, 80);
   if (stamp && stamp === S.camStamp) {
     if (!mpFresh) {
       if (!fallbackSkin(now) && !S.det) coastTrack(now);
@@ -870,7 +884,7 @@ function runTrack(now) {
   }
   S.camStamp = stamp;
   if (S.handsOn) {
-    if (S.rvfc && (now - (S.lastDetAt || 0) < 120)) {
+    if (S.rvfc && handsPresent(now, 120)) {
       if (!S.det) coastTrack(now);
     } else if (mpTrack(now)) {
       S.mpMiss = 0;
@@ -901,7 +915,7 @@ function sizeProc() {
 function grabFrame() {
   if (!camReady || !cam.videoWidth) return false;
   if (proc.width !== PROC_W) sizeProc();
-  const mpFresh = S.handsOn && S.det && (performance.now() - (S.lastDetAt || 0) < 80);
+  const mpFresh = S.handsOn && handsPresent(performance.now(), 80);
   if (mpFresh) return true;
   pctx.drawImage(cam, 0, 0, PROC_W, PROC_H);
   const img = pctx.getImageData(0, 0, PROC_W, PROC_H);
@@ -972,6 +986,7 @@ export {
   chargerPlug,
   sharkFin,
   reloadGesture,
+  handsPresent,
   applyMpLandmarks,
   onHandsWorkerMsg,
   kickWorkerDetect,

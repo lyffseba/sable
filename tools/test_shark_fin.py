@@ -179,11 +179,27 @@ def maybe_fin_edge(held: bool, fin: bool) -> tuple[bool, bool]:
     return held, fired
 
 
+def gun_fist() -> dict[int, tuple[float, float]]:
+    """Same shark-fin gun with the index curled — presence, not GUN."""
+    fist = dict(gun_shark())
+    fist[6] = (0.56, 0.68)
+    fist[8] = (0.52, 0.78)
+    return fist
+
+
+def nail_muzzle(lm: dict[int, tuple[float, float]]) -> tuple[float, float]:
+    pip, tip = lm[6], lm[8]
+    nx = tip[0] + (tip[0] - pip[0]) * 0.18
+    ny = tip[1] + (tip[1] - pip[1]) * 0.18
+    return ((1 - nx) * 479.0, ny * 269.0)
+
+
 def apply_mp_landmarks(
     lms: list[dict[int, tuple[float, float]]] | None,
     state: dict,
+    now: float | None = None,
 ) -> bool:
-    """Mirror proto/hands.js applyMpLandmarks empty / unusable hygiene."""
+    """Mirror proto/hands.js applyMpLandmarks presence vs pointing lock."""
     if not lms:
         state["handLm"] = None
         state["finHeld"] = False
@@ -195,7 +211,18 @@ def apply_mp_landmarks(
         state["finHeld"] = False
         state["reloadHeld"] = False
         return False
+    if now is not None:
+        state["lastHandAt"] = now
     state["handLm"] = lm
+    if not index_extended(lm):
+        state["finHeld"] = False
+        state["reloadHeld"] = False
+        return True
+    if now is not None:
+        muz = nail_muzzle(lm)
+        state["det"] = {"x": muz[0], "y": muz[1], "conf": 0.92}
+        state["lastDetAt"] = now
+        state["smooth"] = {"x": muz[0], "y": muz[1]}
     return True
 
 
@@ -217,9 +244,7 @@ def test_geometry_table() -> None:
         _fail("pinch fixture must be a real pinch so the reject is honest")
     if shark_fin(None):
         _fail("missing landmarks must not invent a shark-fin")
-    fist = dict(fin)
-    fist[6] = (0.56, 0.68)
-    fist[8] = (0.52, 0.78)
+    fist = gun_fist()
     if index_extended(fist) or shark_fin(fist):
         _fail("a fist is not GUN — index must stay extended")
 
@@ -259,6 +284,56 @@ def test_empty_landmark_clears_held() -> None:
     held, fired = maybe_fin_edge(state["finHeld"], shark_fin(fin))
     if not fired or not held:
         _fail("after empty-landmark clear, shark-fin rising edge must fire")
+
+
+def test_fist_is_presence_not_pointing() -> None:
+    """Fist keeps the Worker path; it must not refresh pointing lock or chase the nail."""
+    gun = gun_shark()
+    fist = gun_fist()
+    gun_uv = nail_muzzle(gun)
+    fist_uv = nail_muzzle(fist)
+    if abs(gun_uv[0] - fist_uv[0]) < 8 and abs(gun_uv[1] - fist_uv[1]) < 8:
+        _fail("fist fixture must curl away from the pointing nail")
+    state = {
+        "handLm": None,
+        "finHeld": True,
+        "reloadHeld": True,
+        "lastDetAt": 1000,
+        "lastHandAt": 0,
+        "det": {"x": gun_uv[0], "y": gun_uv[1], "conf": 0.92},
+        "smooth": {"x": gun_uv[0], "y": gun_uv[1]},
+    }
+    if not apply_mp_landmarks([gun], state, now=1000):
+        _fail("pointing apply must return true")
+    if state["lastDetAt"] != 1000 or state["lastHandAt"] != 1000:
+        _fail("pointing must stamp both pointing lastDetAt and presence lastHandAt")
+    if not apply_mp_landmarks([fist], state, now=1400):
+        _fail("fist apply must return true — Hands saw a hand; do not fall to fallbackSkin")
+    if state["lastDetAt"] != 1000:
+        _fail("fist must not refresh pointing lastDetAt")
+    if state["lastHandAt"] != 1400:
+        _fail("fist must refresh presence lastHandAt so kickAndFresh/mpFresh stay live")
+    if state["smooth"]["x"] != gun_uv[0] or state["smooth"]["y"] != gun_uv[1]:
+        _fail("fist must not advance One Euro / S.smooth toward the curled tip")
+    if state["finHeld"] or state["reloadHeld"]:
+        _fail("fist must drop finHeld and reloadHeld")
+    if state["handLm"] is not fist:
+        _fail("fist must keep handLm — presence, not a leave")
+    if apply_mp_landmarks([], state, now=1500):
+        _fail("#94: empty must still return false")
+    if state["handLm"] is not None or state["finHeld"] or state["reloadHeld"]:
+        _fail("#94: empty must still clear handLm and both held flags")
+    if state["lastDetAt"] != 1000 or not state["det"]:
+        _fail("#94: empty must not zero lastDetAt / S.det")
+    if not apply_mp_landmarks([gun], state, now=1600):
+        _fail("re-extend must return pointing lock")
+    if state["lastDetAt"] != 1600 or state["lastHandAt"] != 1600:
+        _fail("re-extend must stamp pointing lastDetAt again")
+    if abs(state["smooth"]["x"] - gun_uv[0]) > 1e-6:
+        _fail("re-extend must lock the pointing nail again")
+    held, fired = maybe_fin_edge(state["finHeld"], shark_fin(gun))
+    if not fired or not held:
+        _fail("re-extend shark-fin rising edge must still fire")
 
 
 def test_rising_edge_not_auto() -> None:
@@ -339,6 +414,16 @@ def test_client_peek_and_order() -> None:
         _fail("applyMpLandmarks must not zero lastDetAt / S.det on empty landmarks")
     if apply.find("return false") > apply.find("S.lastDetAt"):
         _fail("early-fail must return before writing lastDetAt — coast is not a gesture")
+    if "S.lastHandAt" not in apply or "indexExtended" not in apply:
+        _fail("applyMpLandmarks must split presence lastHandAt from pointing lock")
+    if apply.find("applyEuroPoint") < apply.find("if (!indexExtended"):
+        _fail("fist must return before applyEuroPoint — do not chase the curled nail")
+    if apply.find("S.lastDetAt") < apply.find("if (!indexExtended"):
+        _fail("fist must return before writing lastDetAt")
+    if "fallbackSkin" in apply:
+        _fail("fist / applyMpLandmarks must not open fallbackSkin")
+    if apply.count("return true") < 2:
+        _fail("fist must return true (Worker path) and pointing must return true")
     skin = _fn(src, "fallbackSkin")
     if "S.handLm = null" not in skin or "S.finHeld = false" not in skin:
         _fail("fallbackSkin clear path must stay")
@@ -428,6 +513,7 @@ def main() -> int:
     try:
         test_geometry_table()
         test_empty_landmark_clears_held()
+        test_fist_is_presence_not_pointing()
         test_rising_edge_not_auto()
         test_client_peek_and_order()
         test_space_forcegun_is_not_shoot()

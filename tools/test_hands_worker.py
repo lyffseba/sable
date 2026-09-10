@@ -92,6 +92,15 @@ def main() -> int:
             _fail("applyMpLandmarks must not zero lastDetAt / S.det")
         if apply_lm.find("return false") > apply_lm.find("S.lastDetAt"):
             _fail("early-fail must return before writing lastDetAt")
+        if "S.lastHandAt" not in apply_lm or "if (!indexExtended" not in apply_lm:
+            _fail("applyMpLandmarks must split presence lastHandAt from pointing lock")
+        if apply_lm.find("applyEuroPoint") < apply_lm.find("if (!indexExtended"):
+            _fail("fist must return before applyEuroPoint")
+        kick = _fn(js, "kickAndFresh")
+        if "handsPresent" not in kick and "lastHandAt" not in kick:
+            _fail("kickAndFresh must follow presence, not only pointing lastDetAt")
+        if "lastDetAt" in kick:
+            _fail("kickAndFresh must not treat lastDetAt as Worker freshness")
         worker_msg = _fn(js, "onHandsWorkerMsg")
         fail = worker_msg[worker_msg.find('msg.type === "fail"') :]
         if "S.handLm = null" not in fail or "S.finHeld = false" not in fail:

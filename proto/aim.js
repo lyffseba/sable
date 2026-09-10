@@ -4,7 +4,7 @@
    Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
-import { detGood, PROC_W, PROC_H, COAST_MS } from "./hands.js";
+import { detGood, PROC_W, PROC_H, COAST_MS, indexExtended } from "./hands.js";
 import {
   bang,
   hitBlip,
@@ -123,7 +123,7 @@ export function assignHangar(next) {
 }
 
 const S = {
-  det: null, smooth: null, vel: { x: 0, y: 0 }, lastDetAt: 0, trackT: 0,
+  det: null, smooth: null, vel: { x: 0, y: 0 }, lastDetAt: 0, lastHandAt: 0, trackT: 0,
   camStamp: -1, quality: 0, euroX: null, euroY: null, lastRaw: null, seeking: false,
   H: null, useBilinear: false, camPts: [null, null, null, null], calibIndex: 0,
   calibFlash: 0, forceGun: false, desktop: false, hidLast: 0, hidMoving: false,
@@ -231,7 +231,9 @@ function updateMode(now) {
   const coasting = !!S.smooth && since <= COAST_MS;
   const recent = !!S.smooth && since <= LIFT_STICKY_MS;
   const locked = detGood() || coasting;
-  const handOwns = detGood() || recent;
+  // Live fist is presence, not pointing lock. Do not handOwns a curled index.
+  const fistLive = !!(S.handLm && !indexExtended(S.handLm));
+  const handOwns = (detGood() || recent) && !fistLive;
   const dtm = S.liftTick ? Math.min(40, now - S.liftTick) : 16;
   S.liftTick = now;
   if (S.desktop) {
