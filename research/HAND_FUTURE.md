@@ -90,7 +90,7 @@ Product verbs, one hand (best pointing hand of up to two):
 | **SAFE** | Thumb **parallel** to the other fingers | nothing | nothing |
 | **RELOAD** | Index **and** middle up toward ceiling (`8`+`12` up; ring/pinky folded) | reload hook stub | not a second reload |
 
-Order after lift (`updateMode`): **shark-fin** (#86 on tip) → **charger-plug reload** (#87 on tip) → `updateAim`. Gesture never publishes a closed-finger UV before the peek. Reload never calls `fire()`. Mag lives on `S` (#87) — not a sixth AimSample field.
+Order after lift (`updateMode`): **shark-fin** (#86 on tip) → **charger-plug reload** (#87 on tip) → `updateAim`. Gesture never publishes a closed-finger UV before the peek. Reload never calls `fire()`. Mag lives on `S` (#87) — not a sixth AimSample field. HUD SAFE tell = thumb-parallel honesty (`drawModeChip` additive chip after CONF with MAG when pointing + thumbParallel). Do not rename `S.mode`.
 
 #86 shark-fin is the only product shoot. Pinch is removed — `pinchStrength` is the shark-fin safe gate only. Space is **not** product shoot.
 
