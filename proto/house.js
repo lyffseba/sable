@@ -1091,7 +1091,7 @@ function startBay() {
 }
 
 function startWaitingYard() {
-  // Waiting-arena always-practice: local Yard plates, no 60s lock, no net.
+  // Waiting-arena always-practice: local Yard plates, no 60s lock, no net, no SCORE book.
   // Cam + Hands arm from setPhase(lobby) — fire-and-forget, no lock tax.
   // Do not block on the camera here. Do not route through play() lock.
   S.waitingYard = true;
@@ -1255,12 +1255,15 @@ function updateRange(dt, elapsed) {
   }
   for (const o of gone) {
     missTick(o.mesh ? o.mesh.position.x : 0);
-    S.combo = 0;
-    if (o.mesh) {
-      const hud = worldToHud(o.mesh.position);
-      popup(hud.x, hud.y, "ESC", 20);
-      rangeTargetGroup.remove(o.mesh);
+    // WAIT always-practice: dry missTick on ESC. Do not drop combo or paint ESC popups.
+    if (!S.waitingYard) {
+      S.combo = 0;
+      if (o.mesh) {
+        const hud = worldToHud(o.mesh.position);
+        popup(hud.x, hud.y, "ESC", 20);
+      }
     }
+    if (o.mesh) rangeTargetGroup.remove(o.mesh);
   }
   if (gone.length) S.orbs = S.orbs.filter((o) => gone.indexOf(o) < 0);
 

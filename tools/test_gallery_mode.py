@@ -157,6 +157,16 @@ def test_gallery_rules() -> None:
         _fail("match_live ACCURACY invented from local S.shots++")
     if fire.find("S.comboMax", scan_at, shared_return) >= 0:
         _fail("match_live COMBO invented from local S.comboMax")
+    wait_at = fire.find("if (S.waitingYard)")
+    wait_return = fire.find("return;", wait_at) if wait_at >= 0 else -1
+    if wait_at < 0 or wait_return < 0 or wait_at < shared_return:
+        _fail("fire() must park WAIT after match_live before the local gallery book")
+    if fire.find("S.shots++", wait_at, wait_return) >= 0:
+        _fail("WAIT booked shots — always-practice must not mutate the gallery book")
+    if fire.find("S.score +=", wait_at, wait_return) >= 0:
+        _fail("WAIT booked SCORE — chip bar says practice")
+    if fire.find("S.shots++", wait_return) < 0 or fire.find("S.score +=", wait_return) < 0:
+        _fail("WARM UP / Offline must still book SCORE after the WAIT park")
 
 
 def test_practice_and_bay_survive() -> None:

@@ -5,7 +5,8 @@ Fail loud if Bay reappears on player chrome, Offline / WARM UP lose
 one-click local practice, ENTER RANGE stops being host shared gallery
 start, promote traps HID behind calib/lock or a lobby POST, hangar
 chips thicken the lobby or hide the gun, a ROOM chip hides the gun
-or thickens the lobby, or the lobby becomes a match-start screen again.
+or thickens the lobby, WAIT books SCORE / combo or paints point / ESC
+popups, or the lobby becomes a match-start screen again.
 """
 
 from __future__ import annotations
@@ -315,6 +316,100 @@ def test_waiting_arena_always_practice() -> None:
     chips = lobby_draw.find("drawHUD")
     if xh < 0 or chips < 0 or xh > chips:
         _fail("waiting-arena chips must not paint over the cuff/reticle")
+    lobby_only = lobby_draw
+    bay_at = lobby_draw.find('phase === "bay"')
+    if bay_at >= 0:
+        lobby_only = lobby_draw[:bay_at]
+    if "S.pops" in lobby_only:
+        _fail("lobby must not paint SCORE / ESC floaters on WAIT")
+
+
+def test_waiting_yard_score_honesty() -> None:
+    """WAIT never books SCORE. Chip bar says practice; floaters must not say match."""
+    js = proto_js()
+    fire = _js_fn(js, "fire")
+    shared_at = fire.find("if (sharedMatch())")
+    wait_at = fire.find("if (S.waitingYard)")
+    if shared_at < 0 or wait_at < 0 or wait_at < shared_at:
+        _fail("fire() must park WAIT after match_live before the local book")
+    wait_return = fire.find("return;", wait_at)
+    if wait_return < 0:
+        _fail("waitingYard fire() must return before the gallery book")
+    wait_body = fire[wait_at:wait_return]
+    for needle, label in (
+        ("S.shots++", "shots"),
+        ("S.score", "score"),
+        ("S.hits++", "hits"),
+        ("S.combo", "combo"),
+        ("comboMax", "comboMax"),
+        ("popup(", "point popup"),
+    ):
+        if needle in wait_body:
+            _fail(f"waitingYard fire() booked {label}")
+    if "shatterTarget3D" not in wait_body:
+        _fail("waitingYard fire() must still shatter")
+    if "addBulletTracer" not in wait_body:
+        _fail("waitingYard fire() must still draw tracers")
+    if "missTick" not in wait_body:
+        _fail("waitingYard fire() must still dry missTick")
+    after = fire[wait_return:]
+    if "S.shots++" not in after or "S.score +=" not in after or "S.combo++" not in after:
+        _fail("WARM UP / Offline must still book SCORE after the WAIT park")
+    if "popup(" not in after:
+        _fail("WARM UP / Offline must still paint point popups")
+    if "S.comboMax" not in after:
+        _fail("WARM UP / Offline must still book comboMax")
+    if "S.hits++" not in after:
+        _fail("WARM UP / Offline must still book hits")
+    ranged = _js_fn(js, "updateRange")
+    gone_at = ranged.find("for (const o of gone)")
+    if gone_at < 0:
+        _fail("updateRange lost local ESC")
+    gone = ranged[gone_at:]
+    if "missTick" not in gone:
+        _fail("waitingYard ESC must still dry missTick")
+    if "!S.waitingYard" not in gone:
+        _fail("updateRange ESC must skip the book on waitingYard")
+    if '"ESC"' not in gone or "S.combo = 0" not in gone:
+        _fail("Offline / WARM UP must still ESC-drop combo + popup")
+    esc_popup = gone.find('popup(')
+    combo_drop = gone.find("S.combo = 0")
+    wait_gate = gone.find("!S.waitingYard")
+    if esc_popup < 0 or combo_drop < 0 or wait_gate < 0:
+        _fail("updateRange ESC honesty gate missing")
+    if wait_gate > combo_drop or wait_gate > esc_popup:
+        _fail("waitingYard must gate ESC combo drop + popup")
+    hud = _js_fn(js, "drawHUD")
+    if 'if (phase === "range") chips.push(["SCORE "' not in hud:
+        _fail("SCORE chip stays range-gated")
+    start = _js_fn(js, "startRange")
+    if "S.waitingYard = false" not in start:
+        _fail("startRange on promote must leave waitingYard")
+    if "S.score = 0" not in start or "S.hits = 0" not in start or "S.shots = 0" not in start:
+        _fail("startRange on promote must still reset the book")
+    if "S.combo = 0" not in start or "S.comboMax = 0" not in start:
+        _fail("startRange on promote must still reset combo")
+    fin = _js_fn(js, "maybeSharkFinFire")
+    if "fire()" not in fin:
+        _fail("shark-fin must still peek fire() on the waiting Yard")
+    if 'phase === "range"' in fin or 'phase === "bay"' in fin:
+        _fail("maybeSharkFinFire re-gates — waiting Yard muted shark-fin")
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", js)
+    if not sample:
+        _fail("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        _fail("AimSample fields changed — keep the locked struct")
+    modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
+    bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
+    if "WAIT never mutates the local score book" not in modes:
+        _fail("docs/modes.md must lock WAIT score-book honesty")
+    if "Do not book SCORE / hits / shots / combo" not in modes:
+        _fail("docs/modes.md must refuse WAIT SCORE / popup booking")
+    if "WAIT never books SCORE" not in bible:
+        _fail("PRODUCTION.md must lock WAIT score-book honesty")
+    if "waitingYard `fire()` / ESC books SCORE" not in bible:
+        _fail("PRODUCTION.md must fail loud if waitingYard books SCORE / popups")
 
 
 def test_enter_range_stays_shared() -> None:
@@ -905,6 +1000,7 @@ def main() -> int:
         test_no_bay_entry()
         test_offline_and_warmup_one_click()
         test_waiting_arena_always_practice()
+        test_waiting_yard_score_honesty()
         test_enter_range_stays_shared()
         test_hangar_phase_enum()
         test_q4_fail_to_lock_seeking_until_space()

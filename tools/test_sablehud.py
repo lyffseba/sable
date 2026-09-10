@@ -89,6 +89,14 @@ def test_thin_arcade_chips() -> None:
         _fail("match_live ACCURACY invented from local S.shots++")
     if fire.find("S.comboMax", scan_at, shared_return) >= 0:
         _fail("match_live COMBO invented from local S.comboMax")
+    wait_at = fire.find("if (S.waitingYard)")
+    wait_return = fire.find("return;", wait_at) if wait_at >= 0 else -1
+    if wait_at < 0 or wait_return < 0:
+        _fail("fire() must park WAIT before the local SCORE book")
+    if fire.find("popup(", wait_at, wait_return) >= 0:
+        _fail("WAIT painted point popups — SCORE chip stays range-gated")
+    if 'if (phase === "range") chips.push(["SCORE "' not in hud:
+        _fail("gallery SCORE must stay range-gated — WAIT must not invent a SCORE chip")
     if "Locker.colors.bone" not in hud or "Locker.colors.mint" not in hud or "Locker.colors.rust" not in hud:
         _fail("chips must stay bone / mint / rust")
     if "HUD_PAD" not in hud:
