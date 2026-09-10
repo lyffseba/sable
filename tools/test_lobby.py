@@ -15,12 +15,21 @@ def main() -> int:
     if not a.get("ok") or a.get("slot") != 0 or len(a["code"]) != 4:
         print(f"FAIL create {a}", file=sys.stderr)
         return 1
+    if lobby.SLOTS != 10:
+        print(f"FAIL slot capacity drifted {lobby.SLOTS}", file=sys.stderr)
+        return 1
+    if a["slots"][0].get("team"):
+        print(f"FAIL invented team {a['slots'][0]}", file=sys.stderr)
+        return 1
     if a.get("hangar") != "wait_practice":
         print(f"FAIL create hangar {a.get('hangar')}", file=sys.stderr)
         return 1
     b = lobby.join(a["code"], "P2")
     if not b.get("ok") or b.get("slot") != 1 or b["filled"] != 2:
         print(f"FAIL join {b}", file=sys.stderr)
+        return 1
+    if b["slots"][1] and b["slots"][1].get("team"):
+        print(f"FAIL invented team {b['slots'][1]}", file=sys.stderr)
         return 1
     g = lobby.get(a["code"])
     if g["slots"][0]["name"] != "HOST" or g["slots"][1]["name"] != "P2":

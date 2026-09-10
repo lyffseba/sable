@@ -1203,7 +1203,6 @@ function gallerySessionLabel() {
   if (S.warmup) return "WARM UP  " + S.room;
   if (sharedMatch()) return "SHARED  " + S.room;
   if (!S.online) return "GALLERY";
-  if (S.playlist === "5v5") return "5v5  " + S.room;
   return "GALLERY  " + S.room;
 }
 

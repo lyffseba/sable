@@ -246,11 +246,11 @@ function paintLobby(data) {
   if (!S.warmup) applyRoomHangar(data);
   S.room = data.code;
   S.host = data.host === S.player;
-  S.playlist = "5v5";
+  S.playlist = "gallery";
   const room = $("lobby-room");
   if (room) room.textContent = "ROOM  " + data.code;
   const kicker = $("lobby-kicker");
-  if (kicker) kicker.textContent = data.phase === "wait" ? "5v5  ·  YARD" : "5v5  ·  GALLERY";
+  if (kicker) kicker.textContent = data.phase === "wait" ? "YARD" : "GALLERY";
   const tag = $("lobby-tag");
   if (tag) {
     tag.textContent = S.host
@@ -259,13 +259,12 @@ function paintLobby(data) {
   }
   const el = $("lobby-slots");
   if (el && data.slots) {
-    const rows = ["<b>ALPHA</b><b>BRAVO</b>"];
-    for (let i = 0; i < 5; i++) {
-      const A = data.slots[i];
-      const B = data.slots[i + 5];
+    const rows = [];
+    for (let i = 0; i < data.slots.length; i++) {
+      const slot = data.slots[i];
+      if (!slot) continue;
       rows.push(
-        "<span class=\"" + (A && A.id === S.player ? "you" : "") + "\">" + (i + 1) + "  " + slotLabel(A) + "</span>" +
-        "<span class=\"" + (B && B.id === S.player ? "you" : "") + "\">" + (i + 6) + "  " + slotLabel(B) + "</span>"
+        "<span class=\"" + (slot.id === S.player ? "you" : "") + "\">" + (i + 1) + "  " + slotLabel(slot) + "</span>"
       );
     }
     el.innerHTML = rows.join("");

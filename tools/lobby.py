@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""In-memory 5v5 waiting-arena rooms + shared Salt House / Bay. Stdlib only.
+"""In-memory waiting-arena rooms + shared Salt House / Bay. Stdlib only.
 
 Shared house is closed-form pose at elapsed_ms + fire-tick rewind.
 The room seed owns kind / peek / velocity / born_ms — not the first poll.
@@ -806,7 +806,7 @@ def create(name: str = "HOST") -> dict:
             code = _code()
         pid = uuid.uuid4().hex[:8]
         slots: list[dict | None] = [None] * SLOTS
-        slots[0] = {"id": pid, "name": (name or "HOST")[:12], "team": "alpha", "warmup": False}
+        slots[0] = {"id": pid, "name": (name or "HOST")[:12], "warmup": False}
         room = {
             "code": code,
             "phase": "wait",
@@ -838,11 +838,9 @@ def join(code: str, name: str = "PLAYER") -> dict:
                 break
         if slot < 0:
             return {"ok": False, "error": "full"}
-        team = "alpha" if slot < 5 else "bravo"
         room["slots"][slot] = {
             "id": pid,
             "name": (name or "PLAYER")[:12],
-            "team": team,
             "warmup": False,
         }
         snap = snapshot(room)

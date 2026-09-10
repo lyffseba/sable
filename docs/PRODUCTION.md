@@ -29,7 +29,7 @@ We take the *feeling*. We never take ducks, malls, zombies, cabinets, names, map
 | Mode | What it is | Ship bar |
 |------|------------|----------|
 | **Salt House / Gallery** | 60 s scored gallery. Sit plates, crossing clays, rising flushes. Escape = miss. End state: GALLERY CLEAR. | Playable now — a mode, not leftover Range |
-| **Waiting arena** | HUD-on-Yard always-practice. Room code, WARM UP anytime, host ENTER RANGE | Live Yard under thin chips; ENTER RANGE shares the gallery |
+| **Waiting arena** | HUD-on-Yard always-practice. Room code, WARM UP anytime, host ENTER RANGE. Not 5v5 / ALPHA-BRAVO. | Live Yard under thin chips; ENTER RANGE shares the gallery |
 | **Bay 1v1** | Original booth, cover vs open middle, first to 5 | **Parked** — not player-facing; Yard is the sole active map |
 
 v1 is **not** an on-rails walk through a mall. If we ever add a “house walk,” it is a later mode with original rooms, not a clone.

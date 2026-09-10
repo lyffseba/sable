@@ -6,7 +6,8 @@ one-click local practice, ENTER RANGE stops being host shared gallery
 start, promote traps HID behind calib/lock or a lobby POST, hangar
 chips thicken the lobby or hide the gun, a ROOM chip hides the gun
 or thickens the lobby, WAIT books SCORE / combo or paints point / ESC
-popups, or the lobby becomes a match-start screen again.
+popups, ONLINE sells 5v5 / ALPHA-BRAVO roster chrome, or the lobby
+becomes a match-start screen again.
 """
 
 from __future__ import annotations
@@ -43,6 +44,66 @@ def test_no_bay_entry() -> None:
         _fail("boot still wires BAY — soft-park must hide the player entry")
     if re.search(r'lobbyStartBay\(\)', _js_fn(js, "paintLobby")):
         _fail("lobby chrome reintroduced Bay")
+
+
+def test_no_5v5_roster_chrome() -> None:
+    """ONLINE is Yard always-practice + shared gallery — not a fake 5v5 match."""
+    js = proto_js()
+    paint = _js_fn(js, "paintLobby")
+    if "5v5" in paint:
+        _fail("ONLINE lobby still paints 5v5")
+    if 'S.playlist = "5v5"' in paint or '"5v5"' in paint:
+        _fail("paintLobby still sells playlist id 5v5")
+    if 'S.playlist = "gallery"' not in paint:
+        _fail("paintLobby must keep playlist gallery — Yard / GALLERY honesty")
+    if "ALPHA" in paint or "BRAVO" in paint:
+        _fail("ONLINE lobby still paints ALPHA/BRAVO roster")
+    if "slots[i + 5]" in paint or "slots[i+5]" in paint:
+        _fail("paintLobby still pairs a 5v5 ALPHA/BRAVO grid")
+    if 'kicker.textContent' not in paint:
+        _fail("lobby kicker left paintLobby")
+    if '"YARD"' not in paint or '"GALLERY"' not in paint:
+        _fail("lobby kicker must stay Yard / GALLERY honesty")
+    if "ROOM  " not in paint:
+        _fail("paintLobby lost ROOM — room code must stay")
+    if "ENTER RANGE shares the gallery" not in paint:
+        _fail("lobby tag must keep ENTER RANGE shared-gallery honesty")
+    enter = _js_fn(js, "lobbyStartRange")
+    if "enterRangePreserve()" not in enter and 'play("range")' not in enter:
+        _fail("ENTER RANGE no longer starts the shared gallery")
+    if "/api/lobby/start" not in enter:
+        _fail("host ENTER RANGE no longer shares the house")
+    if 'id="btn-lobby-warmup"' not in (ROOT / "proto/index.html").read_text(encoding="utf-8"):
+        _fail("lobby lost WARM UP")
+    sess = _js_fn(js, "gallerySessionLabel")
+    if "5v5" in sess:
+        _fail("gallerySessionLabel still sells 5v5")
+    if "SHARED" not in sess or "GALLERY" not in sess or "WARM UP" not in sess:
+        _fail("session label must stay WARM UP / GALLERY / SHARED honesty")
+    lobby_py = (ROOT / "tools/lobby.py").read_text(encoding="utf-8")
+    if "5v5" in lobby_py:
+        _fail("lobby.py still sells a 5v5 waiting-arena")
+    if re.search(r'"team":\s*"(alpha|bravo)"', lobby_py):
+        _fail("lobby.py still invents team alpha/bravo")
+    if re.search(r'team = "(alpha|bravo)"', lobby_py):
+        _fail("lobby.py still assigns team alpha/bravo")
+    if "SLOTS = 10" not in lobby_py:
+        _fail("slot capacity must stay stable this cut")
+    html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
+    if 'id="lobby-kicker"' not in html or ">YARD<" not in html:
+        _fail("lobby kicker default must stay YARD")
+    if 'id="lobby-room"' not in html or "ROOM ———" not in html:
+        _fail("lobby overlay lost ROOM")
+    if "WARM UP" not in html or "ENTER RANGE" not in html:
+        _fail("lobby lost WARM UP / ENTER RANGE")
+    modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
+    if "Do not paint 5v5" not in modes:
+        _fail("docs/modes.md must refuse 5v5 / ALPHA-BRAVO lobby chrome")
+    if "Yard / GALLERY / SHARED" not in modes:
+        _fail("docs/modes.md must keep Yard / GALLERY / SHARED honesty")
+    bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
+    if "Not 5v5" not in bible:
+        _fail("PRODUCTION.md must refuse 5v5 waiting-arena chrome")
 
 
 def test_offline_and_warmup_one_click() -> None:
@@ -998,6 +1059,7 @@ def test_room_chip_thin() -> None:
 def main() -> int:
     try:
         test_no_bay_entry()
+        test_no_5v5_roster_chrome()
         test_offline_and_warmup_one_click()
         test_waiting_arena_always_practice()
         test_waiting_yard_score_honesty()

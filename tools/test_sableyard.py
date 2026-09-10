@@ -122,6 +122,9 @@ def test_sole_map_and_one_click() -> None:
         _fail("lobby still offers ENTER BAY — Bay is parked")
     if "WARM UP" not in html or "ENTER RANGE" not in html:
         _fail("playlist lost a Yard path")
+    paint = _js_fn(js, "paintLobby")
+    if "5v5" in paint or "ALPHA" in paint or "BRAVO" in paint:
+        _fail("playlist chrome still sells 5v5 / ALPHA-BRAVO")
     offline = re.search(
         r'\$\("btn-play"\)\.addEventListener\("click", \(\) => \{[\s\S]*?play\("range"\)',
         js,

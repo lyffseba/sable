@@ -287,6 +287,9 @@ def test_soft_locks_hold() -> None:
         _fail("playlist lost a Yard path")
     if 'id="btn-bay"' in html or "ENTER BAY" in html:
         _fail("playlist still offers Bay — Yard is the sole active map")
+    paint = _js_fn(js, "paintLobby")
+    if "5v5" in paint or "ALPHA" in paint or "BRAVO" in paint:
+        _fail("playlist chrome still sells 5v5 / ALPHA-BRAVO")
     start = _js_fn(js, "lobbyStartRange")
     if "enterRangePreserve()" not in start:
         _fail("ENTER RANGE lost phase-preserve — calib/lock would trap HID")
