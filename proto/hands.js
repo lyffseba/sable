@@ -592,9 +592,13 @@ function reloadGesture(lm) {
 }
 
 function applyMpLandmarks(lms, now) {
-  if (!lms || !lms.length) return false;
+  // Empty / unusable Hands must drop gesture state. Stale handLm would
+  // keep feeding maybeSharkFinFire / maybeReloadGesture through the
+  // ~80 ms kickAndFresh window and swallow the next rising edge.
+  // Do not touch lastDetAt / S.det / One Euro — UV coast stays live.
+  if (!lms || !lms.length) { S.handLm = null; S.finHeld = false; S.reloadHeld = false; return false; }
   const lm = bestHand(lms);
-  if (!lm || !lm[8] || !lm[6]) return false;
+  if (!lm || !lm[8] || !lm[6]) { S.handLm = null; S.finHeld = false; S.reloadHeld = false; return false; }
   const muz = nailMuzzle(lm);
   S.det = { x: muz.x, y: muz.y, conf: indexExtended(lm) ? 0.92 : 0.4 };
   S.lastDetAt = now;
@@ -616,6 +620,9 @@ function onHandsWorkerMsg(ev) {
   }
   if (msg.type === "fail") {
     S.mpBusy = false;
+    S.handLm = null;
+    S.finHeld = false;
+    S.reloadHeld = false;
     console.warn("HandLandmarker worker fail", msg.error);
   }
 }
