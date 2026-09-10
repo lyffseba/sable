@@ -395,6 +395,25 @@ function fire() {
     return;
   }
 
+  // WAIT always-practice: plates / shatter / tracers / dry missTick.
+  // Do not book SCORE / hits / shots / combo. Do not paint point popups.
+  // WARM UP (phase range, S.warmup) still takes the local book below.
+  if (S.waitingYard) {
+    if (hit && hit.mesh) {
+      const hitPos = hit.mesh.position.clone();
+      hitBlip(1, hitPos.x); S.hitstop = 1;
+      addBulletTracer(muzzleWorld, hitPos);
+      shatterTarget3D(hitPos, hit.hue);
+      rangeTargetGroup.remove(hit.mesh);
+      S.orbs = S.orbs.filter((o) => o !== hit);
+    } else {
+      const farPoint = new THREE.Vector3(scan.point.x, scan.point.y, scan.point.z);
+      missTick(farPoint.x);
+      addBulletTracer(muzzleWorld, farPoint);
+    }
+    return;
+  }
+
   S.shots++;
   if (hit && hit.mesh) {
     S.combo++;

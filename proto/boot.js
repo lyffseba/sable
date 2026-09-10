@@ -999,15 +999,7 @@ function draw2D(now) {
     if (!S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawHUD(now);
   } else if (phase === "lobby") {
-    for (const p of S.pops) {
-      const a = 1 - p.age / p.life;
-      ctx.globalAlpha = a;
-      ctx.fillStyle = "hsla(" + p.hue + ",100%,70%,1)";
-      ctx.font = "700 16px system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(p.text, p.x, p.y);
-      ctx.globalAlpha = 1;
-    }
+    // WAIT is always-practice — do not paint leftover SCORE / ESC floaters.
     if (!S.desktop) drawCrosshair(S.aim.x, S.aim.y);
     drawHUD(now);
   } else if (phase === "bay") {
