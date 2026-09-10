@@ -99,6 +99,8 @@ def test_gallery_rules() -> None:
         _fail("WARM UP must stay a practice label, not a scored lock")
     if "SHARED" not in sess:
         _fail("shared house must keep its own session label")
+    if "5v5" in sess:
+        _fail("gallerySessionLabel still sells 5v5")
     ranged = _js_fn(js, "updateRange")
     if "galleryOver" not in ranged:
         _fail("updateRange must end the round through galleryOver")
@@ -197,6 +199,9 @@ def test_practice_and_bay_survive() -> None:
         _fail_only_gun("playlist chrome lost a Yard path")
     if 'id="btn-bay"' in html or "ENTER BAY" in html:
         _fail("playlist chrome still offers Bay")
+    paint = _js_fn(js, "paintLobby")
+    if "5v5" in paint or "ALPHA" in paint or "BRAVO" in paint:
+        _fail("playlist chrome still sells 5v5 / ALPHA-BRAVO")
 
 
 def test_look_and_hid_not_trapped() -> None:
