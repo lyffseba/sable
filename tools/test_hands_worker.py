@@ -25,6 +25,28 @@ def _js_fn(src: str, name: str) -> str:
     return m.group(0)
 
 
+def _fn(src: str, name: str) -> str:
+    m = re.search(rf"(?:async )?function {name}\s*\(", src)
+    if not m:
+        _fail(f"missing function {name}")
+    start = src.find("{", m.end() - 1)
+    if start < 0:
+        _fail(f"function {name} has no body")
+    depth = 0
+    i = start
+    while i < len(src):
+        ch = src[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return src[m.start() : i + 1]
+        i += 1
+    _fail(f"function {name} is unclosed")
+    raise AssertionError("unreachable")
+
+
 def _fail(msg: str) -> None:
     raise AssertionError(f"SABLEQA FAIL: Hands worker — {msg}")
 
@@ -57,8 +79,38 @@ def main() -> int:
             _fail("classic worker must not use static ESM import")
         if "handsWorker" not in hands:
             _fail("engine must record when detect is on the worker")
-        if "applyEuroPoint" not in _js_fn(js, "applyMpLandmarks"):
+        apply_lm = _fn(js, "applyMpLandmarks")
+        if "applyEuroPoint" not in apply_lm:
             _fail("One Euro must run on UV after landmarks, before mailbox")
+        if apply_lm.count("S.handLm = null") < 2:
+            _fail("applyMpLandmarks([], now) / unusable must null handLm")
+        if apply_lm.count("S.finHeld = false") < 2 or apply_lm.count("S.reloadHeld = false") < 2:
+            _fail("empty / unusable Hands must drop finHeld and reloadHeld")
+        if "S.handLm = lm" not in apply_lm:
+            _fail("successful apply must still set handLm")
+        if "S.lastDetAt = 0" in apply_lm or "S.det = null" in apply_lm:
+            _fail("applyMpLandmarks must not zero lastDetAt / S.det")
+        if apply_lm.find("return false") > apply_lm.find("S.lastDetAt"):
+            _fail("early-fail must return before writing lastDetAt")
+        worker_msg = _fn(js, "onHandsWorkerMsg")
+        fail = worker_msg[worker_msg.find('msg.type === "fail"') :]
+        if "S.handLm = null" not in fail or "S.finHeld = false" not in fail:
+            _fail("empty worker fail must clear handLm and held flags")
+        if "S.lastDetAt" in fail or "S.det =" in fail:
+            _fail("worker fail must not zero lastDetAt / S.det")
+        if "function maybePinchFire" in js or "maybePinchFire(" in js:
+            _fail("pinch must not peek -- maybePinchFire is retired")
+        gate = _fn(js, "productGunHidFire")
+        if "return false" not in gate:
+            _fail("productGunHidFire must stay false")
+        if "fire(" in gate:
+            _fail("productGunHidFire must not peek")
+        keys = js[js.find('addEventListener("keydown"') : js.find('addEventListener("keyup"')]
+        space = re.search(r'if \(e\.code === "Space"\) \{([^}]+)\}', keys)
+        if not space or "S.forceGun = true" not in space.group(1):
+            _fail("Space must stay the Q4 forceGun escape")
+        if "fire(" in space.group(1):
+            _fail("Space is not a shot")
         mp = _js_fn(js, "mpTrack")
         if "kickAndFresh" not in mp and "kickWorkerDetect" not in mp:
             _fail("mpTrack must kick the worker, not detect on main")

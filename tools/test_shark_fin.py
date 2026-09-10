@@ -179,6 +179,26 @@ def maybe_fin_edge(held: bool, fin: bool) -> tuple[bool, bool]:
     return held, fired
 
 
+def apply_mp_landmarks(
+    lms: list[dict[int, tuple[float, float]]] | None,
+    state: dict,
+) -> bool:
+    """Mirror proto/hands.js applyMpLandmarks empty / unusable hygiene."""
+    if not lms:
+        state["handLm"] = None
+        state["finHeld"] = False
+        state["reloadHeld"] = False
+        return False
+    lm = lms[0]
+    if not lm or not lm.get(8) or not lm.get(6):
+        state["handLm"] = None
+        state["finHeld"] = False
+        state["reloadHeld"] = False
+        return False
+    state["handLm"] = lm
+    return True
+
+
 def test_geometry_table() -> None:
     fin = gun_shark()
     safe = gun_parallel()
@@ -202,6 +222,43 @@ def test_geometry_table() -> None:
     fist[8] = (0.52, 0.78)
     if index_extended(fist) or shark_fin(fist):
         _fail("a fist is not GUN — index must stay extended")
+
+
+def test_empty_landmark_clears_held() -> None:
+    """Hand-leave / empty Worker result must drop gesture, not coast it."""
+    state = {
+        "handLm": gun_shark(),
+        "finHeld": True,
+        "reloadHeld": True,
+        "lastDetAt": 1000,
+        "det": {"x": 12.0, "y": 34.0},
+    }
+    if apply_mp_landmarks([], state) or apply_mp_landmarks(None, state):
+        _fail("applyMpLandmarks([], now) must return false")
+    if state["handLm"] is not None:
+        _fail("empty landmarks must null handLm — do not feed a ghost gun")
+    if state["finHeld"] or state["reloadHeld"]:
+        _fail("empty landmarks must drop finHeld and reloadHeld")
+    if state["lastDetAt"] != 1000 or not state["det"]:
+        _fail("empty landmarks must not zero lastDetAt / S.det — UV coast stays")
+
+    state["handLm"] = gun_shark()
+    state["finHeld"] = True
+    state["reloadHeld"] = True
+    unusable = {0: (0.50, 0.82), 4: (0.33, 0.34)}
+    if apply_mp_landmarks([unusable], state):
+        _fail("unusable hand (no lm[8]/lm[6]) must return false")
+    if state["handLm"] is not None or state["finHeld"] or state["reloadHeld"]:
+        _fail("unusable hand must clear handLm and both held flags")
+    if state["lastDetAt"] != 1000 or not state["det"]:
+        _fail("unusable hand must not zero lastDetAt / S.det")
+
+    fin = gun_shark()
+    if not apply_mp_landmarks([fin], state) or state["handLm"] is not fin:
+        _fail("successful apply must still set handLm")
+    held, fired = maybe_fin_edge(state["finHeld"], shark_fin(fin))
+    if not fired or not held:
+        _fail("after empty-landmark clear, shark-fin rising edge must fire")
 
 
 def test_rising_edge_not_auto() -> None:
@@ -271,6 +328,31 @@ def test_client_peek_and_order() -> None:
         _fail("AimSample must stay five fields — do not invent a sixth")
     if "finHeld: false" not in src:
         _fail("shark-fin hold lives on S, not on AimSample")
+    apply = _fn(src, "applyMpLandmarks")
+    if apply.count("S.handLm = null") < 2:
+        _fail("applyMpLandmarks empty / unusable paths must null handLm")
+    if apply.count("S.finHeld = false") < 2 or apply.count("S.reloadHeld = false") < 2:
+        _fail("applyMpLandmarks empty / unusable paths must drop both held flags")
+    if "S.handLm = lm" not in apply:
+        _fail("successful applyMpLandmarks must still set handLm")
+    if "S.lastDetAt = 0" in apply or "S.det = null" in apply:
+        _fail("applyMpLandmarks must not zero lastDetAt / S.det on empty landmarks")
+    if apply.find("return false") > apply.find("S.lastDetAt"):
+        _fail("early-fail must return before writing lastDetAt — coast is not a gesture")
+    skin = _fn(src, "fallbackSkin")
+    if "S.handLm = null" not in skin or "S.finHeld = false" not in skin:
+        _fail("fallbackSkin clear path must stay")
+    worker = _fn(src, "onHandsWorkerMsg")
+    fail = worker[worker.find('msg.type === "fail"') :]
+    if "S.handLm = null" not in fail or "S.finHeld = false" not in fail:
+        _fail("empty worker fail must clear handLm and held flags")
+    if "S.lastDetAt" in fail or "S.det =" in fail:
+        _fail("worker fail must not zero lastDetAt / S.det")
+    gate = _fn(src, "productGunHidFire")
+    if "return false" not in gate:
+        _fail("productGunHidFire must stay false")
+    if "fire(" in gate:
+        _fail("productGunHidFire must not peek — it only answers the gate")
 
 
 def test_space_forcegun_is_not_shoot() -> None:
@@ -345,6 +427,7 @@ def test_docs_lock() -> None:
 def main() -> int:
     try:
         test_geometry_table()
+        test_empty_landmark_clears_held()
         test_rising_edge_not_auto()
         test_client_peek_and_order()
         test_space_forcegun_is_not_shoot()
