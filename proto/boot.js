@@ -302,7 +302,7 @@ async function lobbyPoll() {
     if (!data.ok) return;
     applyRoomHangar(data);
     if (phase === "lobby" || S.warmup) paintLobby(data);
-    if (data.phase === "bay" && !lobbyStarting) {
+    if (data.phase === "bay" && !lobbyStarting && phase !== "lobby") {
       S.warmup = false;
       S.bayMatch = true;
       S.playlist = "bay";
@@ -310,8 +310,7 @@ async function lobbyPoll() {
       lobbyStarting = true;
       syncWarmupChrome();
       applySharedBay(data);
-      if (phase === "lobby") play("bay");
-      else if (phase === "results") setPhase("bay");
+      if (phase === "results") setPhase("bay");
     }
     if (data.phase === "range" && !lobbyStarting) {
       S.warmup = false;

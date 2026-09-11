@@ -2,8 +2,9 @@
 """Salt House gallery mode: 60s scored loop, not a leftover Range.
 
 Fail loud if Offline dies, WARM UP / ENTER RANGE vanish, Bay reappears
-on player chrome, Look traps lift/HID, or the gallery loses score /
-round clock / end state.
+on player chrome, lobby poll auto play(bay) from waiting lobby,
+PRODUCTION re-sells boot BAY / ENTER BAY as live chrome, Look traps
+lift/HID, or the gallery loses score / round clock / end state.
 """
 
 from __future__ import annotations
@@ -195,6 +196,14 @@ def test_practice_and_bay_survive() -> None:
         _fail("parked lobbyStartBay lost the booth drop")
     if "/api/lobby/start" in start_bay:
         _fail("parked lobbyStartBay started the shared gallery")
+    poll = _js_fn(js, "lobbyPoll")
+    if re.search(r"""play\(["']bay["']\)""", poll):
+        _fail("lobby poll must not auto play(bay) — waiting Yard must not be yanked into parked Bay")
+    if re.search(
+        r"""phase === ["']lobby["'][\s\S]{0,200}(?:play\(["']bay["']\)|setPhase\(["']bay["']\))""",
+        poll,
+    ):
+        _fail("lobby poll re-promotes phase === lobby into Bay")
     if "ENTER RANGE" not in html or "WARM UP" not in html:
         _fail_only_gun("playlist chrome lost a Yard path")
     if 'id="btn-bay"' in html or "ENTER BAY" in html:
@@ -299,6 +308,20 @@ def test_modes_doc() -> None:
         _fail("PRODUCTION.md must stand v0.20.0 until Build tags this gallery HUD tip")
     if "test_sablelook.py" not in bible or "test_sableyard.py" not in bible:
         _fail("PRODUCTION.md must keep the SableLook / SableYard plate-readability gates")
+    if "Boot **BAY** stays local" in bible:
+        _fail("PRODUCTION.md re-sells boot BAY as live chrome — Bay is parked")
+    if re.search(r"\*\*Done\*\* \(boot \*\*BAY\*\*", bible):
+        _fail("PRODUCTION.md M4 re-sells boot BAY / ENTER BAY as live Done chrome")
+    if "lobby **ENTER BAY** room-owns" in bible:
+        _fail("PRODUCTION.md M9 re-sells ENTER BAY as live player chrome")
+    m4 = re.search(r"- \*\*M4:\*\*([^\n]+)", bible)
+    m9 = re.search(r"- \*\*M9:\*\*([^\n]+)", bible)
+    if not m4 or "Parked" not in m4.group(1):
+        _fail("PRODUCTION.md M4 must park Bay — player chrome off")
+    if not m9 or "Parked" not in m9.group(1):
+        _fail("PRODUCTION.md M9 must park Shared Bay — ENTER BAY is not live chrome")
+    if 'play("bay")' not in modes or "lobby poll" not in modes:
+        _fail("docs/modes.md must refuse lobby-poll play(bay) from waiting lobby")
 
 
 def main() -> int:
