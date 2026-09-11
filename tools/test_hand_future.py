@@ -39,6 +39,10 @@ docs/tick.md must not re-sell “Fire is an HID event” / “Fire is HID”
 AimBus peek owns product shoot (outside rAF / 128 Hz / worker / cam);
 HID/trackpad is DESKTOP/forceGun emergency only (non-product), still
 outside both clocks for the ≤8 ms bar.
+docs/yard.md ## What this is must not re-sell “Laptop webcam + trackpad”
+/ trackpad as a co-equal product gun — lid-cam / hand aim owns the
+Yard (Chromium on MacBook Pro–class). Trackpad is menus / DESKTOP
+emergency only (non-product).
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -401,6 +405,15 @@ _TICK_MD_FIRE_LIES = (
     r"\bfire is hid\b",
     r"browser fire stays hid[- ]local",
     r"fire stays hid[- ]local",
+)
+
+# yard.md leftover webcam+trackpad as co-equal product gun.
+_YARD_MD_SURFACE_LIES = (
+    r"webcam\s*\+\s*trackpad",
+    r"webcam\s+and\s+trackpad",
+    r"webcam\s*/\s*trackpad",
+    r"laptop webcam\s*\+\s*trackpad",
+    r"laptop webcam and trackpad",
 )
 
 # Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
@@ -850,6 +863,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_bay_docs_shot_honesty()
     test_design_md_shot_honesty()
     test_tick_md_shot_honesty()
+    test_yard_md_surface_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -1857,6 +1871,201 @@ def test_tick_md_shot_honesty() -> None:
         _fail("docs/tick.md must not invent a TV SKU")
 
 
+def _yard_md_section(md: str, heading: str) -> str:
+    m = re.search(
+        rf"^## {re.escape(heading)}\s*\n[\s\S]*?(?=^## |\Z)",
+        md,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail(f"docs/yard.md lost ## {heading}")
+    return m.group(0)
+
+
+def _assert_no_yard_md_surface_lies(text: str, label: str) -> None:
+    """Leftover webcam+trackpad co-equal product-gun phrasing must not return."""
+    low = text.lower()
+    for pat in _YARD_MD_SURFACE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as a co-equal "
+                "product gun — lid-cam / hand aim owns the Yard; trackpad "
+                "is menus / DESKTOP emergency only (non-product)"
+            )
+
+
+def _assert_yard_md_trackpad_framed(block: str, label: str) -> None:
+    """Trackpad in What this is must be menus / DESKTOP emergency, not the gun."""
+    low = block.lower()
+    if not re.search(r"\btrackpad\b", low):
+        return
+    if "menus" not in low:
+        _fail(
+            f"{label} trackpad must be menus / DESKTOP emergency only — "
+            "never a co-equal product gun"
+        )
+    if "desktop" not in low:
+        _fail(
+            f"{label} trackpad must be menus / DESKTOP emergency only — "
+            "never a co-equal product gun"
+        )
+    if "emergency" not in low:
+        _fail(
+            f"{label} trackpad must be menus / DESKTOP emergency only — "
+            "never a co-equal product gun"
+        )
+    if "non-product" not in low:
+        _fail(
+            f"{label} trackpad must stay non-product — never a co-equal "
+            "product gun"
+        )
+
+
+def _assert_yard_md_what_this_is_honest(block: str, label: str) -> None:
+    """yard.md ## What this is: lid-cam / hand owns Yard; trackpad DESKTOP only."""
+    _assert_no_yard_md_surface_lies(block, label)
+    _assert_yard_md_trackpad_framed(block, label)
+    low = block.lower()
+    if "chromium" not in low:
+        _fail(
+            f"{label} must name Chromium as the ship floor — "
+            "lid-cam / hand aim owns the Yard"
+        )
+    if "macbook" not in low:
+        _fail(
+            f"{label} must name MacBook Pro–class as the ship floor — "
+            "lid-cam / hand aim owns the Yard"
+        )
+    if "lid" not in low:
+        _fail(
+            f"{label} must name the MacBook Pro–class lid camera — "
+            "lid-cam / hand aim owns the Yard"
+        )
+    if "hand" not in low:
+        _fail(f"{label} must name hand as the product path that owns the Yard")
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as the product shot")
+    if re.search(r"\b(firefox|safari)\b", low):
+        _fail(
+            f"{label} must not invent Firefox/Safari as ship SKUs — "
+            "floor is Chromium on MacBook Pro–class lid-cam"
+        )
+    if re.search(r"\btv\b", low):
+        _fail(
+            f"{label} must not invent a TV SKU — floor is Chromium on "
+            "MacBook Pro–class lid-cam"
+        )
+
+
+def test_yard_md_surface_honesty() -> None:
+    """docs/yard.md: lid-cam owns Yard; leftover webcam+trackpad fails."""
+    leftover = (
+        "## What this is\n"
+        "\n"
+        "A shooting range you stand in. One firing line. Original "
+        "inflatables we designed. Plates come out from cover. Laptop "
+        "webcam + trackpad. Two laptops join the same room later.\n"
+    )
+    try:
+        _assert_yard_md_what_this_is_honest(leftover, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "yard.md What-this-is gate missed leftover "
+            "Laptop-webcam-+-trackpad fixture"
+        )
+    webcam_and = (
+        "## What this is\n"
+        "\n"
+        "A shooting range. Laptop webcam and trackpad. Two laptops "
+        "join the same room later.\n"
+    )
+    try:
+        _assert_yard_md_what_this_is_honest(webcam_and, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "yard.md What-this-is gate missed leftover "
+            "webcam-and-trackpad fixture"
+        )
+    unframed_pad = (
+        "## What this is\n"
+        "\n"
+        "A shooting range. Hand + Chromium on a MacBook Pro–class lid "
+        "camera (point + shark-fin). Trackpad is also a product gun.\n"
+    )
+    try:
+        _assert_yard_md_what_this_is_honest(unframed_pad, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "yard.md What-this-is gate missed unframed trackpad-as-gun "
+            "beside a lid-cam line"
+        )
+    no_floor = (
+        "## What this is\n"
+        "\n"
+        "A shooting range you stand in. Hand aim owns the Yard. "
+        "Trackpad is menus / DESKTOP emergency only (non-product).\n"
+    )
+    try:
+        _assert_yard_md_what_this_is_honest(no_floor, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "yard.md What-this-is gate missed missing Chromium/MacBook "
+            "lid-cam floor"
+        )
+    firefox_sku = (
+        "## What this is\n"
+        "\n"
+        "Product path is hand + Chromium or Firefox on a MacBook "
+        "Pro–class lid camera (point + shark-fin). Trackpad is menus / "
+        "DESKTOP emergency only (non-product).\n"
+    )
+    try:
+        _assert_yard_md_what_this_is_honest(firefox_sku, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("yard.md What-this-is gate missed Firefox SKU fixture")
+    ok = (
+        "## What this is\n"
+        "\n"
+        "A shooting range you stand in. Product path is hand + Chromium "
+        "on a MacBook Pro–class lid camera (point + shark-fin). "
+        "Trackpad is menus / DESKTOP emergency only (non-product). "
+        "Two laptops join the same room later.\n"
+    )
+    _assert_yard_md_what_this_is_honest(ok, "framed-fixture")
+    yard = _read("docs/yard.md")
+    _assert_no_yard_md_surface_lies(yard, "docs/yard.md")
+    _assert_yard_md_what_this_is_honest(
+        _yard_md_section(yard, "What this is"), "docs/yard.md"
+    )
+    low = yard.lower()
+    if "sole active" not in low:
+        _fail("docs/yard.md must keep Yard as the sole active map")
+    if "parked" not in low:
+        _fail("docs/yard.md must keep Bay parked — do not unpark the booth")
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail("docs/yard.md must keep shark-fin on the hand path")
+    if "desktop" not in low:
+        _fail("docs/yard.md must keep HID/trackpad DESKTOP honesty")
+    if re.search(r"\b(firefox|safari)\b", low):
+        _fail("docs/yard.md must not invent a Firefox/Safari SKU")
+    if re.search(r"\bkeyt\b|\*\*t\*\*\s*key|\bt\s+key\b", low):
+        _fail("docs/yard.md must not sell KeyT as a product path")
+    if "speechsynthesis" in low or "gemini" in low:
+        _fail("docs/yard.md must not invent speechSynthesis / Gemini")
+    if re.search(r"\btv sku\b|\blaptop or tv\b", low):
+        _fail("docs/yard.md must not invent a TV SKU")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -2035,6 +2244,7 @@ def main() -> int:
         test_bay_docs_shot_honesty()
         test_design_md_shot_honesty()
         test_tick_md_shot_honesty()
+        test_yard_md_surface_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
