@@ -16,6 +16,10 @@ the AimBus peek.
 Root / proto README zip play path must not re-teach click-the-pad
 (or pad-as-fire) as the shot — shark-fin fires; pad is menus /
 DESKTOP emergency only.
+Root README Requirements must not sell KeyT / "Desktop aim … still
+works" as a first-class product capability. KeyT / DESKTOP is debug /
+non-product (cam-deny / honesty fallback), not a ship SKU. Keys T
+must match Trackpad honesty: debug / non-product — not the Q4 path.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -347,6 +351,13 @@ _README_ZIP_PLAY_LIES = (
     "tap the pad",
     "tap the pad to fire",
     "point, click the pad",
+)
+
+# Requirements first-class DESKTOP / KeyT sell — debug / non-product only.
+_README_REQ_DESKTOP_LIES = (
+    "desktop aim (**t** key) still works",
+    "desktop aim (t key) still works",
+    "still works without a camera",
 )
 
 
@@ -775,6 +786,7 @@ def test_readme_keys_shot_honesty() -> None:
         _fail("README.md stack must keep peek-is-local latency honesty")
     test_proto_headers_shot_honesty()
     test_readme_zip_play_honesty()
+    test_readme_t_desktop_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -912,6 +924,134 @@ def test_readme_zip_play_honesty() -> None:
                     f"{rel} must not re-teach {banned!r} as the zip/play shot — "
                     "shark-fin fires; pad is menus / DESKTOP emergency only"
                 )
+
+
+def _readme_requirements_block(md: str, label: str) -> str:
+    """Requirements heading through the next heading (player-facing ship list)."""
+    m = re.search(r"^## Requirements\s*\n[\s\S]*?(?=^#{1,3} |\Z)", md, re.MULTILINE)
+    if not m:
+        _fail(f"{label} lost Requirements")
+    return m.group(0)
+
+
+def _keys_t_action(table: str, label: str) -> str:
+    for line in table.splitlines():
+        row = _keys_row_cells(line)
+        if not row:
+            continue
+        key_plain = re.sub(r"[*`_]", "", row[0]).strip()
+        key_u = key_plain.upper()
+        if key_u == "T" or key_u.startswith("T "):
+            return row[1]
+    _fail(f"{label} Keys table lost T — desktop-aim debug")
+    return ""
+
+
+def _desktop_framed_non_product(text: str) -> bool:
+    """True when copy labels KeyT / DESKTOP debug + non-product (not Q4)."""
+    low = text.lower()
+    has_debug = "debug" in low
+    has_non_product = (
+        "non-product" in low
+        or "not q4" in low
+        or "not the q4" in low
+    )
+    return has_debug and has_non_product
+
+
+def _assert_readme_requirements_desktop_honest(block: str, label: str) -> None:
+    """Requirements: do not sell KeyT / desktop aim as a first-class ship feature."""
+    low = block.lower()
+    for banned in _README_REQ_DESKTOP_LIES:
+        if banned in low:
+            _fail(
+                f"{label} Requirements must not re-sell {banned!r} as a first-class "
+                "product capability — KeyT / DESKTOP is debug / non-product "
+                "(cam-deny / honesty fallback), not a ship feature"
+            )
+    if re.search(r"keyt|desktop[- ]aim|\*\*t\*\*\s*key|\bt\s+key\b", low):
+        if not _desktop_framed_non_product(block):
+            _fail(
+                f"{label} Requirements must not sell KeyT / desktop aim as a ship "
+                "feature — label debug / non-product or drop it from Requirements"
+            )
+
+
+def _assert_readme_keys_t_honest(block: str, label: str) -> None:
+    """Keys T: debug / non-product — same honesty as the Trackpad row."""
+    t_low = _keys_t_action(block, label).lower()
+    if "debug" not in t_low:
+        _fail(f"{label} T row must label desktop-aim debug — not a Q4 product path")
+    if (
+        "non-product" not in t_low
+        and "not q4" not in t_low
+        and "not the q4" not in t_low
+    ):
+        _fail(
+            f"{label} T row must match Trackpad honesty — non-product / not Q4"
+        )
+    if "still works" in t_low:
+        _fail(
+            f"{label} T row must not sell desktop-aim as a first-class capability"
+        )
+
+
+def test_readme_t_desktop_honesty() -> None:
+    """README: KeyT / DESKTOP is debug / non-product — not a Requirements ship SKU."""
+    req_lie = (
+        "## Requirements\n"
+        "\n"
+        "- Built-in laptop webcam is enough. "
+        "Desktop aim (**T** key) still works without a camera.\n"
+    )
+    try:
+        _assert_readme_requirements_desktop_honest(req_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "Requirements T-honesty gate missed first-class "
+            "Desktop-aim-still-works fixture"
+        )
+    req_unframed = (
+        "## Requirements\n"
+        "\n"
+        "- Built-in laptop webcam is enough. Desktop aim (**T** key) is available.\n"
+    )
+    try:
+        _assert_readme_requirements_desktop_honest(req_unframed, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "Requirements T-honesty gate missed unframed Desktop-aim mention"
+        )
+    req_ok = (
+        "## Requirements\n"
+        "\n"
+        "- Built-in laptop webcam is enough. "
+        "KeyT / DESKTOP is debug / non-product (cam-deny / honesty fallback).\n"
+    )
+    _assert_readme_requirements_desktop_honest(req_ok, "framed-fixture")
+    keys_lie = (
+        "### Keys\n"
+        "| Key | Action |\n"
+        "|-----|--------|\n"
+        "| **T** | Desktop aim toggle (OS cursor fallback) |\n"
+    )
+    try:
+        _assert_readme_keys_t_honest(keys_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Keys T-honesty gate missed first-class Desktop-aim-toggle fixture")
+    readme = _read("README.md")
+    _assert_readme_requirements_desktop_honest(
+        _readme_requirements_block(readme, "README.md"), "README.md"
+    )
+    for rel in ("README.md", "proto/README.md"):
+        text = _read(rel)
+        _assert_readme_keys_t_honest(_readme_keys_block(text, rel), rel)
 
 
 def test_lock_chrome_does_not_sell_gemini() -> None:
@@ -1086,6 +1226,7 @@ def main() -> int:
         test_readme_keys_shot_honesty()
         test_proto_headers_shot_honesty()
         test_readme_zip_play_honesty()
+        test_readme_t_desktop_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
