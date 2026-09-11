@@ -1,6 +1,6 @@
 # SABLE proto
 
-Chrome range. Webcam tracks the **hand** (index / landmark 8). The mouse is HID only. The camera is never drawn.
+Chromium on MacBook Pro–class lid-cam. Webcam tracks the **hand** (index / landmark 8). The mouse is HID only. The camera is never drawn.
 
 ## Zip (other computer)
 

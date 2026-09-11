@@ -2,8 +2,10 @@
 """SablePort path skeleton: docs + thin host seams, zero foreign DNA.
 
 Fail loud if the Chromium / MacBook Pro ship floor dies, if host id
-leaves sable, if docs/port claim a desktop-only / Godot-first product
-host, if the verb leaves aimbus-hand-gesture, if the port notes drift
+leaves sable, if root README Requirements re-sell Safari / Firefox as
+first-class ship browsers without that floor, if docs/port claim a
+desktop-only / Godot-first product host, if the verb leaves
+aimbus-hand-gesture, if the port notes drift
 off the locked bars (hand point + shark-fin → AimBus peek, charger-plug
 reload, DESKTOP HID honesty fallback, 128 Hz tick, Look bible, modes),
 if runtime art grows Valve/Epic DNA, or if Offline / WARM UP trap,
@@ -361,6 +363,45 @@ def test_bible_and_ci() -> None:
         _fail("proto_src must concat port.js so contract tests see the seam")
 
 
+def test_readme_requirements_ship_floor() -> None:
+    """Root README Requirements: Chromium / MacBook floor — no Safari/Firefox SKU."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    req = re.search(
+        r"^## Requirements\s*\n[\s\S]*?(?=^#{1,3} |\Z)",
+        readme,
+        re.MULTILINE,
+    )
+    if not req:
+        _fail("README.md lost Requirements")
+    block = req.group(0)
+    low = block.lower()
+    if "chromium" not in low or "macbook" not in low:
+        _fail(
+            "README Requirements must lock Chromium on MacBook Pro–class "
+            "as the ship floor"
+        )
+    leftover = "modern web browser (chrome, edge, safari, firefox)"
+    if leftover in low:
+        _fail(
+            "README Requirements must not re-sell the multi-browser SKU "
+            "(Chrome, Edge, Safari, Firefox) — floor is Chromium / MacBook"
+        )
+    if re.search(r"\bsafari\b|\bfirefox\b", low):
+        framed = (
+            "non-floor" in low
+            or "not the floor" in low
+            or "not first-class" in low
+            or "not a first-class" in low
+            or "stretch" in low
+            or "not the ship" in low
+        )
+        if not framed:
+            _fail(
+                "README Requirements must not list Safari/Firefox as "
+                "first-class ship browsers"
+            )
+
+
 def main() -> int:
     try:
         test_godot_first_detector()
@@ -369,6 +410,7 @@ def main() -> int:
         test_runtime_art_forbids_foreign_dna()
         test_soft_locks_hold()
         test_bible_and_ci()
+        test_readme_requirements_ship_floor()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
         return 1

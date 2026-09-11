@@ -20,6 +20,8 @@ Root README Requirements must not sell KeyT / "Desktop aim … still
 works" as a first-class product capability. KeyT / DESKTOP is debug /
 non-product (cam-deny / honesty fallback), not a ship SKU. Keys T
 must match Trackpad honesty: debug / non-product — not the Q4 path.
+Root / proto README must not re-sell Safari / Firefox as first-class
+ship browsers. Ship floor is Chromium on MacBook Pro–class lid-cam.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -358,6 +360,13 @@ _README_REQ_DESKTOP_LIES = (
     "desktop aim (**t** key) still works",
     "desktop aim (t key) still works",
     "still works without a camera",
+)
+
+# Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
+_README_REQ_BROWSER_SKU_LIES = (
+    "chrome, edge, safari, firefox",
+    "modern web browser (chrome",
+    "modern web browser",
 )
 
 
@@ -787,6 +796,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_proto_headers_shot_honesty()
     test_readme_zip_play_honesty()
     test_readme_t_desktop_honesty()
+    test_readme_ship_floor_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -1054,6 +1064,142 @@ def test_readme_t_desktop_honesty() -> None:
         _assert_readme_keys_t_honest(_readme_keys_block(text, rel), rel)
 
 
+def _safari_firefox_framed_non_floor(text: str) -> bool:
+    """True when Safari/Firefox are labeled stretch / non-floor, not ship browsers."""
+    low = text.lower()
+    return (
+        "non-floor" in low
+        or "not the floor" in low
+        or "not first-class" in low
+        or "not a first-class" in low
+        or "stretch" in low
+        or "not the ship" in low
+    )
+
+
+def _assert_readme_requirements_ship_floor(block: str, label: str) -> None:
+    """Requirements: Chromium / MacBook floor — no Safari/Firefox SKU."""
+    low = block.lower()
+    if "chromium" not in low:
+        _fail(f"{label} Requirements must name Chromium as the ship floor")
+    if "macbook" not in low:
+        _fail(f"{label} Requirements must name MacBook Pro–class as the ship floor")
+    for banned in _README_REQ_BROWSER_SKU_LIES:
+        if banned in low:
+            _fail(
+                f"{label} Requirements must not re-sell {banned!r} as a first-class "
+                "ship browser SKU — floor is Chromium on MacBook Pro–class lid-cam"
+            )
+    if re.search(r"\bsafari\b|\bfirefox\b", low):
+        if not _safari_firefox_framed_non_floor(block):
+            _fail(
+                f"{label} Requirements must not list Safari/Firefox as first-class "
+                "ship browsers — label non-floor / stretch or name the Chromium / "
+                "MacBook floor only"
+            )
+
+
+def _assert_proto_readme_ship_floor(text: str, label: str) -> None:
+    """Proto lede: Chromium / MacBook floor — not a Safari/Firefox SKU."""
+    low = text.lower()
+    if "chromium" not in low:
+        _fail(f"{label} must name Chromium as the ship floor")
+    if "macbook" not in low:
+        _fail(f"{label} must name MacBook Pro–class as the ship floor")
+    if re.search(r"\bsafari\b|\bfirefox\b", low):
+        if not _safari_firefox_framed_non_floor(text):
+            _fail(
+                f"{label} must not list Safari/Firefox as first-class ship browsers"
+            )
+    if re.search(r"^chrome range\b", low, re.M):
+        _fail(
+            f"{label} must not sell Chrome-range as the floor without MacBook — "
+            "name Chromium on MacBook Pro–class lid-cam"
+        )
+
+
+def test_readme_ship_floor_honesty() -> None:
+    """README: ship floor is Chromium / MacBook — no Firefox/Safari SKU."""
+    req_lie = (
+        "## Requirements\n"
+        "\n"
+        "- Modern web browser (Chrome, Edge, Safari, Firefox).\n"
+    )
+    try:
+        _assert_readme_requirements_ship_floor(req_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "Requirements ship-floor gate missed first-class "
+            "Chrome/Edge/Safari/Firefox SKU fixture"
+        )
+    req_unframed = (
+        "## Requirements\n"
+        "\n"
+        "- Chromium on a MacBook Pro–class lid camera. Also Safari and Firefox.\n"
+    )
+    try:
+        _assert_readme_requirements_ship_floor(req_unframed, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "Requirements ship-floor gate missed unframed Safari/Firefox mention"
+        )
+    req_no_floor = (
+        "## Requirements\n"
+        "\n"
+        "- Chrome.\n"
+    )
+    try:
+        _assert_readme_requirements_ship_floor(req_no_floor, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Requirements ship-floor gate missed Chrome-only (no Chromium/MacBook)")
+    req_floor_plus_sku = (
+        "## Requirements\n"
+        "\n"
+        "- Chromium on a MacBook Pro–class lid camera (ship floor).\n"
+        "- Modern web browser (Chrome, Edge, Safari, Firefox).\n"
+    )
+    try:
+        _assert_readme_requirements_ship_floor(req_floor_plus_sku, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "Requirements ship-floor gate missed leftover Safari/Firefox SKU "
+            "beside a Chromium/MacBook line"
+        )
+    req_ok = (
+        "## Requirements\n"
+        "\n"
+        "- Chromium on a MacBook Pro–class lid camera (ship floor).\n"
+    )
+    _assert_readme_requirements_ship_floor(req_ok, "framed-fixture")
+    req_stretch = (
+        "## Requirements\n"
+        "\n"
+        "- Chromium on a MacBook Pro–class lid camera (ship floor). "
+        "Safari/Firefox are non-floor stretch.\n"
+    )
+    _assert_readme_requirements_ship_floor(req_stretch, "stretch-fixture")
+    proto_lie = "Chrome range. Webcam tracks the hand.\n"
+    try:
+        _assert_proto_readme_ship_floor(proto_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("proto README ship-floor gate missed Chrome-range leftover")
+    readme = _read("README.md")
+    _assert_readme_requirements_ship_floor(
+        _readme_requirements_block(readme, "README.md"), "README.md"
+    )
+    _assert_proto_readme_ship_floor(_read("proto/README.md"), "proto/README.md")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -1227,6 +1373,7 @@ def main() -> int:
         test_proto_headers_shot_honesty()
         test_readme_zip_play_honesty()
         test_readme_t_desktop_honesty()
+        test_readme_ship_floor_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
