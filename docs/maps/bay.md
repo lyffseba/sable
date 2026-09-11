@@ -16,18 +16,18 @@ Scene: `godot/scenes/bay/Bay.tscn`. Controller: `godot/src/app/bay_controller.gd
 - Soft-parked `lobbyStartBay` does not start the shared house (`/api/lobby/start`)
 - Offline **OFFLINE** and lobby **WARM UP** / **ENTER RANGE** are the only player paths — waiting arena is HUD-on-Yard always-practice
 
-Godot **4.7.2** → import `godot/` (spec reference):
+Godot **4.7.2** → import `godot/` (stale layout spec — engineering/spec only, not player zip play):
 
-- **F5** → Boot → **Enter Bay**
+- **F5** → Boot → **Enter Bay** (spec scene)
 - **F6** on `godot/scenes/bay/Bay.tscn`
 
-**T** desktop aim. **Space** force gun (`AimSample.lifted`). **WASD** only while PAD. **L** cycles locker style (see `docs/operators/cancho.md`). Click fires the latest `AimSample`.
+Parked/engineering keys (not player chrome): **T** is hidden debug / non-product desktop-aim. **Space** is Q4 forceGun escape (not a shot). **WASD** only while PAD (parked booth). **L** cycles locker style on the parked booth (`docs/operators/cancho.md`). Shark-fin owns the shot against the latest `AimSample`. Click/HID is DESKTOP emergency only (non-product).
 
 ## Combat verb
 
 Pad-strafe to cover. Lift. Take the fight. Drop.
 
-Physical ADS is the gun. Fire is always HID against the latest `AimSample`. Do not wait for a camera frame. Do not touch `AimSample` or the tracker.
+Physical ADS is the gun. Shark-fin owns the shot against the latest `AimSample` (AimBus peek). Click/HID is DESKTOP emergency only (non-product). Do not wait for a camera frame. Do not touch `AimSample` or the tracker.
 
 ## Layout (meters, as shipped)
 

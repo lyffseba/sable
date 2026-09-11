@@ -9,7 +9,8 @@ hide the gun, a ROOM chip hides the gun or thickens the lobby, WAIT
 books SCORE / combo or paints point / ESC popups, ONLINE sells 5v5 /
 ALPHA-BRAVO roster chrome, the lobby becomes a match-start screen
 again, or player-facing README Keys tables re-sell parked Bay WASD / L
-/ ENTER BAY / boot BAY as live product keys.
+/ ENTER BAY / boot BAY as live product keys. Parked Bay specs must not
+re-sell “Fire is HID” / “Click fires” as the booth product verb.
 """
 
 from __future__ import annotations
@@ -844,6 +845,19 @@ def test_aimsample_and_docs() -> None:
     if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
         _fail("AimSample fields changed — keep the locked struct")
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
+    bay = (ROOT / "docs/maps/bay.md").read_text(encoding="utf-8")
+    if re.search(r"\bfire is hid\b|\bfire is always hid\b|\bclick fires\b", modes.lower()):
+        _fail(
+            "docs/modes.md must not re-sell Fire is HID / Click fires as the Bay "
+            "product verb — shark-fin AimBus peek owns Bay fire"
+        )
+    if re.search(r"\bfire is hid\b|\bfire is always hid\b|\bclick fires\b", bay.lower()):
+        _fail(
+            "docs/maps/bay.md must not re-sell Fire is HID / Click fires as the "
+            "Bay product verb — shark-fin owns the shot; HID is emergency only"
+        )
+    if "**Parked.**" not in bay and "**Parked**" not in bay:
+        _fail("docs/maps/bay.md must keep the Parked banner")
     if "HUD-on-Yard" not in modes or "always-practice" not in modes:
         _fail("docs/modes.md must name HUD-on-Yard always-practice")
     if "Do not thicken the lobby" not in modes and "thicken the lobby" not in modes:

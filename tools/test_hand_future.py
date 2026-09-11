@@ -22,6 +22,10 @@ non-product (cam-deny / honesty fallback), not a ship SKU. Keys T
 must match Trackpad honesty: debug / non-product — not the Q4 path.
 Root / proto README must not re-sell Safari / Firefox as first-class
 ship browsers. Ship floor is Chromium on MacBook Pro–class lid-cam.
+Parked Bay specs (docs/modes.md Bay rules, docs/maps/bay.md) must not
+re-sell “Fire is HID” / “Fire is always HID” / “Click fires” as the
+Bay product verb — shark-fin AimBus peek owns Bay fire; HID/trackpad
+is DESKTOP/forceGun emergency only (non-product). Bay stays parked.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -360,6 +364,13 @@ _README_REQ_DESKTOP_LIES = (
     "desktop aim (**t** key) still works",
     "desktop aim (t key) still works",
     "still works without a camera",
+)
+
+# Parked Bay spec lies — leftover HID/click as the Bay product verb.
+_BAY_DOCS_FIRE_LIES = (
+    r"\bfire is always hid\b",
+    r"\bfire is hid\b",
+    r"\bclick fires\b",
 )
 
 # Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
@@ -797,6 +808,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_readme_zip_play_honesty()
     test_readme_t_desktop_honesty()
     test_readme_ship_floor_honesty()
+    test_bay_docs_shot_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -1200,6 +1212,170 @@ def test_readme_ship_floor_honesty() -> None:
     _assert_proto_readme_ship_floor(_read("proto/README.md"), "proto/README.md")
 
 
+def _modes_bay_rules(md: str) -> str:
+    """Bay rules heading through the next heading (parked booth spec)."""
+    m = re.search(r"^## Bay rules[^\n]*\n[\s\S]*?(?=^## |\Z)", md, re.MULTILINE)
+    if not m:
+        _fail("docs/modes.md lost Bay rules")
+    return m.group(0)
+
+
+def _bay_md_section(md: str, heading: str) -> str:
+    m = re.search(
+        rf"^## {re.escape(heading)}\s*\n[\s\S]*?(?=^## |\Z)",
+        md,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail(f"docs/maps/bay.md lost ## {heading}")
+    return m.group(0)
+
+
+def _assert_no_bay_fire_lies(text: str, label: str) -> None:
+    """Leftover HID/click product-verb phrasing must not return."""
+    low = text.lower()
+    for pat in _BAY_DOCS_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as the Bay product "
+                "verb — shark-fin AimBus peek owns Bay fire; HID is DESKTOP/"
+                "forceGun emergency only"
+            )
+
+
+def _assert_bay_rules_shot_honest(block: str, label: str) -> None:
+    """modes.md Bay rules: shark-fin AimBus peek; HID emergency only; parked."""
+    _assert_no_bay_fire_lies(block, label)
+    low = block.lower()
+    if "parked" not in low:
+        _fail(f"{label} must keep Bay parked — do not unpark the booth")
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as the Bay product shoot")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek as the Bay product shoot")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "fire()" not in block and "firebay3d" not in low:
+        _fail(f"{label} must keep fire() / fireBay3D as the peek path")
+    if "desktop" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "emergency" not in low and "non-product" not in low:
+        _fail(f"{label} must label HID/trackpad non-product emergency")
+    if "enter bay" in low and "off" not in low and "not" not in low:
+        _fail(f"{label} must not resurrect ENTER BAY as a player path")
+
+
+def _assert_bay_run_keys_honest(block: str, label: str) -> None:
+    """bay.md Run: shark-fin owns the shot; keys are parked/engineering."""
+    _assert_no_bay_fire_lies(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} Run must name shark-fin as the shot owner")
+    if "aimsample" not in low:
+        _fail(f"{label} Run must keep the shot against the latest AimSample")
+    if "desktop" not in low or "emergency" not in low:
+        _fail(f"{label} Run must label click/HID DESKTOP emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} Run must label click/HID / T non-product")
+    if re.search(r"\*\*t\*\*", block, re.I) or re.search(r"\bt\b.{0,24}desktop", low):
+        if "debug" not in low:
+            _fail(f"{label} T must stay hidden debug — not player chrome")
+        if "hidden" not in low:
+            _fail(f"{label} T must stay hidden debug / non-product desktop-aim")
+    if re.search(r"\*\*space\*\*", block, re.I) or re.search(r"\bspace\b", low):
+        if "q4" not in low:
+            _fail(f"{label} Space must stay Q4 forceGun escape")
+        if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+            _fail(f"{label} Space must name forceGun")
+        if "not a shot" not in low:
+            _fail(f"{label} Space must say Space is not a shot")
+    if re.search(r"\bwasd\b", low) or re.search(r"\*\*l\*\*", block, re.I):
+        if "parked" not in low and "engineering" not in low:
+            _fail(
+                f"{label} WASD/L must stay parked/engineering — never player chrome"
+            )
+    if re.search(r"\bf5\b|\bf6\b", low):
+        if "spec" not in low and "engineering" not in low:
+            _fail(
+                f"{label} Godot F5/F6 must stay engineering/spec — not product zip play"
+            )
+    if re.search(r"enter bay|boot\s+\*{0,2}bay\*{0,2}", low):
+        if "spec" not in low and "parked" not in low and "not" not in low:
+            _fail(f"{label} must not resurrect boot BAY / ENTER BAY as player paths")
+
+
+def _assert_bay_combat_shot_honest(block: str, label: str) -> None:
+    """bay.md Combat: shark-fin owns the shot; click/HID is DESKTOP emergency."""
+    _assert_no_bay_fire_lies(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} Combat must name shark-fin as the shot owner")
+    if "aimsample" not in low:
+        _fail(f"{label} Combat must keep the shot against the latest AimSample")
+    if "aimbus" not in low:
+        _fail(f"{label} Combat must name AimBus peek")
+    if "desktop" not in low or "emergency" not in low:
+        _fail(f"{label} Combat must label click/HID DESKTOP emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} Combat must label click/HID non-product")
+
+
+def test_bay_docs_shot_honesty() -> None:
+    """Parked Bay specs: shark-fin owns fire; leftover HID/click phrasing fails."""
+    modes_lie = (
+        "## Bay rules (parked 1v1 booth)\n"
+        "\n"
+        "Parked. Not playable from boot or the waiting arena.\n"
+        "\n"
+        "- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs`.\n"
+    )
+    try:
+        _assert_bay_rules_shot_honest(modes_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Bay rules shot-honesty gate missed Fire-is-HID leftover fixture")
+    bay_run_lie = (
+        "## Run\n"
+        "\n"
+        "**T** desktop aim. **Space** force gun (`AimSample.lifted`). "
+        "**WASD** only while PAD. **L** cycles locker style. "
+        "Click fires the latest `AimSample`.\n"
+    )
+    try:
+        _assert_bay_run_keys_honest(bay_run_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Bay Run shot-honesty gate missed Click-fires leftover fixture")
+    bay_combat_lie = (
+        "## Combat verb\n"
+        "\n"
+        "Physical ADS is the gun. Fire is always HID against the latest "
+        "`AimSample`. Do not wait for a camera frame.\n"
+    )
+    try:
+        _assert_bay_combat_shot_honest(bay_combat_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Bay Combat shot-honesty gate missed Fire-is-always-HID leftover fixture")
+    modes = _read("docs/modes.md")
+    _assert_bay_rules_shot_honest(_modes_bay_rules(modes), "docs/modes.md Bay rules")
+    bay = _read("docs/maps/bay.md")
+    if "**Parked.**" not in bay and "**Parked**" not in bay:
+        _fail("docs/maps/bay.md must keep the Parked banner")
+    if "sole active" not in bay.lower():
+        _fail("docs/maps/bay.md must keep Yard as the sole active map")
+    if "does not offer" not in bay.lower() and "player chrome does not" not in bay.lower():
+        _fail("docs/maps/bay.md must keep boot BAY / ENTER BAY off player chrome")
+    _assert_no_bay_fire_lies(bay, "docs/maps/bay.md")
+    _assert_bay_run_keys_honest(_bay_md_section(bay, "Run"), "docs/maps/bay.md")
+    _assert_bay_combat_shot_honest(_bay_md_section(bay, "Combat verb"), "docs/maps/bay.md")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -1374,6 +1550,7 @@ def main() -> int:
         test_readme_zip_play_honesty()
         test_readme_t_desktop_honesty()
         test_readme_ship_floor_honesty()
+        test_bay_docs_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()

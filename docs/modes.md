@@ -35,7 +35,7 @@ Bay (local first-to-5 / shared booth) is parked. `startBay` / `lobbyStartBay` / 
 Parked. Not playable from boot or the waiting arena. Specs stay so the booth can return later.
 
 - First to 5 (`BAY_TO_WIN`). Pose / expose / freeze live on the 128 Hz sim (`tickBay(SIM_DT)` from `stepSim`). Hitscan peeks the last committed pose.
-- Fire is HID (`fire()` → `fireBay3D`). Stamps `Bay.fireMs = committedSimMs()`. Soft-parked `lobbyStartBay` fire-and-forgets `/api/lobby/bay` — never `/api/lobby/start` (that starts the house). Shared resolve is a lazy snapshot + fire-tick rewind. `reportSharedBayFire` / pose / lobby poll stay after `SablePerf.markHid` — HID→hitscan p99 < 8 ms still holds. No 128 Hz friend loop.
+- Product shoot is shark-fin AimBus peek (`fire()` → `fireBay3D`). HID/trackpad is DESKTOP/forceGun emergency only (non-product). Stamps `Bay.fireMs = committedSimMs()`. Soft-parked `lobbyStartBay` fire-and-forgets `/api/lobby/bay` — never `/api/lobby/start` (that starts the house). Shared resolve is a lazy snapshot + fire-tick rewind. `reportSharedBayFire` / pose / lobby poll stay after `SablePerf.markHid` — HID→hitscan p99 < 8 ms still holds. No 128 Hz friend loop.
 - Room-owned shared Bay (parked): last committed pose mailbox + peeked UV + `fire_ms` on the 128 Hz grid. The room ray-tests that UV against the foe capsule at that tick. A miss stays a miss. Open-middle death is an expose intent the room verifies.
 - Arcade feedback is the same thin **SableHUD** bar: `YOU` / `THEM` / `ROUND` + cover chip + `FIRST TO 5` / `MATCH`. Charcoal plate, bone / mint / rust ink. No bloom, no tutorial wall, no paint over the cuff.
 
