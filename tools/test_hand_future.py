@@ -43,6 +43,10 @@ docs/yard.md ## What this is must not re-sell “Laptop webcam + trackpad”
 / trackpad as a co-equal product gun — lid-cam / hand aim owns the
 Yard (Chromium on MacBook Pro–class). Trackpad is menus / DESKTOP
 emergency only (non-product).
+docs/perf_budget.md must not re-sell “HID fire verb” / bare HID-as-product
+as the product fire verb — shark-fin AimBus peek owns product shoot;
+HID/trackpad is DESKTOP/forceGun emergency only (non-product), still
+measured on the ≤8 ms HID→hitscan latency probe (outside clocks).
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -414,6 +418,16 @@ _YARD_MD_SURFACE_LIES = (
     r"webcam\s*/\s*trackpad",
     r"laptop webcam\s*\+\s*trackpad",
     r"laptop webcam and trackpad",
+)
+
+# perf_budget.md leftover HID-as-product-verb — shark-fin AimBus peek owns fire.
+_PERF_BUDGET_FIRE_LIES = (
+    r"hid fire verb",
+    r"tax the hid fire verb",
+    r"the hid fire verb",
+    r"fire is an hid event",
+    r"\bfire is always hid\b",
+    r"\bfire is hid\b",
 )
 
 # Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
@@ -864,6 +878,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_design_md_shot_honesty()
     test_tick_md_shot_honesty()
     test_yard_md_surface_honesty()
+    test_perf_budget_shot_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -2066,6 +2081,159 @@ def test_yard_md_surface_honesty() -> None:
         _fail("docs/yard.md must not invent a TV SKU")
 
 
+def _assert_no_perf_budget_fire_lies(text: str, label: str) -> None:
+    """Leftover HID-fire-verb / HID-as-product phrasing must not return."""
+    low = text.lower()
+    for pat in _PERF_BUDGET_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as the product "
+                "fire verb — shark-fin AimBus peek owns product shoot; "
+                "HID/trackpad is DESKTOP/forceGun emergency only (non-product)"
+            )
+
+
+def _assert_perf_budget_shot_honest(block: str, label: str) -> None:
+    """perf_budget.md: shark-fin owns product fire; HID≤8ms is the probe."""
+    _assert_no_perf_budget_fire_lies(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as product shoot")
+    if (
+        "product shoot" not in low
+        and "product fire" not in low
+        and "product peek" not in low
+    ):
+        _fail(f"{label} must name shark-fin as product shoot / product fire")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "desktop" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP emergency only")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "emergency" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} must label HID/trackpad non-product")
+    if "8 ms" not in low and "8ms" not in low:
+        _fail(f"{label} must keep the ≤8 ms HID→hitscan probe")
+    if "hid→hitscan" not in low and "hid->hitscan" not in low:
+        _fail(f"{label} must keep the HID→hitscan latency probe label")
+    if "probe" not in low:
+        _fail(f"{label} must frame HID fire / HID→hitscan as the latency probe")
+    if "sableperf" not in low:
+        _fail(f"{label} must keep the SablePerf HID→hitscan probe")
+    if "shared bay" not in low:
+        _fail(f"{label} must keep Shared Bay off the 8 ms bar")
+    if "markhid" not in low:
+        _fail(f"{label} must keep Look / Shared Bay after markHid")
+
+
+def test_perf_budget_shot_honesty() -> None:
+    """docs/perf_budget.md: shark-fin owns fire; leftover HID-fire-verb fails."""
+    leftover = (
+        "# Perf budget\n"
+        "\n"
+        "Floor: **1080p 60** on a GTX 1650 4 GB class.\n"
+        "\n"
+        "| System | Budget |\n"
+        "| HID fire | **< 8 ms** HID→hitscan |\n"
+        "\n"
+        "Do not spend the frame on cinematic lighting. Spend it on a "
+        "stable reticle. Shared Bay must not tax the HID fire verb.\n"
+    )
+    try:
+        _assert_perf_budget_shot_honest(leftover, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "perf_budget.md gate missed leftover Shared-Bay-must-not-tax-"
+            "the-HID-fire-verb fixture"
+        )
+    bare_hid = (
+        "# Perf budget\n"
+        "\n"
+        "Product fire is HID. Shared Bay must not tax HID. "
+        "HID→hitscan < 8 ms.\n"
+    )
+    try:
+        _assert_perf_budget_shot_honest(bare_hid, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("perf_budget.md gate missed leftover Product-fire-is-HID fixture")
+    unframed = (
+        "# Perf budget\n"
+        "\n"
+        "Shark-fin peeks AimBus. HID fire is the product verb. "
+        "HID→hitscan < 8 ms. Shared Bay must not tax the HID fire verb.\n"
+    )
+    try:
+        _assert_perf_budget_shot_honest(unframed, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "perf_budget.md gate missed leftover HID-fire-verb beside a "
+            "shark-fin line"
+        )
+    no_product = (
+        "# Perf budget\n"
+        "\n"
+        "HID/trackpad is DESKTOP / forceGun emergency only (non-product). "
+        "HID fire / HID→hitscan is the SablePerf latency probe "
+        "(outside clocks). < 8 ms. Shared Bay must not tax the probe. "
+        "Look stays after markHid.\n"
+    )
+    try:
+        _assert_perf_budget_shot_honest(no_product, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "perf_budget.md gate missed missing shark-fin AimBus product "
+            "shoot beside a probe line"
+        )
+    ok = (
+        "# Perf budget\n"
+        "\n"
+        "Product fire is shark-fin AimBus peek. HID/trackpad peek is "
+        "DESKTOP / forceGun emergency only (non-product). The HID fire / "
+        "HID→hitscan row is the SablePerf latency probe (outside clocks), "
+        "not the product verb. < 8 ms. Shared Bay must not tax the "
+        "peek→hitscan path. Look stays after markHid.\n"
+    )
+    _assert_perf_budget_shot_honest(ok, "framed-fixture")
+    budget = _read("docs/perf_budget.md")
+    _assert_no_perf_budget_fire_lies(budget, "docs/perf_budget.md")
+    _assert_perf_budget_shot_honest(budget, "docs/perf_budget.md")
+    low = budget.lower()
+    if "128 hz" not in low:
+        _fail("docs/perf_budget.md must keep the 128 Hz sim budget")
+    if re.search(r"\b64 hz\b", low):
+        _fail("docs/perf_budget.md still budgets 64 Hz")
+    if "jolt" in low:
+        _fail("docs/perf_budget.md still names Jolt — that clock is not in tree")
+    if "| hid fire" not in low and "hid fire" not in low:
+        _fail(
+            "docs/perf_budget.md must keep the HID fire table label as the "
+            "latency probe (or an equivalent HID→hitscan probe row)"
+        )
+    if "outside" not in low:
+        _fail("docs/perf_budget.md must frame the HID→hitscan probe as outside clocks")
+    if re.search(r"\b(firefox|safari)\b", low):
+        _fail("docs/perf_budget.md must not invent a Firefox/Safari SKU")
+    if re.search(r"\bkeyt\b|\*\*t\*\*\s*key|\bt\s+key\b", low):
+        _fail("docs/perf_budget.md must not sell KeyT as a product path")
+    if "speechsynthesis" in low or "gemini" in low:
+        _fail("docs/perf_budget.md must not invent speechSynthesis / Gemini")
+    if re.search(r"\btv sku\b|\blaptop or tv\b", low):
+        _fail("docs/perf_budget.md must not invent a TV SKU")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -2245,6 +2413,7 @@ def main() -> int:
         test_design_md_shot_honesty()
         test_tick_md_shot_honesty()
         test_yard_md_surface_honesty()
+        test_perf_budget_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
