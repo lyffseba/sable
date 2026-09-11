@@ -768,15 +768,11 @@ function drawModeChip() {
   }
   let ex = W - 16;
   const mojoOn = !!S.engine.mojo;
-  const gemOn = !!S.engine.gemini;
   const handOn = !!S.engine.hands;
   const mLabel = mojoOn ? "MOJO 1.0" : "MOJO OFF";
-  const gLabel = gemOn ? "GEMINI" : "GEMINI OFF";
   const hLabel = handOn ? "HANDS" : "HANDS OFF";
   ex -= ctx.measureText(hLabel).width + 18;
   chip(hLabel, handOn, ex);
-  ex -= 8 + ctx.measureText(gLabel).width + 18;
-  chip(gLabel, gemOn, ex);
   ex -= 8 + ctx.measureText(mLabel).width + 18;
   chip(mLabel, mojoOn, ex);
   ctx.restore();
@@ -1323,7 +1319,6 @@ S.aim.x = W / 2;
 S.aim.y = H / 2;
 fetch("/api/health").then((r) => r.json()).then((h) => {
   S.engine.mojo = h.mojo || null;
-  S.engine.gemini = !!h.gemini;
 }).catch(() => {});
 initHands();
 requestAnimationFrame(frame);

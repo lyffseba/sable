@@ -531,6 +531,30 @@ def test_safe_chip_hand_path() -> None:
         _fail("productGunHidFire must not peek — it only answers the gate")
 
 
+def test_engine_chips_are_hands_and_mojo() -> None:
+    """MODE-row engine chips: HANDS + MOJO. GEMINI / GEMINI OFF is retired."""
+    js = proto_js()
+    chip = _js_fn(js, "drawModeChip")
+    if re.search(r"\bGEMINI(\s+OFF)?\b", chip) or re.search(r"gemini", chip, re.I):
+        _fail(
+            "drawModeChip must not paint GEMINI / GEMINI OFF as product engine status — "
+            "Hands-class + Mojo are the live engine tells"
+        )
+    if "S.engine.gemini" in js:
+        _fail("S.engine.gemini is dead — do not wire a Gemini engine into HUD")
+    if '"HANDS"' not in chip or "HANDS OFF" not in chip:
+        _fail("drawModeChip must still paint HANDS / HANDS OFF")
+    if "MOJO 1.0" not in chip or "MOJO OFF" not in chip:
+        _fail("drawModeChip must still paint MOJO 1.0 / MOJO OFF")
+    if "S.engine.hands" not in chip or "S.engine.mojo" not in chip:
+        _fail("engine chips must read S.engine.hands / S.engine.mojo")
+    hud = _js_fn(js, "drawHUD")
+    if "GEMINI" in hud or "gemini" in hud.lower():
+        _fail("drawHUD must not invent a GEMINI engine chip")
+    if _js_const(js, "SABLE_HUD_H") != 22:
+        _fail("SableHUD bar must stay thin (22px)")
+
+
 def test_docs_lock() -> None:
     modes = (ROOT / "docs/modes.md").read_text(encoding="utf-8")
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
@@ -733,6 +757,7 @@ def main() -> int:
         test_q4_seeking_chip_thin()
         test_mag_chip_hand_path()
         test_safe_chip_hand_path()
+        test_engine_chips_are_hands_and_mojo()
         test_docs_lock()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
