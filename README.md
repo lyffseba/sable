@@ -5,7 +5,7 @@
 
 Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no third-party game assets, names, maps, audio, or code. Codename only.
 
-**Your hand is the gun.** Raise it at a MacBook lid camera, point the index, thumb UP (shark-fin) to fire. Thumb parallel is safe. MediaPipe Hands-class (landmark 8) is the interim tracker; skin/NCC is the else path. One Euro. Product path is hand-only reinvent-the-mouse (`research/HAND_FUTURE.md`) — **no mouse as product verb**; no mouse mesh / sable-mouse path (Kruidenhof, not SABLE). Fire peeks the `AimSample` mailbox — never gated on a camera frame. HID / DESKTOP / Space are a **non-product emergency** only if still in code — never the product story. Yard spec: `docs/yard.md`. Hands audit: `research/HANDS.md`.
+**Your hand is the gun.** Raise it at a MacBook lid camera, point the index, thumb UP (shark-fin) to fire. Thumb parallel is safe. Index+middle ceiling is charger-plug reload. MediaPipe Hands-class (landmark 8) is the interim tracker; skin/NCC is the else path. One Euro. Product path is hand-only reinvent-the-mouse (`research/HAND_FUTURE.md`) — **no mouse as product verb**; no mouse mesh / sable-mouse path (Kruidenhof, not SABLE). Fire peeks the `AimSample` mailbox — never gated on a camera frame. HID / DESKTOP / Space are a **non-product emergency** only if still in code — never the product story. Yard spec: `docs/yard.md`. Hands audit: `research/HANDS.md`.
 
 Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitscan via Pixi; **Three.js** WebGL client; C++17 reference tests. Peek is local — never waits on net or a camera frame. Native kernels run at hardware SIMD width (`std.sys.info.simd_width_of`).
 
@@ -61,7 +61,7 @@ unzip sable-proto-*.zip -d sable-proto && cd sable-proto
 python3 serve_proto.py
 ```
 
-Open http://127.0.0.1:8080 — allow camera, raise a hand, point, click the pad.
+Open http://127.0.0.1:8080 — allow camera, raise a hand, point, thumb UP (shark-fin) to fire. Thumb parallel is SAFE. Index+middle ceiling reloads (charger-plug). Pad is menus / DESKTOP emergency only.
 
 Or clone `main` and `cd proto` with the same server command. Tag `v*.*.*` publishes a new zip.
 

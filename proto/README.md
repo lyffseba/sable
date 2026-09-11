@@ -10,7 +10,7 @@ Unzip `sable-proto-*.zip`, then in that folder:
 python3 serve_proto.py
 ```
 
-Open **http://127.0.0.1:8080**. PLAY. Allow camera. Tilt it **down at your hands**. Lift.
+Open **http://127.0.0.1:8080**. PLAY. Allow camera. Tilt it **down at your hands**. Lift. Shark-fin (thumb UP) fires; pad is menus / DESKTOP emergency only.
 
 ## From git
 
