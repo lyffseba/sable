@@ -1,7 +1,8 @@
 /* SABLE — aim.js
    AimSample / AimBus, fire peek, sticky lift, SablePerf, desktop fallback.
    SablePort verb seam: fire peeks AimBus. Later host adapters keep this peek.
-   Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
+   Product GUN is shark-fin AimBus peek. Trackpad / HID click peeks AimBus
+   on DESKTOP or forceGun — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
 import { detGood, PROC_W, PROC_H, COAST_MS, indexExtended } from "./hands.js";

@@ -22,7 +22,8 @@
    the room sphere. Offline / WARM UP still integrate life locally.
    SablePort look/mode seam: original house / Yard / Bay. Look bible stays
    charcoal / bone / mint / rust. Feeling notes: docs/port.md.
-   Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */
+   Product GUN is shark-fin AimBus peek. Trackpad / HID click peeks AimBus
+   on DESKTOP or forceGun — never waits on camera. */
 
 import * as THREE from "./vendor/three.module.js";
 import { S, W, H, dpr, phase, aimBus, clamp, assignHangar } from "./aim.js";
