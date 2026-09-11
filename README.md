@@ -7,7 +7,7 @@ Open-source physical-aim arena FPS. **Apache-2.0.** Original IP only — no thir
 
 **Your hand is the gun.** Raise it at a MacBook lid camera, point the index, thumb UP (shark-fin) to fire. Thumb parallel is safe. MediaPipe Hands-class (landmark 8) is the interim tracker; skin/NCC is the else path. One Euro. Product path is hand-only reinvent-the-mouse (`research/HAND_FUTURE.md`) — **no mouse as product verb**; no mouse mesh / sable-mouse path (Kruidenhof, not SABLE). Fire peeks the `AimSample` mailbox — never gated on a camera frame. HID / DESKTOP / Space are a **non-product emergency** only if still in code — never the product story. Yard spec: `docs/yard.md`. Hands audit: `research/HANDS.md`.
 
-Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitscan via Pixi; **Three.js** WebGL client; C++17 reference tests. Fire stays HID-local. Native kernels run at hardware SIMD width (`std.sys.info.simd_width_of`).
+Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitscan via Pixi; **Three.js** WebGL client; C++17 reference tests. Peek is local — never waits on net or a camera frame. Native kernels run at hardware SIMD width (`std.sys.info.simd_width_of`).
 
 ## Requirements
 
@@ -34,9 +34,9 @@ Open **http://127.0.0.1:8080** in your browser.
 | Shark-fin | Fire at the **latest** `AimSample.uv` (never waits on camera) |
 | Trackpad | Menus; DESKTOP fallback only (non-product) |
 | **T** | Desktop aim toggle (OS cursor fallback) |
-| **Space** | Force gun (simulates physical lift) |
+| **Space** | Q4 forceGun escape (not a shot; never auto-desktop) |
 
-Reticle may lag 50–80 ms on a bad camera. The shot does not: fire is HID against the mailbox, never gated on the next frame.
+Reticle may lag 50–80 ms on a bad camera. Shark-fin / AimBus peek owns the shot against the latest mailbox — never gated on the next camera frame.
 
 ## Native aim tests
 

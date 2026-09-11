@@ -34,6 +34,6 @@ python3 tools/serve_proto.py
 | Shark-fin | Fire at the latest `AimSample.uv` (never waits on camera) |
 | Trackpad | Menus; DESKTOP fallback only (non-product) |
 | **T** | Hidden debug: desktop-aim |
-| **Space** (hold) | Force GUN |
+| **Space** (hold) | Q4 forceGun escape (not a shot; never auto-desktop) |
 
 Mode chip: `PAD` / `GUN` / `DESKTOP` / `SEEKING`. Gallery SableHUD chips: hangar `WAIT` / `READY` / `LIVE` from `S.hangar` (room snapshot owns hangar on the wire), thin `ROOM` on `wait_practice` / `match_live`, then `SCORE` / `ROUND` / `60s GALLERY`. Lift plays a quiet mint-tell chirp (`Mint. Lift.`).
