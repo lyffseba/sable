@@ -260,6 +260,30 @@ def test_docs_and_ci() -> None:
         _fail("docs/maps/bay.md must name thin chips / no tutorial wall")
     if "committedSimMs" not in bay:
         _fail("docs/maps/bay.md must stamp fire_ms on the sim tick")
+    bay_rules = re.search(
+        r"^## Bay rules[^\n]*\n[\s\S]*?(?=^## |\Z)", modes, re.MULTILINE
+    )
+    if not bay_rules:
+        _fail("docs/modes.md lost Bay rules")
+    rules_low = bay_rules.group(0).lower()
+    if re.search(r"\bfire is hid\b|\bfire is always hid\b", rules_low):
+        _fail(
+            "docs/modes.md Bay rules must not re-sell Fire is HID as the product "
+            "verb — shark-fin AimBus peek owns Bay fire"
+        )
+    if "shark-fin" not in rules_low and "shark fin" not in rules_low:
+        _fail("docs/modes.md Bay rules must name shark-fin as product shoot")
+    if "aimbus" not in rules_low:
+        _fail("docs/modes.md Bay rules must name AimBus peek")
+    if re.search(r"\bclick fires\b|\bfire is always hid\b|\bfire is hid\b", bay.lower()):
+        _fail(
+            "docs/maps/bay.md must not re-sell Click fires / Fire is HID as the "
+            "Bay product verb — shark-fin owns the shot"
+        )
+    if "shark-fin" not in bay.lower() and "shark fin" not in bay.lower():
+        _fail("docs/maps/bay.md must name shark-fin as the Bay shot owner")
+    if "**Parked.**" not in bay and "**Parked**" not in bay:
+        _fail("docs/maps/bay.md must keep the Parked banner")
     if "test_bay_r6.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_bay_r6.py")
     if "M8" not in bible:
