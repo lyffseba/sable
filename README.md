@@ -11,7 +11,7 @@ Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitsca
 
 ## Requirements
 
-- Modern web browser (Chrome, Edge, Safari, Firefox).
+- Chromium on a MacBook Pro–class lid camera (ship floor).
 - Python 3 to serve the client locally (`python3 tools/serve_proto.py`).
 - C++17 toolchain for `native/cv_input` standalone tests (`./tools/run_cv_tests.sh`).
 - Built-in laptop webcam is enough.
