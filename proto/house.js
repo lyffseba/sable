@@ -70,7 +70,6 @@ const Locker = {
     const s = this.operator.styles;
     const idx = (s.indexOf(this.equippedStyle) + 1) % s.length;
     this.equippedStyle = s[idx];
-    speak("Estilo: " + this.equippedStyle);
     applyLockerLook();
     return this.equippedStyle;
   }
@@ -296,10 +295,9 @@ const Bay = {
     this.resetRound();
   },
   vo(line) {
+    // On-screen tell only. Mint-tell is the oscillator chirp (afterLiftState).
     this.voText = line;
     this.voT = 0.9;
-    // Mint-tell is the oscillator chirp (afterLiftState). No browser TTS.
-    if (line !== SABLE_AUDIO_MINT_TELL) speak(line);
   }
 };
 
@@ -313,20 +311,6 @@ function afterLiftState() {
   if (!live) liftTellArmed = false;
 }
 
-// --- Speech Synthesis Helper ---
-function speak(text) {
-  if (!window.speechSynthesis) return;
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "es-ES";
-    u.rate = 1.12;
-    u.pitch = 0.88;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  } catch (e) {
-    // Audio synthesis fallback
-  }
-}
 // ==========================================
 // --- Three.js 3D Engine Architecture ---
 // ==========================================
@@ -1385,7 +1369,6 @@ export {
   bayCoverChip,
   applyLockerLook,
   rayHitsBayFoe,
-  speak,
   unlockAudio,
   bang,
   hitBlip,

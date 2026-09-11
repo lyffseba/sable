@@ -2,9 +2,12 @@
 """SableAudio contract: sparse gallery dry-tick miss + hit punch + lift mint.
 
 Fail loud on silence (verbs gone), a music/ambience bed, third-party
-audio packs, audio that gates HID fire, or mint-tell VO that hides the
-gun. Lift mint-tell must stay a short cue quieter than miss/hit/HUD.
-Does not change SableQA floors. Waiting-Yard lobby lift must mint-tell.
+audio packs, audio that gates HID fire, mint-tell VO that hides the
+gun, or browser TTS (`speechSynthesis` / `SpeechSynthesisUtterance`)
+on any proto/*.js product path (vendor excepted). Lift mint-tell must
+stay a short oscillator cue quieter than miss/hit/HUD. Style cycle is
+look only. Bay.vo stays on-screen voText. Does not change SableQA
+floors. Waiting-Yard lobby lift must mint-tell.
 """
 
 from __future__ import annotations
@@ -105,7 +108,7 @@ def test_module_and_bar() -> None:
         _fail("locked SableCancho mint-tell line Mint. Lift. must live in audio.js")
     if "Math.random" in src:
         _fail("SableAudio must not hide aim noise with RNG")
-    if "speechSynthesis" in src:
+    if "speechSynthesis" in src or "SpeechSynthesisUtterance" in src:
         _fail("mint-tell must not use speechSynthesis / third-party voices")
     bang = _js_fn(src, "bang")
     if "createOscillator" in bang or "createGain" in bang:
@@ -341,6 +344,39 @@ def test_vo_does_not_hide_the_gun() -> None:
         _fail("AimSample fields changed — keep the locked struct")
 
 
+def test_no_browser_tts() -> None:
+    proto = ROOT / "proto"
+    banned = ("speechSynthesis", "SpeechSynthesisUtterance")
+    for path in proto.rglob("*.js"):
+        if not path.is_file():
+            continue
+        if "vendor" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for needle in banned:
+            if needle in text:
+                _fail(
+                    f"browser TTS on the product path: {path.relative_to(ROOT)} "
+                    f"uses {needle}"
+                )
+    js = proto_js()
+    cycle = re.search(r"cycleStyle\(\) \{[\s\S]*?\n  \}", js)
+    if not cycle:
+        _fail("cycleStyle missing")
+    if "speak(" in cycle.group(0):
+        _fail("cycleStyle must change look only — no TTS announce")
+    vo = re.search(r"\bvo\(line\) \{[\s\S]*?\n  \}", js)
+    if not vo:
+        _fail("Bay.vo missing")
+    body = vo.group(0)
+    if "this.voText" not in body:
+        _fail("Bay.vo must keep on-screen voText")
+    if "speak(" in body:
+        _fail("Bay.vo must not call browser TTS")
+    if re.search(r"function speak\s*\(", js) or re.search(r"\bspeak,", js):
+        _fail("speak() helper must stay off the proto path")
+
+
 def test_docs() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "SableAudio" not in bible:
@@ -357,6 +393,8 @@ def test_docs() -> None:
         _fail("PRODUCTION.md must fail loud through test_sableaudio.py")
     if "hide the gun" not in bible.lower() and "hides the gun" not in bible.lower():
         _fail("PRODUCTION.md must fail loud if mint-tell VO hides the gun")
+    if "speechSynthesis" not in bible:
+        _fail("PRODUCTION.md must refuse browser TTS on the proto path")
     if "`lobby` is live for mint-tell" not in bible:
         _fail("PRODUCTION.md must name waiting-Yard lobby mint-tell")
     if "v0.20.0" not in bible:
@@ -399,6 +437,8 @@ def test_docs() -> None:
         _fail("cancho.md must record the locked mint-tell VO copy")
     if "cuff" not in cancho.lower() and "hide" not in cancho.lower():
         _fail("cancho.md must refuse painting mint-tell over the cuff")
+    if "style cycle is look only" not in cancho.lower():
+        _fail("cancho.md must keep style cycle as look only — no TTS announce")
 
 
 def test_ci_wires_the_lock() -> None:
@@ -421,6 +461,7 @@ def main() -> int:
         test_lift_mint_after_state()
         test_lobby_waiting_yard_mint_tell()
         test_vo_does_not_hide_the_gun()
+        test_no_browser_tts()
         test_playlist_untouched()
         test_docs()
         test_ci_wires_the_lock()
