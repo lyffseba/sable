@@ -22,6 +22,10 @@ non-product (cam-deny / honesty fallback), not a ship SKU. Keys T
 must match Trackpad honesty: debug / non-product — not the Q4 path.
 Root / proto README must not re-sell Safari / Firefox as first-class
 ship browsers. Ship floor is Chromium on MacBook Pro–class lid-cam.
+PRODUCTION One sentence must not re-sell “laptop or TV” / TV as a
+first-class ship surface. Floor is Chromium on MacBook Pro–class
+lid-cam (hand + shark-fin AimBus). Player fantasy TV stays feel /
+literacy — not a ship SKU. No Firefox/Safari SKU in that sentence.
 Parked Bay specs (docs/modes.md Bay rules, docs/maps/bay.md) must not
 re-sell “Fire is HID” / “Fire is always HID” / “Click fires” as the
 Bay product verb — shark-fin AimBus peek owns Bay fire; HID/trackpad
@@ -390,6 +394,14 @@ _README_REQ_BROWSER_SKU_LIES = (
     "chrome, edge, safari, firefox",
     "modern web browser (chrome",
     "modern web browser",
+)
+
+# PRODUCTION One sentence leftover — Chromium / MacBook floor; no TV SKU.
+_PRODUCTION_ONE_SENTENCE_SKU_LIES = (
+    "laptop or tv",
+    "laptop or a tv",
+    "at a laptop or tv",
+    "hand at a laptop or tv",
 )
 
 
@@ -820,6 +832,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_readme_zip_play_honesty()
     test_readme_t_desktop_honesty()
     test_readme_ship_floor_honesty()
+    test_production_one_sentence_ship_floor()
     test_bay_docs_shot_honesty()
     test_design_md_shot_honesty()
 
@@ -1223,6 +1236,169 @@ def test_readme_ship_floor_honesty() -> None:
         _readme_requirements_block(readme, "README.md"), "README.md"
     )
     _assert_proto_readme_ship_floor(_read("proto/README.md"), "proto/README.md")
+
+
+def _production_one_sentence(md: str, label: str = "docs/PRODUCTION.md") -> str:
+    """One sentence heading through the next heading (product claim)."""
+    m = re.search(r"^## One sentence\s*\n[\s\S]*?(?=^## |\Z)", md, re.MULTILINE)
+    if not m:
+        _fail(f"{label} lost ## One sentence")
+    return m.group(0)
+
+
+def _production_player_fantasy(md: str, label: str = "docs/PRODUCTION.md") -> str:
+    """Player fantasy heading through the next heading (feel / literacy)."""
+    m = re.search(
+        r"^## Player fantasy[^\n]*\n[\s\S]*?(?=^## |\Z)", md, re.MULTILINE
+    )
+    if not m:
+        _fail(f"{label} lost ## Player fantasy")
+    return m.group(0)
+
+
+def _tv_framed_feel_or_stretch(text: str) -> bool:
+    """True when TV is feel / literacy or later stretch, not a ship SKU."""
+    low = text.lower()
+    return (
+        "feeling" in low
+        or "feel / literacy" in low
+        or "feel/literacy" in low
+        or "feel-only" in low
+        or "not a ship" in low
+        or "not the ship" in low
+        or "later stretch" in low
+        or "not a second product" in low
+        or "not a first-class" in low
+        or "not first-class" in low
+    )
+
+
+def _assert_production_one_sentence_ship_floor(block: str, label: str) -> None:
+    """PRODUCTION One sentence: Chromium / MacBook floor — no laptop-or-TV SKU."""
+    low = block.lower()
+    if "chromium" not in low:
+        _fail(f"{label} One sentence must name Chromium as the ship floor")
+    if "macbook" not in low:
+        _fail(f"{label} One sentence must name MacBook Pro–class as the ship floor")
+    for banned in _PRODUCTION_ONE_SENTENCE_SKU_LIES:
+        if banned in low:
+            _fail(
+                f"{label} One sentence must not re-sell {banned!r} as a first-class "
+                "ship surface — floor is Chromium on MacBook Pro–class lid-cam"
+            )
+    if re.search(r"\bfirefox\b|\bsafari\b", low):
+        _fail(
+            f"{label} One sentence must not invent Firefox/Safari as ship SKUs — "
+            "floor is Chromium on MacBook Pro–class lid-cam"
+        )
+    if re.search(r"\btv\b", low):
+        if not _tv_framed_feel_or_stretch(block):
+            _fail(
+                f"{label} One sentence must not sell TV as a first-class ship "
+                "surface — label feel / literacy or later stretch, or name the "
+                "Chromium / MacBook floor only"
+            )
+
+
+def test_production_one_sentence_ship_floor() -> None:
+    """PRODUCTION One sentence: Chromium / MacBook floor — no TV SKU."""
+    leftover = (
+        "## One sentence\n"
+        "\n"
+        "You raise a hand at a laptop or TV, the house throws plates, "
+        "shark-fin peeks AimBus — and friends can stand in the same house.\n"
+    )
+    try:
+        _assert_production_one_sentence_ship_floor(leftover, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "PRODUCTION One sentence ship-floor gate missed leftover "
+            "laptop-or-TV SKU fixture"
+        )
+    unframed_tv = (
+        "## One sentence\n"
+        "\n"
+        "You raise a hand at Chromium on a MacBook Pro–class lid camera "
+        "or a TV, the house throws plates, shark-fin peeks AimBus.\n"
+    )
+    try:
+        _assert_production_one_sentence_ship_floor(unframed_tv, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "PRODUCTION One sentence ship-floor gate missed unframed TV "
+            "beside a Chromium/MacBook line"
+        )
+    no_floor = (
+        "## One sentence\n"
+        "\n"
+        "You raise a hand, the house throws plates, shark-fin peeks AimBus.\n"
+    )
+    try:
+        _assert_production_one_sentence_ship_floor(no_floor, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "PRODUCTION One sentence ship-floor gate missed missing "
+            "Chromium/MacBook floor"
+        )
+    firefox_sku = (
+        "## One sentence\n"
+        "\n"
+        "You raise a hand at Chromium or Firefox on a MacBook Pro–class "
+        "lid camera, the house throws plates, shark-fin peeks AimBus.\n"
+    )
+    try:
+        _assert_production_one_sentence_ship_floor(firefox_sku, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "PRODUCTION One sentence ship-floor gate missed Firefox SKU fixture"
+        )
+    floor_plus_tv = (
+        "## One sentence\n"
+        "\n"
+        "You raise a hand at Chromium on a MacBook Pro–class lid camera "
+        "or a laptop or TV, the house throws plates, shark-fin peeks AimBus.\n"
+    )
+    try:
+        _assert_production_one_sentence_ship_floor(floor_plus_tv, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "PRODUCTION One sentence ship-floor gate missed leftover "
+            "laptop-or-TV SKU beside a Chromium/MacBook line"
+        )
+    ok = (
+        "## One sentence\n"
+        "\n"
+        "You raise a hand at Chromium on a MacBook Pro–class lid camera, "
+        "the house throws plates, shark-fin peeks AimBus — and friends "
+        "can stand in the same house.\n"
+    )
+    _assert_production_one_sentence_ship_floor(ok, "framed-fixture")
+    bible = _read("docs/PRODUCTION.md")
+    _assert_production_one_sentence_ship_floor(
+        _production_one_sentence(bible), "docs/PRODUCTION.md"
+    )
+    if "laptop or tv" in bible.lower() or "laptop or a tv" in bible.lower():
+        _fail(
+            "docs/PRODUCTION.md must not re-sell laptop-or-TV as a first-class "
+            "ship surface — floor is Chromium on MacBook Pro–class lid-cam"
+        )
+    fantasy = _production_player_fantasy(bible)
+    if re.search(r"\btv\b", fantasy, re.I):
+        if not _tv_framed_feel_or_stretch(fantasy):
+            _fail(
+                "PRODUCTION Player fantasy TV must stay feel / literacy — "
+                "not a ship SKU / not Requirements"
+            )
 
 
 def _modes_bay_rules(md: str) -> str:
@@ -1727,6 +1903,7 @@ def main() -> int:
         test_readme_zip_play_honesty()
         test_readme_t_desktop_honesty()
         test_readme_ship_floor_honesty()
+        test_production_one_sentence_ship_floor()
         test_bay_docs_shot_honesty()
         test_design_md_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()

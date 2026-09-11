@@ -8,7 +8,8 @@ desktop-only / Godot-first product host, if the verb leaves
 aimbus-hand-gesture, if the port notes drift
 off the locked bars (hand point + shark-fin → AimBus peek, charger-plug
 reload, DESKTOP HID honesty fallback, 128 Hz tick, Look bible, modes),
-if runtime art grows Valve/Epic DNA, or if Offline / WARM UP trap,
+if PRODUCTION One sentence re-sells laptop-or-TV / TV as a first-class
+ship surface, if runtime art grows Valve/Epic DNA, or if Offline / WARM UP trap,
 player-facing Bay chrome, AimSample / fire peek / R6 / Worker / HUD /
 audio soft-locks move. Port docs may name BAY / ENTER BAY as playlist
 seams — that is architecture, not a live gun. Gallery already scans a
@@ -363,6 +364,53 @@ def test_bible_and_ci() -> None:
         _fail("proto_src must concat port.js so contract tests see the seam")
 
 
+def test_production_one_sentence_ship_floor() -> None:
+    """PRODUCTION One sentence: Chromium / MacBook floor — no laptop-or-TV SKU."""
+    bible = (ROOT / "docs" / "PRODUCTION.md").read_text(encoding="utf-8")
+    one = re.search(
+        r"^## One sentence\s*\n[\s\S]*?(?=^## |\Z)",
+        bible,
+        re.MULTILINE,
+    )
+    if not one:
+        _fail("PRODUCTION.md lost ## One sentence")
+    block = one.group(0)
+    low = block.lower()
+    if "chromium" not in low or "macbook" not in low:
+        _fail(
+            "PRODUCTION One sentence must lock Chromium on MacBook Pro–class "
+            "as the ship floor"
+        )
+    leftover = "laptop or tv"
+    if leftover in low or "laptop or a tv" in low:
+        _fail(
+            "PRODUCTION One sentence must not re-sell laptop-or-TV as a "
+            "first-class ship surface — floor is Chromium / MacBook"
+        )
+    if re.search(r"\bfirefox\b|\bsafari\b", low):
+        _fail(
+            "PRODUCTION One sentence must not invent Firefox/Safari as ship SKUs"
+        )
+    if re.search(r"\btv\b", low):
+        framed = (
+            "feeling" in low
+            or "feel / literacy" in low
+            or "feel-only" in low
+            or "not a ship" in low
+            or "later stretch" in low
+        )
+        if not framed:
+            _fail(
+                "PRODUCTION One sentence must not sell TV as a first-class "
+                "ship surface without Chromium/MacBook floor honesty"
+            )
+    if leftover in bible.lower() or "laptop or a tv" in bible.lower():
+        _fail(
+            "PRODUCTION.md must not re-sell leftover laptop-or-TV as a "
+            "first-class ship surface"
+        )
+
+
 def test_readme_requirements_ship_floor() -> None:
     """Root README Requirements: Chromium / MacBook floor — no Safari/Firefox SKU."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -410,6 +458,7 @@ def main() -> int:
         test_runtime_art_forbids_foreign_dna()
         test_soft_locks_hold()
         test_bible_and_ci()
+        test_production_one_sentence_ship_floor()
         test_readme_requirements_ship_floor()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

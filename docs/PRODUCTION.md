@@ -4,11 +4,11 @@ Codename only. Apache-2.0. Original IP. This is the document a producer, enginee
 
 ## One sentence
 
-You raise a hand at a laptop or TV, the house throws plates, shark-fin peeks AimBus — and friends can stand in the same house.
+You raise a hand at Chromium on a MacBook Pro–class lid camera, the house throws plates, shark-fin peeks AimBus — and friends can stand in the same house.
 
 ## Player fantasy (locked)
 
-The feeling is **arcade light-gun on a living-room TV**, not an aim-trainer, not a military FPS.
+The feeling is **arcade light-gun on a living-room TV** — feel / literacy, not a ship SKU — not an aim-trainer, not a military FPS.
 
 - Duck Hunt class: things fly, you point at the glass, they pop or they escape.
 - Cabinet-with-friends class: same room, same screen energy; later the same house over a room code.
