@@ -304,6 +304,24 @@ _CHROME_CALIB_LIES = (
     "click  to capture",
 )
 
+# Player-facing README Keys lies — shark-fin / AimBus peek owns the shot.
+_README_KEYS_FIRE_LIES = (
+    "fire is hid",
+    "fire-is-hid",
+    "fire stays hid-local",
+    "fire stays hid local",
+    "the shot does not: fire is hid",
+)
+
+# Space row lies — Q4 forceGun escape is not a product lift verb.
+_README_KEYS_SPACE_LIES = (
+    "simulates physical lift",
+    "simulate physical lift",
+    "simulating physical lift",
+    "physical lift",
+    "product lift",
+)
+
 
 def test_fallbacks_labeled_non_product() -> None:
     for rel in (
@@ -377,6 +395,7 @@ def test_bible_product_shoot_is_shark_fin() -> None:
         _fail("aim_pipeline.md must keep sticky lift")
     if "waiting" not in pipe.lower() or "yard" not in pipe.lower():
         _fail("aim_pipeline.md must keep waiting-Yard")
+    test_readme_keys_shot_honesty()
     test_chrome_product_shoot_is_shark_fin()
 
 
@@ -599,6 +618,136 @@ _CHROME_GEMINI_LOCK_LIES = (
 )
 
 
+def _readme_keys_block(md: str, label: str) -> str:
+    """Keys heading through the next heading (table + footer)."""
+    m = re.search(r"^#{2,3} Keys\s*\n[\s\S]*?(?=^#{1,3} |\Z)", md, re.MULTILINE)
+    if not m:
+        _fail(f"{label} lost the Keys section")
+    return m.group(0)
+
+
+def _keys_row_cells(line: str) -> tuple[str, str] | None:
+    if not line.startswith("|"):
+        return None
+    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+    if len(cells) < 2:
+        return None
+    key, action = cells[0], cells[1]
+    if set(key) <= set("-: ") or key.lower() in {"key", "what", "action"}:
+        return None
+    return key, action
+
+
+def _keys_space_action(table: str, label: str) -> str:
+    for line in table.splitlines():
+        row = _keys_row_cells(line)
+        if not row:
+            continue
+        if re.search(r"\bSpace\b", row[0], re.I):
+            return row[1]
+    _fail(f"{label} Keys table lost Space — Q4 forceGun escape")
+    return ""
+
+
+def _keys_footer(block: str) -> str:
+    """Prose after the Keys table (root README shot-honesty line)."""
+    after: list[str] = []
+    seen_table = False
+    in_table = False
+    for line in block.splitlines():
+        if line.startswith("|"):
+            in_table = True
+            seen_table = True
+            continue
+        if in_table and not line.startswith("|"):
+            in_table = False
+        if seen_table and not in_table:
+            after.append(line)
+    return "\n".join(after)
+
+
+def _assert_readme_keys_shot_honest(block: str, label: str) -> None:
+    """Keys table + footer: shark-fin / AimBus peek owns the shot; Space is Q4."""
+    low = block.lower()
+    for banned in _README_KEYS_FIRE_LIES:
+        if banned in low:
+            _fail(
+                f"{label} Keys must not re-sell {banned!r} as the shot story — "
+                "shark-fin / AimBus peek owns the shot"
+            )
+    space = _keys_space_action(block, label)
+    space_low = space.lower()
+    for banned in _README_KEYS_SPACE_LIES:
+        if banned in space_low:
+            _fail(
+                f"{label} Space row must not sell {banned!r} — "
+                "Space is Q4 forceGun escape, not a product lift"
+            )
+    if "q4" not in space_low:
+        _fail(f"{label} Space row must name Q4 forceGun escape")
+    if "forcegun" not in space_low and "force-gun" not in space_low and "force gun" not in space_low:
+        _fail(f"{label} Space row must name forceGun")
+    if "not a shot" not in space_low:
+        _fail(f"{label} Space row must say Space is not a shot")
+    if "escape" not in space_low:
+        _fail(f"{label} Space row must name the Q4 escape")
+    footer = _keys_footer(block)
+    footer_low = footer.lower()
+    for banned in _README_KEYS_FIRE_LIES:
+        if banned in footer_low:
+            _fail(
+                f"{label} Keys footer must not re-sell {banned!r} as the shot story — "
+                "shark-fin / AimBus peek owns the shot"
+            )
+    if label == "README.md":
+        if "shark-fin" not in footer_low and "shark fin" not in footer_low:
+            _fail("README.md Keys footer must name shark-fin as the shot owner")
+        if "aimbus" not in footer_low:
+            _fail("README.md Keys footer must name AimBus peek as the shot owner")
+        if "peek" not in footer_low:
+            _fail("README.md Keys footer must keep AimBus peek")
+        if (
+            "never gated" not in footer_low
+            and "never waits" not in footer_low
+            and "no camera gate" not in footer_low
+        ):
+            _fail("README.md Keys footer must keep never-gated-on-camera-frame honesty")
+
+
+def test_readme_keys_shot_honesty() -> None:
+    """README Keys: shark-fin / AimBus peek owns the shot; Space is Q4 forceGun."""
+    lie = (
+        "### Keys\n"
+        "| Key | Action |\n"
+        "|-----|--------|\n"
+        "| **Space** | Force gun (simulates physical lift) |\n"
+        "\n"
+        "The shot does not: fire is HID against the mailbox, never gated on the next frame.\n"
+    )
+    try:
+        _assert_readme_keys_shot_honest(lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Keys shot-honesty gate missed fire-is-HID / Space-as-lift fixture")
+    for rel in ("README.md", "proto/README.md"):
+        text = _read(rel)
+        _assert_readme_keys_shot_honest(_readme_keys_block(text, rel), rel)
+    readme = _read("README.md")
+    if re.search(r"fire stays hid[- ]local", readme, re.I):
+        _fail(
+            "README.md must not sell Fire stays HID-local as the product shot — "
+            "peek is local; never waits on net or a camera frame"
+        )
+    if re.search(r"\bfire is hid\b", readme, re.I):
+        _fail(
+            "README.md must not sell fire is HID as the shot story — "
+            "shark-fin / AimBus peek owns the shot"
+        )
+    if "Peek is local" not in readme and "peek is local" not in readme.lower():
+        _fail("README.md stack must keep peek-is-local latency honesty")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -768,6 +917,7 @@ def main() -> int:
         test_liftshot_product_pivot()
         test_fallbacks_labeled_non_product()
         test_bible_product_shoot_is_shark_fin()
+        test_readme_keys_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
