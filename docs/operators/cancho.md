@@ -61,6 +61,7 @@ HUD `VoChip` holds hit / drop / win for **0.70 s**. Lift mint-tell is the short 
 
 - Do not touch `AimSample` or the tracker.
 - Do not hide the gun with mint-tell VO.
+- Do not call browser TTS (`speechSynthesis`). Style cycle is look only.
 - Do not add a second art repo.
 - Do not invent a body mesh, face, beanie, glasses, or gun.
 - Do not treat a style id as a new operator.
