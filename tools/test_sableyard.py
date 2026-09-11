@@ -4,6 +4,9 @@
 Fail loud if Yard bunkers take bone/mint fill, grow tall clutter, move
 YARD_PEEKS, Bay returns to player chrome, Offline / WARM UP die, or
 Valve / Epic DNA lands in the Yard sheet.
+docs/yard.md ## What this is must not re-sell “Laptop webcam + trackpad”
+/ trackpad as a co-equal product gun — lid-cam / hand aim owns the
+Yard; trackpad is menus / DESKTOP emergency only (non-product).
 """
 
 from __future__ import annotations
@@ -183,6 +186,73 @@ def test_yard_sheet_and_dna() -> None:
                 _fail(f"Valve/Epic asset DNA in {path.relative_to(ROOT)} ({needle})")
 
 
+_YARD_MD_SURFACE_LIES = (
+    r"webcam\s*\+\s*trackpad",
+    r"webcam\s+and\s+trackpad",
+    r"webcam\s*/\s*trackpad",
+    r"laptop webcam\s*\+\s*trackpad",
+    r"laptop webcam and trackpad",
+)
+
+
+def _yard_md_what_this_is(docs: str) -> str:
+    m = re.search(
+        r"^## What this is\s*\n[\s\S]*?(?=^## |\Z)",
+        docs,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail("docs/yard.md lost ## What this is")
+    return m.group(0)
+
+
+def test_yard_md_surface_honesty() -> None:
+    """yard.md: lid-cam / hand owns Yard; leftover webcam+trackpad fails."""
+    leftover = (
+        "## What this is\n"
+        "\n"
+        "A shooting range you stand in. Laptop webcam + trackpad. "
+        "Two laptops join the same room later.\n"
+    )
+    if not any(re.search(pat, leftover.lower()) for pat in _YARD_MD_SURFACE_LIES):
+        _fail("yard.md leftover fixture must still match Laptop-webcam-+-trackpad")
+    webcam_and = "Laptop webcam and trackpad. Two laptops join later.\n"
+    if not any(re.search(pat, webcam_and.lower()) for pat in _YARD_MD_SURFACE_LIES):
+        _fail("yard.md leftover fixture must still match webcam-and-trackpad")
+    docs = (ROOT / "docs/yard.md").read_text(encoding="utf-8")
+    low = docs.lower()
+    for pat in _YARD_MD_SURFACE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"docs/yard.md must not re-sell leftover {pat!r} as a "
+                "co-equal product gun — lid-cam / hand aim owns the Yard; "
+                "trackpad is menus / DESKTOP emergency only (non-product)"
+            )
+    surface = _yard_md_what_this_is(docs)
+    surface_low = surface.lower()
+    if "chromium" not in surface_low:
+        _fail("docs/yard.md ## What this is must name Chromium as the ship floor")
+    if "macbook" not in surface_low:
+        _fail("docs/yard.md ## What this is must name MacBook Pro–class lid-cam")
+    if "lid" not in surface_low:
+        _fail("docs/yard.md ## What this is must name the lid camera")
+    if "hand" not in surface_low:
+        _fail("docs/yard.md ## What this is must name hand as the product path")
+    if "shark-fin" not in surface_low and "shark fin" not in surface_low:
+        _fail("docs/yard.md ## What this is must name shark-fin as the product shot")
+    if re.search(r"\btrackpad\b", surface_low):
+        if "menus" not in surface_low:
+            _fail("docs/yard.md ## What this is trackpad must be menus / DESKTOP only")
+        if "desktop" not in surface_low or "emergency" not in surface_low:
+            _fail("docs/yard.md ## What this is trackpad must be DESKTOP emergency")
+        if "non-product" not in surface_low:
+            _fail("docs/yard.md ## What this is trackpad must stay non-product")
+    if "sole active" not in low:
+        _fail("docs/yard.md must keep Yard as the sole active map")
+    if "parked" not in low:
+        _fail("docs/yard.md must keep Bay parked — do not unpark the booth")
+
+
 def test_bible_and_ci() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "test_sableyard.py" not in bible:
@@ -203,6 +273,7 @@ def main() -> int:
         test_peeks_and_first_plate()
         test_sole_map_and_one_click()
         test_yard_sheet_and_dna()
+        test_yard_md_surface_honesty()
         test_bible_and_ci()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
