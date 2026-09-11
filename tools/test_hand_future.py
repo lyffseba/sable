@@ -668,6 +668,41 @@ def test_lock_chrome_does_not_sell_gemini() -> None:
         _fail("PLAY ANYWAY must stay Q4 — goCalib or goDesktopRange")
     if "requestGeminiLock" in skip_body:
         _fail("PLAY ANYWAY must not call Gemini lock")
+    test_engine_hud_does_not_sell_gemini()
+
+
+def test_engine_hud_does_not_sell_gemini() -> None:
+    """Engine chips are HANDS + MOJO — not GEMINI / GEMINI OFF product status."""
+    src = proto_js()
+    boot = _read("proto/boot.js")
+    chip = _js_fn(src, "drawModeChip")
+    if re.search(r"\bGEMINI(\s+OFF)?\b", chip) or re.search(r"gemini", chip, re.I):
+        _fail(
+            "drawModeChip must not paint GEMINI / GEMINI OFF as a live engine — "
+            "Hands-class + Mojo are the product engine tells"
+        )
+    if "S.engine.gemini" in src or "S.engine.gemini" in boot:
+        _fail("S.engine.gemini is dead — do not wire HUD or health into a Gemini engine")
+    if re.search(r"S\.engine\.gemini\s*=", src):
+        _fail("do not assign S.engine.gemini from /api/health or anywhere else")
+    if re.search(r"engine:\s*\{[^}]*gemini", src):
+        _fail("S.engine must not keep a dead gemini field as product engine state")
+    if "h.gemini" in boot:
+        _fail("health fetch must not wire h.gemini into S.engine — HUD archaeology")
+    if '"HANDS"' not in chip or "HANDS OFF" not in chip:
+        _fail("drawModeChip must still paint HANDS / HANDS OFF — MediaPipe interim truth")
+    if "S.engine.hands" not in chip:
+        _fail("HANDS chip must read S.engine.hands")
+    if "MOJO 1.0" not in chip or "MOJO OFF" not in chip:
+        _fail("drawModeChip must still paint MOJO 1.0 / MOJO OFF — Mojo kernel truth")
+    if "S.engine.mojo" not in chip:
+        _fail("MOJO chip must read S.engine.mojo")
+    hud = _js_fn(src, "drawHUD")
+    if "GEMINI" in hud or "gemini" in hud.lower():
+        _fail("drawHUD must not invent a GEMINI engine chip")
+    html = _read("proto/index.html")
+    if "GEMINI" in html or "gemini" in html.lower():
+        _fail("proto chrome must not paint GEMINI as a live engine")
 
 
 def test_no_mouse_art_invented() -> None:
@@ -695,6 +730,7 @@ def main() -> int:
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
         test_lock_chrome_does_not_sell_gemini()
+        test_engine_hud_does_not_sell_gemini()
         test_no_mouse_art_invented()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
