@@ -10,6 +10,9 @@ Chrome (proto/index.html boot/lock) must teach point + shark-fin
 + thumb-parallel SAFE + index+middle charger-plug reload / MAG refill,
 not pad/pinch/Click-is-HID as shoot or reload. Calib chrome must teach
 shark-fin (thumb UP) to capture — not Click-is-HID, not reload.
+Proto file headers must not sell Trackpad / HID click fires as the
+product shot — HID/trackpad is DESKTOP/forceGun only; shark-fin owns
+the AimBus peek.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -311,6 +314,17 @@ _README_KEYS_FIRE_LIES = (
     "fire stays hid-local",
     "fire stays hid local",
     "the shot does not: fire is hid",
+)
+
+# Proto file-header lies — HID click is DESKTOP/forceGun only.
+_PROTO_HEADER_FIRE_LIES = (
+    "trackpad / hid click fires",
+    "hid click fires",
+    "click fires from the aimbus",
+    "click fires from the aimbus mailbox",
+    "the click is the shot",
+    "click is hid",
+    "click-is-hid",
 )
 
 # Space row lies — Q4 forceGun escape is not a product lift verb.
@@ -746,6 +760,68 @@ def test_readme_keys_shot_honesty() -> None:
         )
     if "Peek is local" not in readme and "peek is local" not in readme.lower():
         _fail("README.md stack must keep peek-is-local latency honesty")
+    test_proto_headers_shot_honesty()
+
+
+def _js_file_header(src: str, label: str) -> str:
+    """Leading block comment — file header only, not body HID-local / SablePerf notes."""
+    m = re.search(r"^/\*[\s\S]*?\*/", src)
+    if not m:
+        _fail(f"{label} lost its file header")
+    return m.group(0)
+
+
+def _assert_aim_house_header_shot_honest(header: str, label: str) -> None:
+    """aim.js / house.js headers: shark-fin owns product peek; HID is DESKTOP/forceGun."""
+    low = header.lower()
+    for banned in _PROTO_HEADER_FIRE_LIES:
+        if banned in low:
+            _fail(
+                f"{label} header must not re-sell {banned!r} as the product shot — "
+                "HID click is DESKTOP/forceGun only; shark-fin owns product peek"
+            )
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} header must name shark-fin as product peek")
+    if "aimbus" not in low:
+        _fail(f"{label} header must name AimBus peek")
+    if "desktop" not in low:
+        _fail(f"{label} header must label HID/trackpad DESKTOP/forceGun only")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} header must label HID/trackpad DESKTOP/forceGun only")
+    if (
+        "never waits on camera" not in low
+        and "never wait on camera" not in low
+        and "never waits on a camera" not in low
+    ):
+        _fail(f"{label} header must keep never-waits-on-camera honesty")
+
+
+def test_proto_headers_shot_honesty() -> None:
+    """proto headers: HID click is DESKTOP/forceGun only; shark-fin owns product peek."""
+    lie = (
+        "/* SABLE — aim.js\n"
+        "   Trackpad / HID click fires from the AimBus mailbox — never waits on camera. */"
+    )
+    try:
+        _assert_aim_house_header_shot_honest(lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("proto header shot-honesty gate missed HID-click-fires fixture")
+    for rel in ("proto/aim.js", "proto/house.js"):
+        _assert_aim_house_header_shot_honest(_js_file_header(_read(rel), rel), rel)
+    # Other proto/*.js headers: ban the product-shot lie only.
+    # Do not police HID-local latency / SablePerf probe wording in the body.
+    for path in sorted((ROOT / "proto").glob("*.js")):
+        rel = str(path.relative_to(ROOT))
+        header = _js_file_header(_read(rel), rel)
+        low = header.lower()
+        for banned in _PROTO_HEADER_FIRE_LIES:
+            if banned in low:
+                _fail(
+                    f"{rel} header must not re-sell {banned!r} as the product shot — "
+                    "HID click is DESKTOP/forceGun only; shark-fin owns product peek"
+                )
 
 
 def test_lock_chrome_does_not_sell_gemini() -> None:
@@ -918,6 +994,7 @@ def main() -> int:
         test_fallbacks_labeled_non_product()
         test_bible_product_shoot_is_shark_fin()
         test_readme_keys_shot_honesty()
+        test_proto_headers_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
