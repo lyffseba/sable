@@ -86,7 +86,6 @@ import {
 import {
   Locker,
   Bay,
-  speak,
   unlockAudio,
   afterLiftState,
   hitBlip,

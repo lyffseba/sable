@@ -1369,7 +1369,6 @@ export {
   bayCoverChip,
   applyLockerLook,
   rayHitsBayFoe,
-  speak,
   unlockAudio,
   bang,
   hitBlip,

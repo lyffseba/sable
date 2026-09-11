@@ -373,7 +373,7 @@ def test_no_browser_tts() -> None:
         _fail("Bay.vo must keep on-screen voText")
     if "speak(" in body:
         _fail("Bay.vo must not call browser TTS")
-    if re.search(r"function speak\s*\(", js):
+    if re.search(r"function speak\s*\(", js) or re.search(r"\bspeak,", js):
         _fail("speak() helper must stay off the proto path")
 
 
