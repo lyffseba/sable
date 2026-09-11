@@ -7,8 +7,9 @@ ENTER RANGE stops being host shared gallery start, promote traps HID
 behind calib/lock or a lobby POST, hangar chips thicken the lobby or
 hide the gun, a ROOM chip hides the gun or thickens the lobby, WAIT
 books SCORE / combo or paints point / ESC popups, ONLINE sells 5v5 /
-ALPHA-BRAVO roster chrome, or the lobby becomes a match-start screen
-again.
+ALPHA-BRAVO roster chrome, the lobby becomes a match-start screen
+again, or player-facing README Keys tables re-sell parked Bay WASD / L
+/ ENTER BAY / boot BAY as live product keys.
 """
 
 from __future__ import annotations
@@ -1021,6 +1022,93 @@ def test_aimsample_and_docs() -> None:
         _fail("ci.sh must run the SableLobby always-practice gate")
 
 
+def _player_keys_table(md: str, label: str) -> str:
+    """First player-facing Keys markdown table only.
+
+    A later 'Parked Bay engineering' note/table is not this contract.
+    """
+    m = re.search(r"^#{2,3} Keys\s*\n+(?:\|[^\n]+\n)+", md, re.MULTILINE)
+    if not m:
+        _fail(f"{label} lost the player-facing Keys table")
+    return m.group(0)
+
+
+def _keys_row_cells(line: str) -> tuple[str, str] | None:
+    if not line.startswith("|"):
+        return None
+    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+    if len(cells) < 2:
+        return None
+    key, action = cells[0], cells[1]
+    if set(key) <= set("-: ") or key.lower() in {"key", "what", "action"}:
+        return None
+    return key, action
+
+
+def _assert_keys_honest(table: str, label: str) -> None:
+    """Yard gallery Keys only — not parked Bay pad / style / chrome."""
+    if re.search(r"\bWASD\b", table, re.IGNORECASE):
+        _fail(f"{label} Keys table re-sells WASD — Bay pad move is parked")
+    if re.search(r"ENTER\s+BAY", table, re.IGNORECASE):
+        _fail(f"{label} Keys table re-sells ENTER BAY — Bay chrome is off")
+    if re.search(r"boot\s+\*{0,2}BAY\*{0,2}", table, re.IGNORECASE):
+        _fail(f"{label} Keys table re-sells boot BAY — Bay chrome is off")
+    low = table.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} Keys table lost shark-fin — Yard gallery live fire")
+    if "trackpad" not in low:
+        _fail(f"{label} Keys table lost trackpad — menus + DESKTOP fallback")
+    if "space" not in low:
+        _fail(f"{label} Keys table lost Space — Q4 forceGun")
+    saw_t = False
+    for line in table.splitlines():
+        row = _keys_row_cells(line)
+        if not row:
+            continue
+        key_plain = re.sub(r"[*`_]", "", row[0]).strip()
+        key_u = key_plain.upper()
+        action = row[1]
+        if key_u == "T" or key_u.startswith("T "):
+            saw_t = True
+        if key_u in {"WASD", "L", "BAY", "ENTER BAY", "BOOT BAY"}:
+            _fail(f"{label} Keys table re-sells {key_plain} as a live product key")
+        if re.search(r"\bBAY\b", key_plain, re.IGNORECASE):
+            _fail(f"{label} Keys table re-sells {key_plain} — Bay chrome is off")
+        if re.search(r"cycle\s+CANCHO|CANCHO\s+(outfit\s+)?style|PAD\s+move", action, re.IGNORECASE):
+            _fail(f"{label} Keys table re-sells parked Bay {key_plain}")
+    if not saw_t:
+        _fail(f"{label} Keys table lost T — desktop-aim debug")
+
+
+def test_readme_keys_do_not_sell_parked_bay() -> None:
+    """Zip Keys tables are Yard gallery verbs — not parked Bay pad / style."""
+    lie = (
+        "| Key | Action |\n"
+        "|-----|--------|\n"
+        "| **WASD** | Move on the pad (parked Bay booth only) |\n"
+        "| **L** | Cycle CANCHO outfit style |\n"
+        "| ENTER BAY | boot BAY |\n"
+    )
+    try:
+        _assert_keys_honest(lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("Keys honesty gate missed WASD/L / ENTER BAY / boot BAY fixture")
+    for rel in ("README.md", "proto/README.md"):
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        table = _player_keys_table(text, rel)
+        _assert_keys_honest(table, rel)
+    js = proto_js()
+    if 'e.code === "KeyL" && phase === "bay"' not in js:
+        _fail("KeyL must stay Bay-gated — do not unpark style cycle")
+    if "Bay.keys.w" not in js:
+        _fail("WASD handlers must stay on the soft-parked booth")
+    start_bay = _js_fn(js, "lobbyStartBay")
+    if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
+        _fail("parked lobbyStartBay lost the booth drop — engineering path may remain")
+
+
 def test_room_chip_thin() -> None:
     js = proto_js()
     html = (ROOT / "proto/index.html").read_text(encoding="utf-8")
@@ -1097,6 +1185,7 @@ def main() -> int:
         test_hangar_phase_enum()
         test_q4_fail_to_lock_seeking_until_space()
         test_aimsample_and_docs()
+        test_readme_keys_do_not_sell_parked_bay()
         test_room_chip_thin()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

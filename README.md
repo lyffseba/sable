@@ -33,8 +33,6 @@ Open **http://127.0.0.1:8080** in your browser.
 |-----|--------|
 | Shark-fin | Fire at the **latest** `AimSample.uv` (never waits on camera) |
 | Trackpad | Menus; DESKTOP fallback only (non-product) |
-| **WASD** | Move on the pad (parked Bay booth only, locked during lift) |
-| **L** | Cycle CANCHO outfit style (`default`, `ranked`, `night`) |
 | **T** | Desktop aim toggle (OS cursor fallback) |
 | **Space** | Force gun (simulates physical lift) |
 
