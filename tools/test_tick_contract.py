@@ -3,6 +3,9 @@
 
 Fail loud if docs drift back to 64 Hz, if fire waits on the tick, if
 Offline / WARM UP soft-lock, or if shared house becomes a fake 128 Hz loop.
+docs/tick.md must not re-sell “Fire is an HID event” / bare HID-as-product
+fire — shark-fin AimBus peek owns product shoot; HID/trackpad is
+DESKTOP/forceGun emergency only (non-product), still outside both clocks.
 """
 
 from __future__ import annotations
@@ -350,6 +353,69 @@ def test_shared_house_is_rewind_not_a_loop() -> None:
         _fail(f"dead.at_ms must be the quantized sim tick, not rAF 90 {at}")
 
 
+_TICK_MD_FIRE_LIES = (
+    r"fire is an hid event",
+    r"\bfire is always hid\b",
+    r"\bfire is hid\b",
+    r"browser fire stays hid[- ]local",
+    r"fire stays hid[- ]local",
+)
+
+
+def _tick_md_hid_fire_section(docs: str) -> str:
+    m = re.search(
+        r"^## HID fire\s*\n[\s\S]*?(?=^## |\Z)",
+        docs,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail("docs/tick.md lost ## HID fire")
+    return m.group(0)
+
+
+def test_tick_md_shot_honesty() -> None:
+    """tick.md: shark-fin owns product fire; leftover Fire-is-HID event fails."""
+    leftover = (
+        "## HID fire\n"
+        "\n"
+        "Fire is an HID event. It peeks the latest AimSample on AimBus.\n"
+    )
+    if not any(re.search(pat, leftover.lower()) for pat in _TICK_MD_FIRE_LIES):
+        _fail("tick.md leftover fixture must still match Fire-is-an-HID-event")
+    hid_local = "Browser fire stays HID-local; that process is the sim peek.\n"
+    if not any(re.search(pat, hid_local.lower()) for pat in _TICK_MD_FIRE_LIES):
+        _fail("tick.md leftover fixture must still match Browser-fire-stays-HID-local")
+    docs = (ROOT / "docs/tick.md").read_text(encoding="utf-8")
+    low = docs.lower()
+    for pat in _TICK_MD_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"docs/tick.md must not re-sell leftover {pat!r} as the product "
+                "fire verb — shark-fin AimBus peek owns product shoot; "
+                "HID/trackpad is DESKTOP/forceGun emergency only (non-product)"
+            )
+    hid = _tick_md_hid_fire_section(docs)
+    hid_low = hid.lower()
+    if "shark-fin" not in hid_low:
+        _fail("docs/tick.md ## HID fire must name shark-fin as product shoot")
+    if "product shoot" not in hid_low and "product peek" not in hid_low:
+        _fail("docs/tick.md ## HID fire must name shark-fin as product shoot")
+    if "aimbus" not in hid_low or "peek" not in hid_low:
+        _fail("docs/tick.md ## HID fire must keep AimBus peek")
+    if "desktop" not in hid_low or "emergency" not in hid_low:
+        _fail("docs/tick.md ## HID fire must label HID/trackpad DESKTOP emergency")
+    if "forcegun" not in hid_low and "force-gun" not in hid_low and "force gun" not in hid_low:
+        _fail("docs/tick.md ## HID fire must label HID/trackpad forceGun emergency")
+    if "non-product" not in hid_low:
+        _fail("docs/tick.md ## HID fire must label HID/trackpad non-product")
+    if "8 ms" not in hid_low and "8ms" not in hid_low:
+        _fail("docs/tick.md ## HID fire must keep the ≤8 ms bar")
+    if "outside both" not in low and "hid-outside-both" not in low:
+        _fail("docs/tick.md must keep HID-outside-both engineering truth")
+    if "fire_ms" not in docs:
+        _fail("docs/tick.md must keep fire_ms honesty")
+
+
 def test_dt_matches_hz() -> None:
     if abs(DT - (1.0 / 128.0)) > 1e-12:
         _fail("named DT drifted from 128 Hz")
@@ -365,6 +431,7 @@ def main() -> int:
         test_fire_never_waits_on_tick()
         test_fire_ms_speaks_sim_hz_not_present()
         test_shared_house_is_rewind_not_a_loop()
+        test_tick_md_shot_honesty()
         test_dt_matches_hz()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
