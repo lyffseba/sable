@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """SableLobby lock: waiting arena is HUD-on-Yard always-practice.
 
-Fail loud if Bay reappears on player chrome, Offline / WARM UP lose
-one-click local practice, ENTER RANGE stops being host shared gallery
-start, promote traps HID behind calib/lock or a lobby POST, hangar
-chips thicken the lobby or hide the gun, a ROOM chip hides the gun
-or thickens the lobby, WAIT books SCORE / combo or paints point / ESC
-popups, ONLINE sells 5v5 / ALPHA-BRAVO roster chrome, or the lobby
-becomes a match-start screen again.
+Fail loud if Bay reappears on player chrome, lobby poll auto play(bay)
+from waiting lobby, Offline / WARM UP lose one-click local practice,
+ENTER RANGE stops being host shared gallery start, promote traps HID
+behind calib/lock or a lobby POST, hangar chips thicken the lobby or
+hide the gun, a ROOM chip hides the gun or thickens the lobby, WAIT
+books SCORE / combo or paints point / ESC popups, ONLINE sells 5v5 /
+ALPHA-BRAVO roster chrome, or the lobby becomes a match-start screen
+again.
 """
 
 from __future__ import annotations
@@ -44,6 +45,17 @@ def test_no_bay_entry() -> None:
         _fail("boot still wires BAY — soft-park must hide the player entry")
     if re.search(r'lobbyStartBay\(\)', _js_fn(js, "paintLobby")):
         _fail("lobby chrome reintroduced Bay")
+    poll = _js_fn(js, "lobbyPoll")
+    if re.search(r"""play\(["']bay["']\)""", poll):
+        _fail("lobby poll must not auto play(bay) — waiting Yard must not be yanked into parked Bay")
+    if re.search(
+        r"""phase === ["']lobby["'][\s\S]{0,200}(?:play\(["']bay["']\)|setPhase\(["']bay["']\))""",
+        poll,
+    ):
+        _fail("lobby poll re-promotes phase === lobby into Bay")
+    start_bay = _js_fn(js, "lobbyStartBay")
+    if 'play("bay")' not in start_bay and 'setPhase("bay")' not in start_bay:
+        _fail("parked lobbyStartBay lost the booth drop — engineering path may remain")
 
 
 def test_no_5v5_roster_chrome() -> None:
@@ -838,6 +850,24 @@ def test_aimsample_and_docs() -> None:
     bible = (ROOT / "docs/PRODUCTION.md").read_text(encoding="utf-8")
     if "test_sablelobby.py" not in bible:
         _fail("PRODUCTION.md must fail loud through test_sablelobby.py")
+    if "Boot **BAY** stays local" in bible:
+        _fail("PRODUCTION.md re-sells boot BAY as live chrome — Bay is parked")
+    if re.search(r"\*\*Done\*\* \(boot \*\*BAY\*\*", bible):
+        _fail("PRODUCTION.md M4 re-sells boot BAY / ENTER BAY as live Done chrome")
+    if "lobby **ENTER BAY** room-owns" in bible:
+        _fail("PRODUCTION.md M9 re-sells ENTER BAY as live player chrome")
+    if "Bay is parked" not in bible:
+        _fail("PRODUCTION.md must park Bay — match docs/modes.md")
+    m4 = re.search(r"- \*\*M4:\*\*([^\n]+)", bible)
+    m9 = re.search(r"- \*\*M9:\*\*([^\n]+)", bible)
+    if not m4 or "Parked" not in m4.group(1):
+        _fail("PRODUCTION.md M4 must say Bay is Parked — not live boot BAY / ENTER BAY")
+    if not m9 or "Parked" not in m9.group(1):
+        _fail("PRODUCTION.md M9 must say Shared Bay is Parked — not live ENTER BAY chrome")
+    if "lobby poll auto" not in bible or 'play("bay")' not in bible:
+        _fail("PRODUCTION.md must fail loud if lobby poll auto play(bay) from waiting lobby")
+    if 'play("bay")' not in modes or "lobby poll" not in modes:
+        _fail("docs/modes.md must refuse lobby-poll play(bay) from waiting lobby")
     if "onHidPointerDown" not in bible:
         _fail("PRODUCTION.md must name window HID pointerdown")
     if "canvasHUD" not in modes and "onHidPointerDown" not in modes:
