@@ -14,7 +14,7 @@ Stack: **Mojo 1.0** (open source, Apache-2.0 + LLVM) SIMD NCC / moments / hitsca
 - Modern web browser (Chrome, Edge, Safari, Firefox).
 - Python 3 to serve the client locally (`python3 tools/serve_proto.py`).
 - C++17 toolchain for `native/cv_input` standalone tests (`./tools/run_cv_tests.sh`).
-- Built-in laptop webcam is enough. Desktop aim (**T** key) still works without a camera.
+- Built-in laptop webcam is enough.
 
 ## Run SABLE
 
@@ -33,7 +33,7 @@ Open **http://127.0.0.1:8080** in your browser.
 |-----|--------|
 | Shark-fin | Fire at the **latest** `AimSample.uv` (never waits on camera) |
 | Trackpad | Menus; DESKTOP fallback only (non-product) |
-| **T** | Desktop aim toggle (OS cursor fallback) |
+| **T** | Hidden debug: desktop-aim (non-product; cam-deny / honesty fallback) |
 | **Space** | Q4 forceGun escape (not a shot; never auto-desktop) |
 
 Reticle may lag 50–80 ms on a bad camera. Shark-fin / AimBus peek owns the shot against the latest mailbox — never gated on the next camera frame.
