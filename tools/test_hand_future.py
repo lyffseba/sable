@@ -34,6 +34,11 @@ docs/design.md must not re-sell “Click fires” / pad-strafe→click /
 mouse-on-pad as the product gun — shark-fin AimBus peek owns the
 shot against the latest AimSample; click/HID is DESKTOP emergency
 only (non-product). Space stays Q4 forceGun escape if mentioned.
+docs/tick.md must not re-sell “Fire is an HID event” / “Fire is HID”
+/ “Browser fire stays HID-local” as the product fire verb — shark-fin
+AimBus peek owns product shoot (outside rAF / 128 Hz / worker / cam);
+HID/trackpad is DESKTOP/forceGun emergency only (non-product), still
+outside both clocks for the ≤8 ms bar.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -387,6 +392,15 @@ _DESIGN_MD_FIRE_LIES = (
     r"→\s*\*{0,2}click\*{0,2}\s*→",
     r"pad-strafe\s*\(mouse on the pad",
     r"\bmouse on the pad\b",
+)
+
+# tick.md leftover HID-as-product-fire — shark-fin AimBus peek owns the shot.
+_TICK_MD_FIRE_LIES = (
+    r"fire is an hid event",
+    r"\bfire is always hid\b",
+    r"\bfire is hid\b",
+    r"browser fire stays hid[- ]local",
+    r"fire stays hid[- ]local",
 )
 
 # Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
@@ -835,6 +849,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_production_one_sentence_ship_floor()
     test_bay_docs_shot_honesty()
     test_design_md_shot_honesty()
+    test_tick_md_shot_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -1729,6 +1744,119 @@ def test_design_md_shot_honesty() -> None:
         _fail("docs/design.md must not invent speechSynthesis / Gemini")
 
 
+def _tick_md_section(md: str, heading: str) -> str:
+    m = re.search(
+        rf"^## {re.escape(heading)}\s*\n[\s\S]*?(?=^## |\Z)",
+        md,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail(f"docs/tick.md lost ## {heading}")
+    return m.group(0)
+
+
+def _assert_no_tick_md_fire_lies(text: str, label: str) -> None:
+    """Leftover Fire-is-HID / HID-local product-verb phrasing must not return."""
+    low = text.lower()
+    for pat in _TICK_MD_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as the product "
+                "fire verb — shark-fin AimBus peek owns product shoot; "
+                "HID/trackpad is DESKTOP/forceGun emergency only (non-product)"
+            )
+
+
+def _assert_tick_md_hid_fire_honest(block: str, label: str) -> None:
+    """tick.md ## HID fire: shark-fin owns product peek; HID is emergency only."""
+    _assert_no_tick_md_fire_lies(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as product shoot")
+    if "product shoot" not in low and "product peek" not in low and "product fire" not in low:
+        _fail(f"{label} must name shark-fin as product shoot / product peek")
+    if "aimsample" not in low:
+        _fail(f"{label} must keep the peek against the latest AimSample")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "desktop" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP emergency only")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "emergency" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} must label HID/trackpad non-product")
+    if "128" not in block or "raf" not in low:
+        _fail(f"{label} must keep the peek outside rAF / 128 Hz")
+    if "worker" not in low and "hands worker" not in low:
+        _fail(f"{label} must keep the peek outside the Hands worker")
+    if "camera" not in low and "cam frame" not in low:
+        _fail(f"{label} must keep the peek outside a camera frame")
+    if "8 ms" not in low and "8ms" not in low:
+        _fail(f"{label} must keep the ≤8 ms HID-outside-both bar")
+
+
+def test_tick_md_shot_honesty() -> None:
+    """docs/tick.md: shark-fin owns fire; leftover Fire-is-HID event fails."""
+    hid_lie = (
+        "## HID fire\n"
+        "\n"
+        "Fire is an HID event. It peeks the latest `AimSample` on `AimBus` "
+        "and does not wait for the next 128 Hz step, the next rAF, the Hands "
+        "worker, or net to choose a UV.\n"
+    )
+    try:
+        _assert_tick_md_hid_fire_honest(hid_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("tick.md HID-fire gate missed Fire-is-an-HID-event leftover fixture")
+    hid_local = (
+        "## HID fire\n"
+        "\n"
+        "Product shoot is shark-fin AimBus peek. Browser fire stays HID-local; "
+        "that process is the sim peek, not a gate on the shot.\n"
+    )
+    try:
+        _assert_tick_md_hid_fire_honest(hid_local, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("tick.md HID-fire gate missed Browser-fire-stays-HID-local fixture")
+    bare_hid = (
+        "## HID fire\n"
+        "\n"
+        "Fire is HID. It peeks AimBus and does not wait on rAF or 128 Hz.\n"
+    )
+    try:
+        _assert_tick_md_hid_fire_honest(bare_hid, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("tick.md HID-fire gate missed bare Fire-is-HID leftover fixture")
+    tick = _read("docs/tick.md")
+    _assert_no_tick_md_fire_lies(tick, "docs/tick.md")
+    _assert_tick_md_hid_fire_honest(_tick_md_section(tick, "HID fire"), "docs/tick.md")
+    low = tick.lower()
+    if "hid-outside-both" not in low and "outside both" not in low:
+        _fail("docs/tick.md must keep HID-outside-both engineering truth")
+    if "fire_ms" not in tick:
+        _fail("docs/tick.md must keep fire_ms honesty")
+    if "onHidPointerDown" not in tick:
+        _fail("docs/tick.md must keep window HID pointerdown")
+    if re.search(r"\b(firefox|safari)\b", low):
+        _fail("docs/tick.md must not invent a Firefox/Safari SKU")
+    if re.search(r"\bkeyt\b|\*\*t\*\*\s*key|\bt\s+key\b", low):
+        _fail("docs/tick.md must not sell KeyT as a product path")
+    if "speechsynthesis" in low or "gemini" in low:
+        _fail("docs/tick.md must not invent speechSynthesis / Gemini")
+    if re.search(r"\btv sku\b|\blaptop or tv\b", low):
+        _fail("docs/tick.md must not invent a TV SKU")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -1906,6 +2034,7 @@ def main() -> int:
         test_production_one_sentence_ship_floor()
         test_bay_docs_shot_honesty()
         test_design_md_shot_honesty()
+        test_tick_md_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
