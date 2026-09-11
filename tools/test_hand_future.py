@@ -26,6 +26,10 @@ Parked Bay specs (docs/modes.md Bay rules, docs/maps/bay.md) must not
 re-sell “Fire is HID” / “Fire is always HID” / “Click fires” as the
 Bay product verb — shark-fin AimBus peek owns Bay fire; HID/trackpad
 is DESKTOP/forceGun emergency only (non-product). Bay stays parked.
+docs/design.md must not re-sell “Click fires” / pad-strafe→click /
+mouse-on-pad as the product gun — shark-fin AimBus peek owns the
+shot against the latest AimSample; click/HID is DESKTOP emergency
+only (non-product). Space stays Q4 forceGun escape if mentioned.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -371,6 +375,14 @@ _BAY_DOCS_FIRE_LIES = (
     r"\bfire is always hid\b",
     r"\bfire is hid\b",
     r"\bclick fires\b",
+)
+
+# design.md leftover click-as-product-fire — shark-fin AimBus peek owns the shot.
+_DESIGN_MD_FIRE_LIES = (
+    r"\bclick fires\b",
+    r"→\s*\*{0,2}click\*{0,2}\s*→",
+    r"pad-strafe\s*\(mouse on the pad",
+    r"\bmouse on the pad\b",
 )
 
 # Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
@@ -809,6 +821,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_readme_t_desktop_honesty()
     test_readme_ship_floor_honesty()
     test_bay_docs_shot_honesty()
+    test_design_md_shot_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -1376,6 +1389,170 @@ def test_bay_docs_shot_honesty() -> None:
     _assert_bay_combat_shot_honest(_bay_md_section(bay, "Combat verb"), "docs/maps/bay.md")
 
 
+def _design_md_section(md: str, heading: str) -> str:
+    m = re.search(
+        rf"^## {re.escape(heading)}\s*\n[\s\S]*?(?=^## |\Z)",
+        md,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail(f"docs/design.md lost ## {heading}")
+    return m.group(0)
+
+
+def _assert_no_design_md_fire_lies(text: str, label: str) -> None:
+    """Leftover click / pad-strafe-as-gun phrasing must not return."""
+    low = text.lower()
+    for pat in _DESIGN_MD_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as the product "
+                "gun — shark-fin AimBus peek owns the shot; click/HID is "
+                "DESKTOP emergency only (non-product)"
+            )
+
+
+def _assert_design_md_click_framed(block: str, label: str) -> None:
+    """Bare click as product fire is a lie; DESKTOP emergency is honesty."""
+    low = block.lower()
+    if re.search(r"\bclick\b", low):
+        if "desktop" not in low or "emergency" not in low:
+            _fail(
+                f"{label} must not sell bare click-as-product-fire — "
+                "label click/HID DESKTOP emergency only, or drop click"
+            )
+        if "non-product" not in low:
+            _fail(
+                f"{label} must label click/HID non-product — "
+                "never the product gun"
+            )
+
+
+def _assert_design_md_pad_not_gun(block: str, label: str) -> None:
+    """Pad-strafe / mouse-on-pad must not read as the product gun."""
+    low = block.lower()
+    if re.search(r"pad-strafe|mouse-on-pad|mouse on the pad", low):
+        if "not the product gun" not in low and "not the product" not in low:
+            _fail(
+                f"{label} pad-strafe / mouse-on-pad must not read as the "
+                "product gun — say it is not, or drop it from the loop"
+            )
+
+
+def _assert_design_md_space_q4(block: str, label: str) -> None:
+    """Space stays Q4 forceGun escape if mentioned — not a shot."""
+    low = block.lower()
+    if not re.search(r"\bspace\b", low):
+        return
+    if "q4" not in low:
+        _fail(f"{label} Space must stay Q4 forceGun escape")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} Space must name forceGun")
+    if "not a shot" not in low:
+        _fail(f"{label} Space must say Space is not a shot")
+
+
+def _assert_design_md_loop_shot_honest(block: str, label: str) -> None:
+    """design.md 30-second loop: shark-fin AimBus peek owns the shot."""
+    _assert_no_design_md_fire_lies(block, label)
+    _assert_design_md_click_framed(block, label)
+    _assert_design_md_pad_not_gun(block, label)
+    _assert_design_md_space_q4(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as the product shot")
+    if "aimsample" not in low:
+        _fail(f"{label} must keep the shot against the latest AimSample")
+    if "latest" not in low:
+        _fail(f"{label} must keep the latest AimSample")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "desktop" not in low or "emergency" not in low:
+        _fail(f"{label} must label click/HID DESKTOP emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} must label click/HID non-product")
+
+
+def _assert_design_md_gallery_shot_honest(block: str, label: str) -> None:
+    """design.md Salt House: shark-fin owns fire against the latest sample."""
+    _assert_no_design_md_fire_lies(block, label)
+    _assert_design_md_click_framed(block, label)
+    _assert_design_md_pad_not_gun(block, label)
+    _assert_design_md_space_q4(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as the Salt House shot")
+    if "aimsample" not in low and "latest" not in low:
+        _fail(f"{label} must keep the shot against the latest AimSample")
+    if "latest" not in low:
+        _fail(f"{label} must keep the latest sample")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "desktop" not in low or "emergency" not in low:
+        _fail(f"{label} must label click/HID DESKTOP emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} must label click/HID non-product")
+
+
+def test_design_md_shot_honesty() -> None:
+    """docs/design.md: shark-fin owns fire; leftover click / pad-strafe fails."""
+    loop_lie = (
+        "## 30-second loop\n"
+        "\n"
+        "Pad-strafe (mouse on the pad, later) → **lift** → point at the "
+        "monitor → **click** → drop back to the pad. Physical ADS is the verb.\n"
+    )
+    try:
+        _assert_design_md_loop_shot_honest(loop_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("design.md loop gate missed pad-strafe→click leftover fixture")
+    gallery_lie = (
+        "## Gallery (now)\n"
+        "\n"
+        "Crosshair follows `AimSample.uv`. Click fires the **latest** sample.\n"
+    )
+    try:
+        _assert_design_md_gallery_shot_honest(gallery_lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("design.md Gallery gate missed Click-fires leftover fixture")
+    bare_click = (
+        "## 30-second loop\n"
+        "\n"
+        "Lift → point → click → drop. Physical ADS is the verb.\n"
+    )
+    try:
+        _assert_design_md_loop_shot_honest(bare_click, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("design.md loop gate missed bare click-as-product-fire fixture")
+    design = _read("docs/design.md")
+    _assert_no_design_md_fire_lies(design, "docs/design.md")
+    _assert_design_md_loop_shot_honest(
+        _design_md_section(design, "30-second loop"), "docs/design.md"
+    )
+    _assert_design_md_gallery_shot_honest(
+        _design_md_section(design, "Gallery (now)"), "docs/design.md"
+    )
+    low = design.lower()
+    if "parked" not in low:
+        _fail("docs/design.md must keep Bay parked — do not unpark the booth")
+    if re.search(r"\b(firefox|safari)\b", low):
+        _fail("docs/design.md must not invent a Firefox/Safari SKU")
+    if re.search(r"\bkeyt\b|\*\*t\*\*\s*key|\bt\s+key\b", low):
+        _fail("docs/design.md must not sell KeyT as a product path")
+    if "speechsynthesis" in low or "gemini" in low:
+        _fail("docs/design.md must not invent speechSynthesis / Gemini")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -1551,6 +1728,7 @@ def main() -> int:
         test_readme_t_desktop_honesty()
         test_readme_ship_floor_honesty()
         test_bay_docs_shot_honesty()
+        test_design_md_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
