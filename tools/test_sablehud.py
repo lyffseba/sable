@@ -551,6 +551,12 @@ def test_engine_chips_are_hands_and_mojo() -> None:
     hud = _js_fn(js, "drawHUD")
     if "GEMINI" in hud or "gemini" in hud.lower():
         _fail("drawHUD must not invent a GEMINI engine chip")
+    serve = (ROOT / "tools/serve_proto.py").read_text(encoding="utf-8")
+    if "/api/gemini/lock" in serve or "gemini_muzzle_tracker" in serve:
+        _fail("serve_proto must not sell /api/gemini/lock or gemini_muzzle_tracker")
+    health = re.search(r'if path == "/api/health":[\s\S]*?return', serve)
+    if health and re.search(r'["\']gemini["\']', health.group(0)):
+        _fail("health JSON must not advertise a gemini field")
     if _js_const(js, "SABLE_HUD_H") != 22:
         _fail("SableHUD bar must stay thin (22px)")
 

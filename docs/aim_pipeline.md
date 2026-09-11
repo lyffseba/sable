@@ -52,7 +52,7 @@ Once a frame is in:
 
 1. **Lock exposure** if possible. Else adapt HSV / luma floors every `kAdaptEveryNFrames` (15).
 2. **ROI after lock.** Full-frame search only when `Lost`. Once locked, search **~3× blob radius** around the predicted fingertip (`p + v·dt`). This is what makes 30 fps cheap cameras viable.
-3. **Skin + hand.** HSV skin mask, connected components, reject the face blob, fingertip = farthest skin pixel from the palm centroid. Gemini may seed the fingertip once.
+3. **Skin + hand.** HSV skin mask, connected components, reject the face blob, fingertip = farthest skin pixel from the palm centroid. Hands-class interim lock; no cloud VLM seed.
 4. **Sub-pixel NCC** on a patch around the fingertip, then One Euro. Same `AimSample`.
 5. **Hand reacquire** if NCC drops: `findHand` writes the fingertip and coasts.
 6. **Outlier reject.** If the new centroid jumps more than `kOutlierJumpPx` (28 px) versus the prediction, ignore that frame (rolling shutter / AE pop). After **2** rejects, relock (full-frame).
