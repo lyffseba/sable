@@ -13,6 +13,9 @@ shark-fin (thumb UP) to capture — not Click-is-HID, not reload.
 Proto file headers must not sell Trackpad / HID click fires as the
 product shot — HID/trackpad is DESKTOP/forceGun only; shark-fin owns
 the AimBus peek.
+Root / proto README zip play path must not re-teach click-the-pad
+(or pad-as-fire) as the shot — shark-fin fires; pad is menus /
+DESKTOP emergency only.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -334,6 +337,16 @@ _README_KEYS_SPACE_LIES = (
     "simulating physical lift",
     "physical lift",
     "product lift",
+)
+
+# Zip / Other-computer play-path lies — shark-fin owns the shot; pad is not fire.
+_README_ZIP_PLAY_LIES = (
+    "click the pad",
+    "click-the-pad",
+    "click the trackpad",
+    "tap the pad",
+    "tap the pad to fire",
+    "point, click the pad",
 )
 
 
@@ -761,6 +774,7 @@ def test_readme_keys_shot_honesty() -> None:
     if "Peek is local" not in readme and "peek is local" not in readme.lower():
         _fail("README.md stack must keep peek-is-local latency honesty")
     test_proto_headers_shot_honesty()
+    test_readme_zip_play_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -821,6 +835,82 @@ def test_proto_headers_shot_honesty() -> None:
                 _fail(
                     f"{rel} header must not re-sell {banned!r} as the product shot — "
                     "HID click is DESKTOP/forceGun only; shark-fin owns product peek"
+                )
+
+
+def _readme_zip_play_block(md: str, label: str) -> str:
+    """Other computer / Zip heading through the next heading (zip play path)."""
+    m = re.search(
+        r"^#{2,3} (?:Other computer|Zip(?: \(other computer\))?)\s*\n"
+        r"[\s\S]*?(?=^#{1,3} |\Z)",
+        md,
+        re.MULTILINE,
+    )
+    if not m:
+        _fail(f"{label} lost the Other computer / Zip play path")
+    return m.group(0)
+
+
+def _readme_play_block(md: str) -> str | None:
+    """Optional Play heading (proto README play path)."""
+    m = re.search(r"^#{2,3} Play\s*\n[\s\S]*?(?=^#{1,3} |\Z)", md, re.MULTILINE)
+    return m.group(0) if m else None
+
+
+def _assert_readme_zip_play_honest(block: str, label: str) -> None:
+    """Zip / play path: shark-fin fires; pad is menus / DESKTOP — never click-the-pad."""
+    low = block.lower()
+    for banned in _README_ZIP_PLAY_LIES:
+        if banned in low:
+            _fail(
+                f"{label} zip/play path must not re-teach {banned!r} as the shot — "
+                "shark-fin fires; pad is menus / DESKTOP emergency only"
+            )
+    if re.search(r"\b(click|tap)\b.{0,32}\b(the )?(track)?pad\b", low):
+        _fail(
+            f"{label} zip/play path must not teach click/tap-the-pad as the shot — "
+            "shark-fin fires; pad is menus / DESKTOP emergency only"
+        )
+    if re.search(r"\b(the )?(track)?pad\b.{0,40}\b(to )?(fire|shoot|shot|trigger)\b", low):
+        _fail(
+            f"{label} zip/play path must not teach pad-as-fire — "
+            "shark-fin owns the shot; pad is menus / DESKTOP emergency only"
+        )
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} zip/play path must name shark-fin as the shot")
+    if re.search(r"\b(pad|trackpad)\b", low):
+        if "menus" not in low and "desktop" not in low:
+            _fail(
+                f"{label} zip/play pad/trackpad must be menus / DESKTOP emergency — "
+                "never the shot"
+            )
+
+
+def test_readme_zip_play_honesty() -> None:
+    """README zip/play path: shark-fin fires; never click-the-pad as the shot."""
+    lie = (
+        "## Other computer\n"
+        "\n"
+        "Open http://127.0.0.1:8080 — allow camera, raise a hand, point, click the pad.\n"
+    )
+    try:
+        _assert_readme_zip_play_honest(lie, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("zip/play honesty gate missed click-the-pad fixture")
+    for rel in ("README.md", "proto/README.md"):
+        text = _read(rel)
+        _assert_readme_zip_play_honest(_readme_zip_play_block(text, rel), rel)
+        play = _readme_play_block(text)
+        if play is not None:
+            _assert_readme_zip_play_honest(play, f"{rel} Play")
+        low = text.lower()
+        for banned in _README_ZIP_PLAY_LIES:
+            if banned in low:
+                _fail(
+                    f"{rel} must not re-teach {banned!r} as the zip/play shot — "
+                    "shark-fin fires; pad is menus / DESKTOP emergency only"
                 )
 
 
@@ -995,6 +1085,7 @@ def main() -> int:
         test_bible_product_shoot_is_shark_fin()
         test_readme_keys_shot_honesty()
         test_proto_headers_shot_honesty()
+        test_readme_zip_play_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
