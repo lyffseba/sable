@@ -5,6 +5,10 @@ Fail loud if HandLandmarker detect sneaks back onto main rAF, if the
 HID→hitscan probe is missing or reordered, if fire waits on the worker,
 if Shared Bay net lands inside the 8 ms HID→hitscan bar, or if the
 room bell / seed schedule lands inside fire().
+docs/perf_budget.md must not re-sell “HID fire verb” / bare HID-as-product
+as the product fire verb — shark-fin AimBus peek owns product shoot;
+HID/trackpad is DESKTOP/forceGun emergency only (non-product), still
+measured on the ≤8 ms HID→hitscan latency probe (outside clocks).
 """
 
 from __future__ import annotations
@@ -434,6 +438,68 @@ def test_offline_warmup_lock_never_cursor() -> None:
         _fail("syncCursor armed DESKTOP — Q4 never auto-desktop")
 
 
+_PERF_BUDGET_FIRE_LIES = (
+    r"hid fire verb",
+    r"tax the hid fire verb",
+    r"the hid fire verb",
+    r"fire is an hid event",
+    r"\bfire is always hid\b",
+    r"\bfire is hid\b",
+)
+
+
+def test_perf_budget_shot_honesty() -> None:
+    """perf_budget.md: shark-fin owns product fire; leftover HID-fire-verb fails."""
+    leftover = (
+        "Do not spend the frame on cinematic lighting. Spend it on a "
+        "stable reticle. Shared Bay must not tax the HID fire verb.\n"
+    )
+    if not any(re.search(pat, leftover.lower()) for pat in _PERF_BUDGET_FIRE_LIES):
+        _fail("perf_budget leftover fixture must still match HID-fire-verb")
+    bare_hid = "Product fire is HID. Shared Bay must not tax HID.\n"
+    if not any(re.search(pat, bare_hid.lower()) for pat in _PERF_BUDGET_FIRE_LIES):
+        _fail("perf_budget leftover fixture must still match Product-fire-is-HID")
+    budget = (ROOT / "docs/perf_budget.md").read_text(encoding="utf-8")
+    low = budget.lower()
+    for pat in _PERF_BUDGET_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"docs/perf_budget.md must not re-sell leftover {pat!r} as the "
+                "product fire verb — shark-fin AimBus peek owns product shoot; "
+                "HID/trackpad is DESKTOP/forceGun emergency only (non-product)"
+            )
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail("docs/perf_budget.md must name shark-fin as product shoot")
+    if (
+        "product shoot" not in low
+        and "product fire" not in low
+        and "product peek" not in low
+    ):
+        _fail("docs/perf_budget.md must name shark-fin as product shoot")
+    if "aimbus" not in low or "peek" not in low:
+        _fail("docs/perf_budget.md must keep AimBus peek")
+    if "desktop" not in low or "emergency" not in low:
+        _fail("docs/perf_budget.md must label HID/trackpad DESKTOP emergency")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail("docs/perf_budget.md must label HID/trackpad forceGun emergency")
+    if "non-product" not in low:
+        _fail("docs/perf_budget.md must label HID/trackpad non-product")
+    if "8 ms" not in low and "8ms" not in low:
+        _fail("docs/perf_budget.md must keep the ≤8 ms HID→hitscan probe")
+    if "hid→hitscan" not in low and "hid->hitscan" not in low:
+        _fail("docs/perf_budget.md must keep the HID→hitscan latency probe label")
+    if "probe" not in low:
+        _fail("docs/perf_budget.md must frame HID fire / HID→hitscan as the latency probe")
+    if "sableperf" not in low:
+        _fail("docs/perf_budget.md must keep the SablePerf HID→hitscan probe")
+    if "shared bay" not in low:
+        _fail("docs/perf_budget.md must keep Shared Bay off the 8 ms bar")
+    if "markhid" not in low:
+        _fail("docs/perf_budget.md must keep Look / Shared Bay after markHid")
+    if "128 hz" not in low:
+        _fail("docs/perf_budget.md must keep the 128 Hz sim budget")
+
+
 def main() -> int:
     try:
         test_no_main_thread_detect()
@@ -442,6 +508,7 @@ def main() -> int:
         test_fire_never_waits_on_worker_or_net()
         test_shared_bay_never_taxes_hid_probe()
         test_offline_warmup_lock_never_cursor()
+        test_perf_budget_shot_honesty()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)
         return 1
