@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 import mimetypes
 import os
@@ -17,11 +16,6 @@ mimetypes.add_type("application/octet-stream", ".task")
 here = os.path.dirname(os.path.abspath(__file__))
 if here not in sys.path:
     sys.path.insert(0, here)
-
-try:
-    from gemini_muzzle_tracker import detect_mouse_in_image
-except ImportError:
-    detect_mouse_in_image = None
 
 try:
     import sable_mojo
@@ -60,7 +54,6 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                     "ok": True,
                     "game": "sable",
                     "mojo": mojo_id,
-                    "gemini": bool(detect_mouse_in_image),
                     "lobby": bool(lobby_api),
                     "ncc": "simd" if sable_mojo else None,
                 }
@@ -141,19 +134,6 @@ class SableRequestHandler(SimpleHTTPRequestHandler):
                 )
                 return
 
-            if path == "/api/gemini/lock":
-                data = self._read_json()
-                img_b64 = data.get("image", "")
-                if "," in img_b64:
-                    img_b64 = img_b64.split(",", 1)[1]
-                img_bytes = base64.b64decode(img_b64)
-                if detect_mouse_in_image:
-                    res = detect_mouse_in_image(img_bytes)
-                else:
-                    res = {"detected": False, "error": "Gemini tracker not loaded"}
-                self._json(res)
-                return
-
             if path == "/api/mojo/ncc":
                 if not sable_mojo:
                     self._json({"ok": False, "error": "mojo unavailable"}, 503)
@@ -231,7 +211,7 @@ def main() -> None:
     httpd = ThreadingHTTPServer((args.bind, args.port), SableRequestHandler)
     print(
         f"Serving {os.getcwd()} on http://{args.bind}:{args.port}/ "
-        f"(gemini={bool(detect_mouse_in_image)} mojo={mojo_id or 'off'})",
+        f"(mojo={mojo_id or 'off'})",
         flush=True,
     )
     httpd.serve_forever()

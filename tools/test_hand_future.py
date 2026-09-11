@@ -12,6 +12,8 @@ not pad/pinch/Click-is-HID as shoot or reload. Calib chrome must teach
 shark-fin (thumb UP) to capture — not Click-is-HID, not reload.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
+Proto server must not sell /api/gemini/lock or health.gemini.
+Hands-class interim; Meta SAM-class invent; no Gemini product vision.
 """
 
 from __future__ import annotations
@@ -705,6 +707,46 @@ def test_engine_hud_does_not_sell_gemini() -> None:
         _fail("proto chrome must not paint GEMINI as a live engine")
 
 
+def test_serve_proto_does_not_sell_gemini() -> None:
+    """Server must not sell Gemini lock / health after #103/#104 chrome retirement."""
+    serve = _read("tools/serve_proto.py")
+    if "/api/gemini/lock" in serve:
+        _fail("serve_proto must not define /api/gemini/lock — Hands-class owns lock")
+    if "gemini_muzzle_tracker" in serve:
+        _fail("serve_proto must not import gemini_muzzle_tracker")
+    if "detect_mouse_in_image" in serve or "detect_hand_in_image" in serve:
+        _fail("serve_proto must not keep a Gemini detector import")
+    health = re.search(r'if path == "/api/health":[\s\S]*?return', serve)
+    if not health:
+        _fail("serve_proto lost GET /api/health")
+    if re.search(r'["\']gemini["\']', health.group(0)):
+        _fail("health JSON must not advertise a gemini field")
+    if re.search(r"gemini\s*=", serve):
+        _fail("startup banner must not advertise gemini=")
+    if "gemini" in serve.lower():
+        _fail("serve_proto must not name Gemini as a live capability")
+    if (ROOT / "tools/gemini_muzzle_tracker.py").is_file():
+        _fail("gemini_muzzle_tracker.py must stay deleted — not on the ship path")
+    release = _read(".github/workflows/release.yml")
+    if re.search(r"zip\s[^\n]*gemini_muzzle_tracker", release):
+        _fail("release zip must not ship gemini_muzzle_tracker.py")
+    if re.search(r"test\s+-f\s+tools/gemini_muzzle_tracker", release):
+        _fail("release must not require gemini_muzzle_tracker.py")
+    for rel in (
+        "README.md",
+        "docs/aim_pipeline.md",
+        "research/TRACKING.md",
+        "research/HAND_FUTURE.md",
+    ):
+        text = _read(rel)
+        if "/api/gemini/lock" in text:
+            _fail(f"{rel} must not cite /api/gemini/lock as a live pattern")
+        if re.search(r"Gemini (only seeds|may seed)", text):
+            _fail(f"{rel} must not claim Gemini seeds as product")
+        if "gemini_muzzle_tracker" in text:
+            _fail(f"{rel} must not keep gemini_muzzle_tracker on the product path")
+
+
 def test_no_mouse_art_invented() -> None:
     src = proto_js()
     if re.search(r"mouseMesh|sable[-_]?mouse|kruidenhof", src, re.I):
@@ -731,6 +773,7 @@ def main() -> int:
         test_chrome_calib_capture_is_shark_fin()
         test_lock_chrome_does_not_sell_gemini()
         test_engine_hud_does_not_sell_gemini()
+        test_serve_proto_does_not_sell_gemini()
         test_no_mouse_art_invented()
     except AssertionError as exc:
         print(str(exc), file=sys.stderr)

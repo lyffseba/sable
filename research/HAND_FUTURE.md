@@ -204,7 +204,7 @@ Detectron2 and full native SAM 2 stay **Python/native**. Meta’s official SAM 2
 |----------|--------|
 | Default zip | **Pure web** — SAM-family ORT-web in a Worker + MediaPipe landmark FSM |
 | Detectron2 in the zip | **no** — Python/native only, not default MacBook Chromium |
-| Allowed bridge | Optional seed / calib, fire-and-forget — same honesty as `/api/gemini/lock` |
+| Allowed bridge | Optional seed / calib, fire-and-forget — never a live product lock API |
 | Forbidden | Ranking, GUN shoot, “must install Detectron2 / the Meta helper to play” |
 
 #### 3. Research-only / too heavy for the MacBook floor
@@ -214,7 +214,7 @@ Detectron2 and full native SAM 2 stay **Python/native**. Meta’s official SAM 2
 - **Sapiens2** (seconds per frame): whole-body research.
 - **Heavy egocentric** (Ego4D / Hot3D class): datasets, not a vendored web SKU.
 - **YOLO mouse-body**: retired for aim. sable-mouse **STOP**.
-- Cloud VLM / Gemini every frame: seed only.
+- Cloud VLM / Gemini: not product. Not a live lock API. Hands-class interim; Meta SAM-class invent.
 
 #### Invent architecture recommendation (labeled)
 
