@@ -5,7 +5,7 @@ Apache-2.0. Original IP only. Sign off every commit (`Signed-off-by:`) per `CLA.
 ## Do
 
 - One task per branch from `main`. Never push `main`.
-- Keep fire as HID peek of `AimSample`. Never wait on a camera frame.
+- Keep product fire as shark-fin → `AimBus.fire()` peek of `AimSample`. Never wait on a camera frame. HID peek stays DESKTOP / `forceGun` emergency honesty only (non-product) — never the product story.
 - Run `./tools/ci.sh` (or `pixi run ci`) before you open a PR.
 - Keep `license_scan.py` green. No GPL/AGPL/SSPL in client or server.
 

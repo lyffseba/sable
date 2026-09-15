@@ -47,6 +47,11 @@ docs/perf_budget.md must not re-sell “HID fire verb” / bare HID-as-product
 as the product fire verb — shark-fin AimBus peek owns product shoot;
 HID/trackpad is DESKTOP/forceGun emergency only (non-product), still
 measured on the ≤8 ms HID→hitscan latency probe (outside clocks).
+AGENTS.md / CONTRIBUTING.md must not re-sell “Fire is HID” / “HID fire
+first” / “Keep fire as HID peek” / “Click fires” / bare HID-as-product
+as the product fire verb — shark-fin AimBus peek owns product shoot;
+HID/trackpad is DESKTOP/forceGun emergency only (non-product). Coding
+agents read AGENTS.md first — leftover Fire-is-HID misguides every cut.
 Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
@@ -428,6 +433,17 @@ _PERF_BUDGET_FIRE_LIES = (
     r"fire is an hid event",
     r"\bfire is always hid\b",
     r"\bfire is hid\b",
+)
+
+# AGENTS.md / CONTRIBUTING.md leftover HID-as-product-fire — shark-fin owns peek.
+_AGENTS_CONTRIB_FIRE_LIES = (
+    r"\bfire is hid\b",
+    r"\bfire is always hid\b",
+    r"fire is an hid event",
+    r"\bhid fire first\b",
+    r"\bfire as hid peek\b",
+    r"keep fire as hid",
+    r"\bclick fires\b",
 )
 
 # Requirements leftover multi-browser SKU — Chromium / MacBook is the floor.
@@ -879,6 +895,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_tick_md_shot_honesty()
     test_yard_md_surface_honesty()
     test_perf_budget_shot_honesty()
+    test_agents_contributing_shot_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -2234,6 +2251,173 @@ def test_perf_budget_shot_honesty() -> None:
         _fail("docs/perf_budget.md must not invent a TV SKU")
 
 
+def _assert_no_agents_contrib_fire_lies(text: str, label: str) -> None:
+    """Leftover Fire-is-HID / HID-peek-as-product phrasing must not return."""
+    low = text.lower()
+    for pat in _AGENTS_CONTRIB_FIRE_LIES:
+        if re.search(pat, low):
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as the product "
+                "fire verb — shark-fin AimBus peek owns product shoot; "
+                "HID/trackpad is DESKTOP/forceGun emergency only (non-product)"
+            )
+
+
+def _assert_agents_contrib_shot_honest(block: str, label: str) -> None:
+    """AGENTS.md / CONTRIBUTING.md: shark-fin owns product peek; HID emergency."""
+    _assert_no_agents_contrib_fire_lies(block, label)
+    low = block.lower()
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as product shoot")
+    if (
+        "product shoot" not in low
+        and "product fire" not in low
+        and "product peek" not in low
+    ):
+        _fail(f"{label} must name shark-fin as product shoot / product peek")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "desktop" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP emergency only")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "emergency" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} must label HID/trackpad non-product")
+    if "camera" not in low:
+        _fail(f"{label} must keep never-wait-on-a-camera-frame honesty")
+
+
+def _assert_agents_md_shot_honest(block: str, label: str) -> None:
+    """AGENTS.md: shark-fin AimBus peek; never wait on cam / worker / tick / rAF."""
+    _assert_agents_contrib_shot_honest(block, label)
+    low = block.lower()
+    if "bloom" not in low:
+        _fail(f"{label} must keep no bloom")
+    if "aim-assist" not in low and "aim assist" not in low:
+        _fail(f"{label} must keep no aim-assist")
+    if "rng" not in low:
+        _fail(f"{label} must keep no RNG")
+    if "worker" not in low:
+        _fail(f"{label} must keep the peek outside the Hands worker")
+    if "128" not in block and "tick" not in low:
+        _fail(f"{label} must keep the peek outside the 128 Hz tick")
+    if "raf" not in low:
+        _fail(f"{label} must keep the peek outside rAF")
+    if (
+        "mptrack" not in low
+        and "detectforvideo" not in low
+        and "fallbackskin" not in low
+    ):
+        _fail(f"{label} must keep hand tracking as the aim engine")
+    if "hand" not in low:
+        _fail(f"{label} must keep hand tracking as the aim engine")
+
+
+def _assert_contributing_md_shot_honest(block: str, label: str) -> None:
+    """CONTRIBUTING.md: shark-fin owns product peek; HID peek is emergency honesty."""
+    _assert_agents_contrib_shot_honest(block, label)
+    low = block.lower()
+    if "aimsample" not in low:
+        _fail(f"{label} must keep the peek of AimSample")
+    if "never the product story" not in low and "never product story" not in low:
+        _fail(f"{label} must keep HID peek never the product story")
+
+
+def test_agents_contributing_shot_honesty() -> None:
+    """AGENTS.md + CONTRIBUTING.md: shark-fin owns fire; leftover Fire-is-HID fails."""
+    leftover_agents = (
+        "- **Aim is the engine.** Hand tracking (`proto/hands.js` `mpTrack` / "
+        "Worker `detectForVideo` / `fallbackSkin`) and HID fire first. Prefer "
+        "that over maps, net, Steam, or anti-cheat.\n"
+        "- **Fire is HID.** Do not wait on a camera frame to shoot. Do not "
+        "bloom. Do not aim-assist. Do not hide noise with RNG.\n"
+    )
+    try:
+        _assert_agents_md_shot_honest(leftover_agents, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("AGENTS.md gate missed leftover Fire-is-HID / HID-fire-first fixture")
+    leftover_contrib = (
+        "- Keep fire as HID peek of `AimSample`. Never wait on a camera frame.\n"
+    )
+    try:
+        _assert_contributing_md_shot_honest(leftover_contrib, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("CONTRIBUTING.md gate missed leftover Keep-fire-as-HID-peek fixture")
+    click_fires = (
+        "- Click fires the latest `AimSample`. Shark-fin peeks AimBus. "
+        "HID/trackpad is DESKTOP / forceGun emergency only (non-product). "
+        "Never wait on a camera frame.\n"
+    )
+    try:
+        _assert_agents_contrib_shot_honest(click_fires, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("AGENTS/CONTRIBUTING gate missed leftover Click-fires fixture")
+    hid_beside = (
+        "- Product fire is shark-fin AimBus peek. Fire is HID. Never wait on "
+        "a camera frame. HID/trackpad is DESKTOP / forceGun emergency only "
+        "(non-product).\n"
+    )
+    try:
+        _assert_agents_contrib_shot_honest(hid_beside, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "AGENTS/CONTRIBUTING gate missed leftover Fire-is-HID beside a "
+            "shark-fin line"
+        )
+    no_product = (
+        "- HID/trackpad is DESKTOP / forceGun emergency only (non-product). "
+        "Peek AimBus. Never wait on a camera frame, the Hands worker, the "
+        "128 Hz tick, or rAF. Do not bloom. Do not aim-assist. Do not hide "
+        "noise with RNG. Hand tracking (`mpTrack` / `detectForVideo` / "
+        "`fallbackSkin`) first.\n"
+    )
+    try:
+        _assert_agents_md_shot_honest(no_product, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "AGENTS.md gate missed missing shark-fin product shoot beside a "
+            "HID emergency line"
+        )
+    ok_agents = (
+        "- **Aim is the engine.** Hand tracking (`proto/hands.js` `mpTrack` / "
+        "Worker `detectForVideo` / `fallbackSkin`) first. Prefer that over "
+        "maps, net, Steam, or anti-cheat.\n"
+        "- **Product fire is shark-fin.** Shark-fin → `AimBus.fire()` peek "
+        "owns product shoot. Never wait on a camera frame, the Hands worker, "
+        "the 128 Hz tick, or rAF. HID / trackpad / DESKTOP / Space `forceGun` "
+        "are **non-product emergency** only. Do not bloom. Do not aim-assist. "
+        "Do not hide noise with RNG.\n"
+    )
+    _assert_agents_md_shot_honest(ok_agents, "framed-fixture")
+    ok_contrib = (
+        "- Keep product fire as shark-fin → `AimBus.fire()` peek of "
+        "`AimSample`. Never wait on a camera frame. HID peek stays DESKTOP / "
+        "`forceGun` emergency honesty only (non-product) — never the product "
+        "story.\n"
+    )
+    _assert_contributing_md_shot_honest(ok_contrib, "framed-fixture")
+    agents = _read("AGENTS.md")
+    _assert_no_agents_contrib_fire_lies(agents, "AGENTS.md")
+    _assert_agents_md_shot_honest(agents, "AGENTS.md")
+    contrib = _read("CONTRIBUTING.md")
+    _assert_no_agents_contrib_fire_lies(contrib, "CONTRIBUTING.md")
+    _assert_contributing_md_shot_honest(contrib, "CONTRIBUTING.md")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -2414,6 +2598,7 @@ def main() -> int:
         test_tick_md_shot_honesty()
         test_yard_md_surface_honesty()
         test_perf_budget_shot_honesty()
+        test_agents_contributing_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()
