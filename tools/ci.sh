@@ -23,6 +23,7 @@ test -s proto/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.js
 test -s proto/vendor/mediapipe/wasm/vision_wasm_nosimd_internal.wasm
 
 python3 tools/check_protocol.py
+python3 tools/check_stack_doc.py
 python3 tools/license_scan.py
 python3 tools/test_hid_fire.py
 python3 tools/test_shark_fin.py
