@@ -1,6 +1,6 @@
 # Stack
 
-Snapshot **2026-09-25**. This is the map of tools and packages this tree actually builds, vendors, or runs. Each row names the pin in git, how that layer is used, and the latest stable official docs on the snapshot date. CI checks that this file still names the in-repo pins. It does not fetch release pages.
+Snapshot **2026-10-12**. This is the map of tools and packages this tree actually builds, vendors, or runs. Each row names the pin in git, how that layer is used, and the latest stable official docs on the snapshot date. CI checks that this file still names the in-repo pins. It does not fetch release pages.
 
 Workspace label in `pixi.toml` is `0.4.0`. `proto/package.json` is `0.3.0` and lists no npm dependencies. Those strings are names, not solved packages.
 
@@ -20,27 +20,27 @@ Workspace label in `pixi.toml` is `0.4.0`. `proto/package.json` is `0.3.0` and l
 
 Latest stable means the current stable release on the vendor's own channel (not nightly, not rc). Node publishes both an Active LTS and a Current line; both are listed.
 
-| Layer | In this tree | Latest stable on 2026-09-25 | Drift |
+| Layer | In this tree | Latest stable on 2026-10-12 | Drift |
 | --- | --- | --- | --- |
-| Pixi | CLI unpinned. CI uses `prefix-dev/setup-pixi@v0.8.8` and does not set `pixi-version`. Lock schema header is `version: 6`. | [Pixi 0.81.0](https://github.com/prefix-dev/pixi/releases/tag/v0.81.0) (2026-09-15). Action [v0.10.2](https://github.com/prefix-dev/setup-pixi/releases/tag/v0.10.2) (2026-08-28). | Action tag is behind. The Pixi binary CI installs follows that action's default. |
+| Pixi | CLI unpinned. CI uses `prefix-dev/setup-pixi@v0.8.8` and does not set `pixi-version`. Lock schema header is `version: 6`. | [Pixi 0.81.0](https://github.com/prefix-dev/pixi/releases/tag/v0.81.0) (2026-09-15). Action [v0.11.0](https://github.com/prefix-dev/setup-pixi/releases/tag/v0.11.0) (2026-10-06). | Action tag is behind. The Pixi binary CI installs follows that action's default. |
 | Mojo | `pixi.toml`: `>=1.0.0b2,<2`. Lock: `mojo-1.0.0`, `mojo-compiler-1.0.0`, `mojo-python-1.0.0` on `https://conda.modular.com/max/` plus conda-forge. Platforms `linux-64`, `osx-arm64`. | [1.1.0](https://mojolang.org/releases/v1.1.0/) (2026-09-17). Nightly is `1.2.0.dev…`, not a pin. | Lock is one stable release behind. The manifest range already accepts 1.1.x. |
-| Python | `>=3.12,<3.15`. Lock: `python-3.14.7`. | [3.14.7](https://docs.python.org/3.14/) (2026-08-05), newest stable series. | Solved interpreter matches. 3.12 and 3.13 remain inside the manifest range; the lock chose 3.14.7. |
+| Python | `>=3.12,<3.15`. Lock: `python-3.14.7`. | [3.15.0](https://docs.python.org/3.15/) (2026-10-09), newest stable series. Newest 3.14 release is [3.14.8](https://docs.python.org/3.14/) (2026-09-30). | Lock is 3.14.7, one patch behind 3.14.8. 3.12 and 3.13 remain inside the manifest range. The range ends below 3.15. |
 | Three.js | Vendored `proto/vendor/three.module.js`, `REVISION = '170'` (npm `three@0.170.0`, 2024-10-31). | [0.186.1 / r186](https://github.com/mrdoob/three.js/releases) (2026-09-24). Docs: [threejs.org/docs](https://threejs.org/docs/). | Sixteen revisions. Client imports the vendored module only. |
-| MediaPipe Tasks Vision | Vendored `@mediapipe/tasks-vision@0.10.21` (published 2025-02-06) plus Hand Landmarker `float16/1`. CDN fallback in `proto/hands.js` is the same JS pin. | npm `latest`: [@mediapipe/tasks-vision@1.0.1](https://www.npmjs.com/package/@mediapipe/tasks-vision) (2026-07-31). npm `nightly` `1.1.0-rc.20260924` is not stable. Guide: [Hand Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker). | JS/WASM package is a major behind. Official model table still serves `float16/1`. |
-| CMake | `cmake_minimum_required(VERSION 3.16)`. CI `apt` installs distro `cmake`. | [4.4.3](https://cmake.org/download/) (2026-08-25). | 3.16 is a floor. The image's CMake is the one that builds. |
-| C++ compiler | C++17 (`CMAKE_CXX_STANDARD 17`, `run_cv_tests.sh -std=c++17`). Prefer `g++`. `clang++` is the fallback. No compiler version pin. | [GCC 16.2.0](https://gcc.gnu.org/gcc-16/) (2026-08-07). [LLVM/Clang 23.1.2](https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.2) (2026-09-22). | The language standard is the pin. |
-| Node.js | `tools/ci.sh` runs `node --check` on proto scripts when `node` exists. No version pin. | Active LTS [24.21.0](https://nodejs.org/en/about/previous-releases). Current [26.10.0](https://nodejs.org/docs/latest/api/) (2026-09-22). `--check`: [CLI](https://nodejs.org/docs/latest-v24.x/api/cli.html#--check). | Syntax check only. |
+| MediaPipe Tasks Vision | Vendored `@mediapipe/tasks-vision@0.10.21` (published 2025-02-06) plus Hand Landmarker `float16/1`. CDN fallback in `proto/hands.js` is the same JS pin. | npm `latest`: [@mediapipe/tasks-vision@1.1.0](https://www.npmjs.com/package/@mediapipe/tasks-vision) (2026-10-06). npm `nightly` `1.1.1-rc.20261011` is not stable. Guide: [Hand Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker). | JS/WASM package is a major behind. The model table links `float16/latest`. This tree pins `float16/1`, which is still published. |
+| CMake | `cmake_minimum_required(VERSION 3.16)`. CI `apt` installs distro `cmake`. | [4.4.4](https://cmake.org/download/) (2026-10-02). | 3.16 is a floor. The image's CMake is the one that builds. |
+| C++ compiler | C++17 (`CMAKE_CXX_STANDARD 17`, `run_cv_tests.sh -std=c++17`). Prefer `g++`. `clang++` is the fallback. No compiler version pin. | [GCC 16.2.0](https://gcc.gnu.org/gcc-16/) (2026-08-07). [LLVM/Clang 23.1.3](https://github.com/llvm/llvm-project/releases/tag/llvmorg-23.1.3) (2026-10-06). | The language standard is the pin. |
+| Node.js | `tools/ci.sh` runs `node --check` on proto scripts when `node` exists. No version pin. | Active LTS [24.21.0](https://nodejs.org/en/about/previous-releases). Current [26.11.1](https://nodejs.org/docs/latest/api/) (2026-10-07). `--check`: [CLI](https://nodejs.org/docs/latest-v24.x/api/cli.html#--check). | Syntax check only. |
 | `actions/checkout` | `actions/checkout@v5` in CI and release. | [v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) (2026-07-20). | Major tag is behind. `@v5` still floats inside v5. |
 | GitHub-hosted runner | `ubuntu-latest`. | On this date the label is [Ubuntu 24.04](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md). Ubuntu 26.04 is GA; `ubuntu-latest` migrates [2026-10-19 through 2026-11-19](https://github.blog/changelog/2026-09-17-ubuntu-26-generally-available-and-latest-migration/). | The label will move. Workflows do not pin `ubuntu-24.04`. |
 | Blender | Optional. `art/blender/build_sable_kit.py` says Blender 4.x. Not in CI. | [5.2.2 LTS](https://www.blender.org/releases/) (2026-09-15). [4.5.14 LTS](https://www.blender.org/releases/) is also active. API: [docs.blender.org/api/current](https://docs.blender.org/api/current/). | Comment still says 4.x. |
-| GitHub CLI | Release workflow calls `gh`. Binary comes from the runner. | [2.101.0](https://github.com/cli/cli/releases/tag/v2.101.0) (2026-09-15). Manual: [cli.github.com](https://cli.github.com/manual/). | Unpinned. |
+| GitHub CLI | Release workflow calls `gh`. Binary comes from the runner. | [2.102.0](https://github.com/cli/cli/releases/tag/v2.102.0) (2026-09-30). Manual: [cli.github.com](https://cli.github.com/manual/). | Unpinned. |
 
 ### Notable drift
 
-- **Three.js r170 → r186** and **MediaPipe 0.10.21 → 1.0.1** are the large client gaps. Both are vendored on purpose. A refresh is a separate change from this document.
+- **Three.js r170 → r186** and **MediaPipe 0.10.21 → 1.1.0** are the large client gaps. Both are vendored on purpose. A refresh is a separate change from this document.
 - **Mojo lock 1.0.0 → 1.1.0.** Kernels already spell `def` and `comptime`. Mojo 1.1 removed the older `fn` / `@parameter if` spellings ([1.1.0 notes](https://mojolang.org/releases/v1.1.0/)). That is not a tested bump; `pixi update` plus `pixi run test-aim` belongs in its own PR.
-- **Actions:** `actions/checkout@v5` vs v7.0.1, `prefix-dev/setup-pixi@v0.8.8` vs v0.10.2.
-- **Python 3.14.7 matches** the latest stable CPython.
+- **Actions:** `actions/checkout@v5` vs v7.0.1, `prefix-dev/setup-pixi@v0.8.8` vs v0.11.0.
+- **Python.** Lock `python-3.14.7` is one patch behind 3.14.8. Newest stable series is 3.15.0. The manifest range `>=3.12,<3.15` ends below that series. A lock refresh is a separate change from this document.
 - **CMake 3.16** is the minimum the lists accept, not the compiler CI runs.
 - **Blender 4.x** in the art script vs **5.2.2 LTS**. The script is optional and outside CI.
 
