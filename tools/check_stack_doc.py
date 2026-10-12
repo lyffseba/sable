@@ -2,7 +2,7 @@
 """STACK.md exists and still names the pins this tree actually solves.
 
 Reads the work tree only. Does not fetch release pages. The SNAPSHOT_MARKERS
-tuple is the 2026-09-25 latest-stable column; edit it in the same commit as
+tuple is the 2026-10-12 latest-stable column; edit it in the same commit as
 docs/STACK.md.
 """
 
@@ -23,21 +23,23 @@ HEADINGS = (
 
 # Written snapshot. Not a live query.
 SNAPSHOT_MARKERS = (
-    "2026-09-25",
+    "2026-10-12",
     "0.81.0",
-    "v0.10.2",
+    "v0.11.0",
     "1.1.0",
     "0.186.1",
     "r186",
-    "@mediapipe/tasks-vision@1.0.1",
-    "4.4.3",
+    "@mediapipe/tasks-vision@1.1.0",
+    "3.15.0",
+    "3.14.8",
+    "4.4.4",
     "16.2.0",
-    "23.1.2",
+    "23.1.3",
     "24.21.0",
-    "26.10.0",
+    "26.11.1",
     "v7.0.1",
     "5.2.2",
-    "2.101.0",
+    "2.102.0",
     "float16/1",
     "Ubuntu 24.04",
 )
