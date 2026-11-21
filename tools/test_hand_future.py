@@ -56,6 +56,13 @@ Lock chrome must not sell Gemini / AI HAND LOCK as product vision.
 Lock stays SEEKING → Hands lock or Space / PLAY ANYWAY (Q4).
 Proto server must not sell /api/gemini/lock or health.gemini.
 Hands-class interim; Meta SAM-class invent; no Gemini product vision.
+research/ENGINE.md must not re-sell “Gemini 3.8 Flash Agentic SWE” /
+Gemini as the engine lock, “Bay 1v1” as a live mode, or a
+“DOM HID click mailbox” as the product fire path. Shark-fin AimBus
+peek owns product shoot; HID/trackpad is DESKTOP/forceGun emergency
+only (non-product). Bay stays parked. The Yard is the sole active
+map. Ship floor is Chromium on a MacBook Pro–class lid camera.
+No Gemini product vision.
 """
 
 from __future__ import annotations
@@ -896,6 +903,7 @@ def test_readme_keys_shot_honesty() -> None:
     test_yard_md_surface_honesty()
     test_perf_budget_shot_honesty()
     test_agents_contributing_shot_honesty()
+    test_engine_md_shot_honesty()
 
 
 def _js_file_header(src: str, label: str) -> str:
@@ -2418,6 +2426,143 @@ def test_agents_contributing_shot_honesty() -> None:
     _assert_contributing_md_shot_honest(contrib, "CONTRIBUTING.md")
 
 
+def _assert_no_engine_md_fire_lies(block: str, label: str) -> None:
+    """research/ENGINE.md leftover Gemini / live-Bay / HID-click-as-product."""
+    low = block.lower()
+    if re.search(
+        r"gemini\s*3|gemini\s+flash|agentic swe|/api/gemini|"
+        r"gemini analyzing|gemini lock|gemini_muzzle",
+        low,
+    ):
+        _fail(
+            f"{label} must not name Gemini as the engine lock or a product "
+            "vision path — no Gemini product vision"
+        )
+    if "gemini" in low and not re.search(r"\b(no|not|never|without)\s+gemini\b", low):
+        _fail(
+            f"{label} must not name Gemini as the engine lock or a product "
+            "vision path — no Gemini product vision"
+        )
+    for pat in (
+        "bay 1v1",
+        "bay 1-v-1",
+        "live bay",
+    ):
+        if pat in low and "parked" not in low:
+            _fail(
+                f"{label} must not sell {pat!r} as a live mode — "
+                "Bay stays parked; the Yard is the sole active map"
+            )
+    for pat in (
+        "dom hid click mailbox",
+        "hid click mailbox",
+        "sub-millisecond dom hid click",
+        "fire is hid",
+        "click fires",
+        "click is hid",
+    ):
+        if pat in low:
+            _fail(
+                f"{label} must not re-sell leftover {pat!r} as the product "
+                "fire path — shark-fin AimBus peek owns product shoot; "
+                "HID/trackpad is DESKTOP/forceGun emergency only (non-product)"
+            )
+
+
+def _assert_engine_md_shot_honest(block: str, label: str) -> None:
+    """research/ENGINE.md: shark-fin owns product peek; Bay parked; no Gemini."""
+    _assert_no_engine_md_fire_lies(block, label)
+    low = block.lower()
+    if "1650" in low or "integrated graphics" in low:
+        _fail(f"{label} must not name a desktop GPU / second SKU floor")
+    if "shark-fin" not in low and "shark fin" not in low:
+        _fail(f"{label} must name shark-fin as product shoot")
+    if (
+        "product shoot" not in low
+        and "product fire" not in low
+        and "product peek" not in low
+    ):
+        _fail(f"{label} must name shark-fin as product shoot / product peek")
+    if "aimbus" not in low:
+        _fail(f"{label} must name AimBus peek")
+    if "peek" not in low:
+        _fail(f"{label} must keep AimBus peek")
+    if "aimsample" not in low:
+        _fail(f"{label} must keep the peek against the latest AimSample")
+    if "desktop" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP emergency only")
+    if "forcegun" not in low and "force-gun" not in low and "force gun" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "emergency" not in low:
+        _fail(f"{label} must label HID/trackpad DESKTOP/forceGun emergency only")
+    if "non-product" not in low:
+        _fail(f"{label} must label HID/trackpad non-product")
+    if "parked" not in low:
+        _fail(f"{label} must keep Bay parked")
+    if "bay" not in low:
+        _fail(f"{label} must name Bay as parked")
+    if "yard" not in low:
+        _fail(f"{label} must name the Yard as the sole active map")
+    if "sole" not in low and "only map" not in low and "only active" not in low:
+        _fail(f"{label} must keep the Yard as the sole active map")
+    if "chromium" not in low:
+        _fail(f"{label} must name Chromium as the ship-floor browser")
+    if "macbook" not in low:
+        _fail(f"{label} must name a MacBook Pro–class lid camera as the ship floor")
+    if "firefox" in low or "safari" in low:
+        _fail(f"{label} must not sell Firefox / Safari as a ship SKU")
+    if "camera" not in low and "lid cam" not in low and "lid-cam" not in low:
+        _fail(f"{label} must keep never-wait-on-a-camera-frame / lid-cam honesty")
+
+
+def test_engine_md_shot_honesty() -> None:
+    """research/ENGINE.md: no Gemini; shark-fin owns fire; Bay parked."""
+    leftover = (
+        "**Web-Native Core (WebGL / 3D Canvas / Web Workers) + "
+        "Gemini 3.8 Flash Agentic SWE.**\n\n"
+        "- **Tracking**: In-browser `getUserMedia` (720p/1080p), NCC patch "
+        "tracking, One Euro pointing filter, sub-millisecond DOM HID click "
+        "mailbox.\n"
+        "- **Modes**:\n"
+        "  - **Range**: 60s physical ADS arcade target practice loop.\n"
+        "  - **Bay 1v1**: CANCHO duel arena with 3D perspective projection, "
+        "WASD pad movement, physical lift ADS, window/angle cover vs open "
+        "middle exposure, and operator styles (`default`, `ranked`, `night`).\n"
+        "- **Target Architecture**: Pure web-native client running 60–120 FPS "
+        "in modern browsers.\n"
+    )
+    try:
+        _assert_engine_md_shot_honest(leftover, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail(
+            "ENGINE.md gate missed leftover Gemini / Bay-1v1 / "
+            "HID-click-mailbox fixture"
+        )
+    ok = (
+        "**Web-Native Core (WebGL / 3D Canvas / Web Workers).** No Gemini.\n\n"
+        "- **Tracking**: In-browser `getUserMedia`, MediaPipe Hands-class, "
+        "One Euro. Fire peeks the latest `AimSample` on AimBus — never waits "
+        "on a camera frame. Product shoot is shark-fin (thumb UP). HID / "
+        "trackpad click is DESKTOP / forceGun emergency only (non-product) "
+        "— never the product shot.\n"
+        "- **Modes**: The Yard is the sole active map. Bay stays parked "
+        "(not player-facing).\n"
+        "- **Floor**: Chromium on a MacBook Pro–class lid camera.\n"
+    )
+    _assert_engine_md_shot_honest(ok, "framed-fixture")
+    second_sku = ok + "- **Floor**: 1080p60 on integrated graphics / GTX 1650.\n"
+    try:
+        _assert_engine_md_shot_honest(second_sku, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("ENGINE.md gate missed leftover GTX 1650 second-SKU floor")
+    engine = _read("research/ENGINE.md")
+    _assert_engine_md_shot_honest(engine, "research/ENGINE.md")
+
+
 def test_lock_chrome_does_not_sell_gemini() -> None:
     """Lock chrome is Hands-class / PLAY ANYWAY — not Gemini AI HAND LOCK."""
     html = _read("proto/index.html")
@@ -2599,6 +2744,7 @@ def main() -> int:
         test_yard_md_surface_honesty()
         test_perf_budget_shot_honesty()
         test_agents_contributing_shot_honesty()
+        test_engine_md_shot_honesty()
         test_chrome_product_shoot_is_shark_fin()
         test_chrome_reload_is_charger_plug()
         test_chrome_calib_capture_is_shark_fin()

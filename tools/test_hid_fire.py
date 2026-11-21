@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""HID fire uses the last AimSample even if the current camera frame is missing."""
+"""HID fire uses the last AimSample even if the current camera frame is missing.
+
+After four calib corners, onHidPointerDown must not bare-fire() a pad
+click on product GUN. Shark-fin owns the post-calib confirm peek.
+HID fire stays S.desktop || S.forceGun || productGunHidFire().
+"""
 
 from __future__ import annotations
 
@@ -443,6 +448,66 @@ def test_sableperf_budget() -> None:
         raise AssertionError("a 12 ms hit must fail the 8 ms p99 bar")
 
 
+
+def test_calib_hid_fire_uses_product_gate() -> None:
+    """After four calib corners, pad click must not fire() on product GUN."""
+    src = proto_js()
+    sample = re.search(r"class AimSample \{[\s\S]*?\n\}", src)
+    if not sample:
+        raise AssertionError("AimSample class missing")
+    fields = re.findall(r"this\.(\w+)", sample.group(0))
+    if fields != ["uv", "valid", "lifted", "confidence", "t_hw"]:
+        raise AssertionError("AimSample must stay five fields — do not invent a sixth")
+    gate = _js_fn(src, "productGunHidFire")
+    if "return true" in gate:
+        raise AssertionError("productGunHidFire must stay false — HID is not product GUN shoot")
+    if "return false" not in gate:
+        raise AssertionError("productGunHidFire must return false")
+    if "fire(" in gate:
+        raise AssertionError("productGunHidFire must not peek — it only answers the gate")
+    hid = _js_fn(src, "onHidPointerDown")
+    calib = re.search(
+        r'if \(phase === "calibrate"\) \{([\s\S]*?)\n  \}',
+        hid,
+    )
+    if not calib:
+        raise AssertionError("onHidPointerDown must still see calibrate")
+    body = calib.group(1)
+    if "captureCorner()" not in body:
+        raise AssertionError("HID click capture stays the non-product emergency corner path")
+    if "S.calibIndex < 4" not in body:
+        raise AssertionError("calib HID must still capture corners before index 4")
+    if re.search(r"else\s+fire\(\)\s*;", body) and not _hid_fire_gate(body):
+        raise AssertionError(
+            "calibrate HID must not fire() when !S.desktop && !S.forceGun — "
+            "shark-fin owns the post-calib confirm"
+        )
+    if re.search(r"^\s*else fire\(\);\s*$", body, re.M):
+        raise AssertionError(
+            "calibrate HID must not bare else fire() after four corners — "
+            "gate fire() on S.desktop || S.forceGun || productGunHidFire()"
+        )
+    if "S.desktop" not in body or "S.forceGun" not in body or "productGunHidFire()" not in body:
+        raise AssertionError(
+            "calibrate HID fire must be S.desktop || S.forceGun || productGunHidFire()"
+        )
+    if "fire()" not in body:
+        raise AssertionError(
+            "DESKTOP / forceGun pad must still peek through fire() after calib corners"
+        )
+    if not _hid_fire_gate(body):
+        raise AssertionError(
+            "calibrate HID must gate fire() on S.desktop || S.forceGun || productGunHidFire()"
+        )
+    fin = _js_fn(src, "maybeSharkFinFire")
+    if "fire()" not in fin:
+        raise AssertionError("shark-fin must peek through fire() — it owns the post-calib confirm")
+    if "captureCorner()" not in fin or "S.calibIndex < 4" not in fin:
+        raise AssertionError("shark-fin must still capture early calib corners")
+    if "productGunHidFire()" in fin:
+        raise AssertionError("shark-fin must not sit behind the HID product gate")
+
+
 def main() -> int:
     try:
         test_python_mailbox()
@@ -451,6 +516,7 @@ def main() -> int:
         test_desktop_confidence()
         test_client_does_not_wait()
         test_product_gun_mutes_hid_fire()
+        test_calib_hid_fire_uses_product_gate()
         test_forcegun_rearms_pad()
         test_hid_lives_on_window()
         test_sableperf_budget()
