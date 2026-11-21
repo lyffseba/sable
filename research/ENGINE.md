@@ -8,6 +8,6 @@
 - **Modes**:
   - **Yard / Gallery**: 60s physical ADS arcade. The Yard is the sole active map.
   - **Bay**: parked (not player-facing). Not a live 1v1 mode.
-- **Floor**: 1080p60 on integrated graphics / GTX 1650; 1080p120 on modern GPUs. Zero install required. Ship browser is Chromium.
+- **Perf budget**: 1080p60 on the ship floor (Chromium on a MacBook Pro–class laptop, lid camera); higher refresh is a bonus, not a second SKU. Zero install required.
 - **Native kernels**: Mojo 1.0 via Pixi (`native/mojo`) — One Euro, spatial moments, 3D hitscan.
 - **License**: Apache-2.0. Repo: https://github.com/lyffseba/sable

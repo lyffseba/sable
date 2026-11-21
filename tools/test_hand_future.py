@@ -2473,6 +2473,8 @@ def _assert_engine_md_shot_honest(block: str, label: str) -> None:
     """research/ENGINE.md: shark-fin owns product peek; Bay parked; no Gemini."""
     _assert_no_engine_md_fire_lies(block, label)
     low = block.lower()
+    if "1650" in low or "integrated graphics" in low:
+        _fail(f"{label} must not name a desktop GPU / second SKU floor")
     if "shark-fin" not in low and "shark fin" not in low:
         _fail(f"{label} must name shark-fin as product shoot")
     if (
@@ -2550,6 +2552,13 @@ def test_engine_md_shot_honesty() -> None:
         "- **Floor**: Chromium on a MacBook Pro–class lid camera.\n"
     )
     _assert_engine_md_shot_honest(ok, "framed-fixture")
+    second_sku = ok + "- **Floor**: 1080p60 on integrated graphics / GTX 1650.\n"
+    try:
+        _assert_engine_md_shot_honest(second_sku, "fixture")
+    except AssertionError:
+        pass
+    else:
+        _fail("ENGINE.md gate missed leftover GTX 1650 second-SKU floor")
     engine = _read("research/ENGINE.md")
     _assert_engine_md_shot_honest(engine, "research/ENGINE.md")
 
