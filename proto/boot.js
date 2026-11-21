@@ -1183,7 +1183,7 @@ function onHidPointerDown(e) {
     }
     if (recap >= 0) { S.calibIndex = recap; captureCorner(); }
     else if (S.calibIndex < 4) captureCorner();
-    else fire();
+    else if (S.desktop || S.forceGun || productGunHidFire()) fire();
     return;
   }
   if (phase === "range" || phase === "bay" || phase === "lobby") {
